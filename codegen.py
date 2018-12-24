@@ -18,6 +18,10 @@ def IsUnary(char):
 def WriteBinaryInstruction(file, instruction, indentation):
     parent, pair = instruction
     a, b = pair
+    parent = parent.Get()
+    a = a.Get()
+    b = b.Get()
+
     if parent == "+":
         WriteStatement(file, "mov eax, " + a + "\n", indentation)
         WriteStatement(file, "mov ebx, " + b + "\n", indentation)
@@ -26,10 +30,17 @@ def WriteBinaryInstruction(file, instruction, indentation):
     elif parent == "*":
         WriteStatement(file, "mov eax, " + a + "\n", indentation)
         WriteStatement(file, "mov ebx, " + b + "\n", indentation)
-        WriteStatement(file, "add eax, ebx\n", indentation)
+        WriteStatement(file, "mul ebx\n", indentation)
+        #NOTE(Noah): Here we are truncating the value to 32 bits
         WriteStatement(file, "push eax\n", indentation)
     elif parent == "/":
-        pass
+        #Clear upper 32 bits of dividend
+        WriteStatement(file, "xor edx, edx\n", indentation)
+        WriteStatement(file, "mov eax, " + a + "\n", indentation)
+        WriteStatement(file, "mov ebx, " + b + "\n", indentation)
+        WriteStatement(file, "div ebx\n", indentation)
+        #NOTE(Noah): Here we do a round down because we ignore the remainder
+        WriteStatement(file, "push eax\n", indentation)
     elif parent == "-":
         WriteStatement(file, "mov eax, " + a + "\n", indentation)
         WriteStatement(file, "mov ebx, " + b + "\n", indentation)
@@ -58,11 +69,10 @@ def Run(tree, file):
             statementTree = statement.children[0]
             for l in range(-1, -1-statementTree.Len(), -1):
                 #2 tree pointers in a tuple, and then a list of those
-                pairs = statementTree.GetChildrenPairsAtLayer(l)
-                for pair in pairs:
-                    parent = pair.GetParent()
-                    instruction = (parent, pair)
-                    identifier = WriteInstruction(file, instruction, indentation)
+                parents, pairs = statementTree.GetFamilies(l)
+                for instruction in zip(parents, pairs):
+                    parent, pair = instruction
+                    identifier = WriteBinaryInstruction(file, instruction, indentation)
                     parent.Set(identifier)
                 statementTree.Strip()
 
