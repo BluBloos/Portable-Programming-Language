@@ -15,66 +15,114 @@ def IsUnary(char):
         return True
     return False
 
+def GetASMFromID(identifier):
+    return "[ebp - " + identifier + "]"
+
 def WriteBinaryInstruction(file, instruction, indentation):
     parent, pair = instruction
     a, b = pair
-    parent = parent.Get()
-    a = a.Get()
-    b = b.Get()
+    a = a.data
+    b = b.data
+    parent = parent.data
+    global GLOBAL_INDENTIFIER
+
+    if "id:" in a:
+        a = GetASMFromID(a)
+    if "id:" in b:
+        b = GetASMFromID(b)
 
     if parent == "+":
-        WriteStatement(file, "mov eax, " + a + "\n", indentation)
-        WriteStatement(file, "mov ebx, " + b + "\n", indentation)
-        WriteStatement(file, "add eax, ebx\n", indentation)
-        WriteStatement(file, "push eax\n", indentation)
+        WriteStatement(file, "mov eax, " + a, indentation)
+        WriteStatement(file, "mov ebx, " + b, indentation)
+        WriteStatement(file, "add eax, ebx", indentation)
+        WriteStatement(file, "push eax", indentation)
     elif parent == "*":
-        WriteStatement(file, "mov eax, " + a + "\n", indentation)
-        WriteStatement(file, "mov ebx, " + b + "\n", indentation)
-        WriteStatement(file, "mul ebx\n", indentation)
+        WriteStatement(file, "mov eax, " + a, indentation)
+        WriteStatement(file, "mov ebx, " + b, indentation)
+        WriteStatement(file, "mul ebx", indentation)
         #NOTE(Noah): Here we are truncating the value to 32 bits
-        WriteStatement(file, "push eax\n", indentation)
+        WriteStatement(file, "push eax", indentation)
     elif parent == "/":
         #Clear upper 32 bits of dividend
-        WriteStatement(file, "xor edx, edx\n", indentation)
-        WriteStatement(file, "mov eax, " + a + "\n", indentation)
-        WriteStatement(file, "mov ebx, " + b + "\n", indentation)
-        WriteStatement(file, "div ebx\n", indentation)
+        WriteStatement(file, "xor edx, edx", indentation)
+        WriteStatement(file, "mov eax, " + a, indentation)
+        WriteStatement(file, "mov ebx, " + b, indentation)
+        WriteStatement(file, "div ebx", indentation)
         #NOTE(Noah): Here we do a round down because we ignore the remainder
-        WriteStatement(file, "push eax\n", indentation)
+        WriteStatement(file, "push eax", indentation)
     elif parent == "-":
-        WriteStatement(file, "mov eax, " + a + "\n", indentation)
-        WriteStatement(file, "mov ebx, " + b + "\n", indentation)
-        WriteStatement(file, "sub eax, ebx\n", indentation)
-        WriteStatement(file, "push eax\n", indentation)
+        WriteStatement(file, "mov eax, " + a, indentation)
+        WriteStatement(file, "mov ebx, " + b, indentation)
+        WriteStatement(file, "sub eax, ebx", indentation)
+        WriteStatement(file, "push eax", indentation)
 
     GLOBAL_INDENTIFIER += 4
-    return GLOBAL_INDENTIFIER
+    return "id:" + str(GLOBAL_INDENTIFIER)
 
-def GetASMFromID(id):
-    return id
+def WriteUnaryInstruction(file, instruction, indentation):
+    parent, child = instruction
+    parent = parent.data
+    child = child.data
+
+    if "id:" in child:
+        child = GetASMFromID(child)
+
+    if parent == "-":
+        WriteStatement(file, "mov eax, " + child, indentation)
+        WriteStatement(file, "neg eax", indentation)
+        WriteStatement(file, "push eax", indentation)
+    elif parent == "!":
+        WriteStatement(file, "mov eax, " + child, indentation)
+        WriteStatement(file, "test eax, eax", indentation)
+        WriteStatement(file, "xor eax, eax", indentation)
+        WriteStatement(file, "sete eax", indentation)
+        WriteStatement(file, "push eax", indentation)
+
+    GLOBAL_INDENTIFIER += 4
+    return "id:" + str(GLOBAL_INDENTIFIER)
 
 def CopyFromID(file, source, dest, indentation):
-    file.write(" " * indentation + "mov " + dest + ", " + GetASMFromID(id) + "\n")
+    WriteStatement(file, "mov " + dest + ", " + GetASMFromID(source), indentation)
 
 def Run(tree, file):
     for function in tree.children:
         indentation = 0
-        WriteStatement(file, "global _start", indentation)
-        WriteStatement(file, "_start:", indentation)
+        WriteStatement(file, "global " + function.data, indentation)
+        WriteStatement(file, function.data + ":", indentation)
         indentation += SPACES_PER_TAB
         for statement in function.children:
-            #right now we only support one statement, and it's called return
+            #right now we only support the return statement
             #we need to recursivly generate the code for the value that we return
 
-            statementTree = statement.children[0]
-            for l in range(-1, -1-statementTree.Len(), -1):
-                #2 tree pointers in a tuple, and then a list of those
-                parents, pairs = statementTree.GetFamilies(l)
-                for instruction in zip(parents, pairs):
-                    parent, pair = instruction
-                    identifier = WriteBinaryInstruction(file, instruction, indentation)
-                    parent.Set(identifier)
-                statementTree.Strip()
+            WriteStatement(file, "push ebp", indentation)
+            WriteStatement(file, "mov ebp, esp", indentation)
 
-            CopyFromID(file, statementTree.data, "eax", indentation)
+            statement = statement.children[0]
+            for l in range(statement.depth-1, 0,-1):
+                print("l: " + str(l))
+                #2 tree pointers in a tuple, and then a list of those
+                families = statement.GetFamilies(l)
+                print(families)
+                for parent, pair in families:
+                    print("PARENT:")
+                    parent.Print(0)
+                    print("CHILD1:")
+                    a, b = pair
+                    a.Print(0)
+                    #instruction = (parent, pair)
+                    if b:
+                        print("CHILD2:")
+                        b.Print(0)
+                        instruction = (parent, pair)
+                        identifier = WriteBinaryInstruction(file, instruction, indentation)
+                        parent.data = identifier
+                    else:
+                        instruction = (parent, a)
+                        identifier = WriteUnaryInstruction(file, instruction, indentation)
+                        parent.data = identifier
+                statement.Strip()
+
+            CopyFromID(file, statement.data, "eax", indentation)
+            WriteStatement(file, "add esp, " + str(GLOBAL_INDENTIFIER), indentation)
+            WriteStatement(file, "pop ebp", indentation)
             WriteStatement(file, "ret", indentation)

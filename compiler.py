@@ -33,6 +33,8 @@ if len(sys.argv) > 1:
 
     if DEBUG:
         tree.Print(0)
+        tree.PrintWeights(0)
+        print("Depth: " + str(tree.depth))
 
     #annotatedTree, result = semantics.Run(tree, logger)
 

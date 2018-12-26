@@ -68,13 +68,15 @@ def Parse_Factor(tokens, logger):
         if not IsInteger(token.value):
             logger.Error("line " + str(token.line) + " expected integer")
             return (False, tokens)
-        return (Tree(token.value), tokens)
+        return (Tree(token.value, 0), tokens)
     elif token.type == "OP" and IsUnary(token.value):
         #the expression is a unary expression
         factor, tokens = Parse_Factor(tokens, logger)
         if not factor:
             return (False, tokens)
-        return (Tree(token.value, [factor]), tokens)
+        result = Tree(token.value, 0)
+        result.Adopt(factor)
+        return (result, tokens)
     elif token.type == "PART" and token.value == "(":
         #the next token must be an expression
         expression, tokens = Parse_Expression(tokens, logger)
@@ -103,7 +105,10 @@ def Parse_Term(tokens, logger):
         factor, tokens = Parse_Factor(tokens, logger)
         if not factor:
             return (False, tokens)
-        lastFactor = Tree(token.value, [lastFactor, factor])
+        tree = Tree(token.value, 0)
+        tree.Adopt(lastFactor)
+        tree.Adopt(factor)
+        lastFactor = tree
         token = tokens.Query()
 
     return (lastFactor, tokens)
@@ -121,7 +126,10 @@ def Parse_Expression(tokens, logger):
         term, tokens = Parse_Term(tokens, logger)
         if not term:
             return (False, tokens)
-        lastTerm = Tree(token.value, [lastTerm, term])
+        tree = Tree(token.value, 0)
+        tree.Adopt(lastTerm)
+        tree.Adopt(term)
+        lastTerm = tree
         token = tokens.Query()
 
     return (lastTerm, tokens)
@@ -141,7 +149,9 @@ def Parse_Statement(tokens, logger):
         logger.Error("line " + str(token.line) + " expected END")
         return (False, tokens)
 
-    return (Tree("return", [expression]), tokens)
+    statement = Tree("return", 0)
+    statement.Adopt(expression)
+    return (statement, tokens)
 
 def Parse_Function(tokens, logger):
     token = tokens.Next()
@@ -179,14 +189,20 @@ def Parse_Function(tokens, logger):
         logger.Error("line " + str(token.line) + " expected }")
         return (False, tokens)
 
-    return (Tree(name, [statement]), tokens)
+    function = Tree(name, 0)
+    function.Adopt(statement)
+    return (function, tokens)
 
 def Parse_Program(tokens, logger):
     function, tokens = Parse_Function(tokens, logger)
     if not function:
         return (False, tokens)
-    return (Tree("program", [function]), tokens)
+    program = Tree("program", 0)
+    program.Adopt(function)
+    return (program, tokens)
 
 def Run(tokens, logger):
     program, tokens = Parse_Program(tokens, logger)
+    if not program:
+        return False
     return program
