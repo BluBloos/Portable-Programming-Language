@@ -16,7 +16,7 @@ def IsUnary(char):
     return False
 
 def GetASMFromID(identifier):
-    return "[ebp - " + identifier + "]"
+    return "[ebp - " + identifier.replace("id:", "") + "]"
 
 def WriteBinaryInstruction(file, instruction, indentation):
     parent, pair = instruction
@@ -63,6 +63,7 @@ def WriteUnaryInstruction(file, instruction, indentation):
     parent, child = instruction
     parent = parent.data
     child = child.data
+    global GLOBAL_INDENTIFIER
 
     if "id:" in child:
         child = GetASMFromID(child)
@@ -102,17 +103,17 @@ def Run(tree, file):
                 print("l: " + str(l))
                 #2 tree pointers in a tuple, and then a list of those
                 families = statement.GetFamilies(l)
-                print(families)
+                #print(families)
                 for parent, pair in families:
-                    print("PARENT:")
-                    parent.Print(0)
-                    print("CHILD1:")
+                    #print("PARENT:")
+                    #parent.Print(0)
+                    #print("CHILD1:")
                     a, b = pair
-                    a.Print(0)
+                    #a.Print(0)
                     #instruction = (parent, pair)
                     if b:
-                        print("CHILD2:")
-                        b.Print(0)
+                        #print("CHILD2:")
+                        #b.Print(0)
                         instruction = (parent, pair)
                         identifier = WriteBinaryInstruction(file, instruction, indentation)
                         parent.data = identifier
@@ -121,6 +122,7 @@ def Run(tree, file):
                         identifier = WriteUnaryInstruction(file, instruction, indentation)
                         parent.data = identifier
                 statement.Strip()
+                statement.Print(0)
 
             CopyFromID(file, statement.data, "eax", indentation)
             WriteStatement(file, "add esp, " + str(GLOBAL_INDENTIFIER), indentation)
