@@ -63,12 +63,20 @@ class Tree:
         self.numberOfNodes += 1
 
     def Adopt(self, tree):
+        #print("-----------ADOPT-----------")
+        #print("SELF: ")
+        #self.Print(0)
+        #print("TREE: ")
+        #tree.Print(0)
         tree.number = 0
         tree.parent = self
         numberOfNodes = tree.numberOfNodes
         depthAddition = tree.depth
         root, layer = self.GetRootAndLayer()
         deltaDepth = root.depth - (layer + 1)
+        #print("deltaDepth: " + str(deltaDepth))
+        #print("[ROOT]")
+        #root.Print(0)
 
         if not self.children: #If I am childless
             self.children = [tree]
@@ -77,7 +85,8 @@ class Tree:
             self.children.append(tree)
 
         #traverse up the tree and update the depth
-        depthAddition -= deltaDepth
+        depthAddition = max(0, depthAddition - deltaDepth)
+        #print("depthAddition: " + str(depthAddition))
         self.depth += depthAddition
         parent = self.parent
         while parent:
@@ -95,6 +104,7 @@ class Tree:
             me, parent = parent, parent.parent
 
         self.numberOfNodes += numberOfNodes
+        #print("-----------END-----------")
 
     def RandomDescent(self):
         range = len(self.children)
@@ -133,19 +143,19 @@ class Tree:
 
         tree = treePointer.Get()
         while tree:
-            print("GETTING FAMILY")
+            #print("GETTING FAMILY")
             #construct a family
             child1 = tree
-            print("Child1: " + child1.data)
+            #print("Child1: " + child1.data)
             child2 = None
             parent = None
             if tree.parent:
                 parent = tree.parent
-                print("Parent: " + parent.data)
+                #print("Parent: " + parent.data)
             tree = treePointer.Advance()
             if tree and tree.parent == parent:
                 child2 = tree
-                print("final advance")
+                #print("final advance")
                 tree = treePointer.Advance()
             families.append((parent, (child1, child2)))
 
@@ -171,16 +181,16 @@ class TreePointer:
 
         while(1):
             normalizedLayer = (self.layer - currentLayer)
-            print("Index: " + str(self.index))
-            print("Normalized Layer: " + str(normalizedLayer))
-            print("LEFT:")
+            #print("Index: " + str(self.index))
+            #print("Normalized Layer: " + str(normalizedLayer))
+            #print("LEFT:")
             #compute max nodes at layer for left side
             maxNodesRemaining = root.weights[0] - (normalizedLayer - 1)
-            print("maxNodesRemaining: " + str(maxNodesRemaining))
+            #print("maxNodesRemaining: " + str(maxNodesRemaining))
             maxNodesLeft = min( (2**normalizedLayer) / 2, maxNodesRemaining)
-            print("maxNodesLeft: " + str(maxNodesLeft))
-            print("lowerBound: " + str(leftRelative))
-            print("upperBound: "  + str(leftRelative + maxNodesLeft - 1))
+            #print("maxNodesLeft: " + str(maxNodesLeft))
+            #print("lowerBound: " + str(leftRelative))
+            #print("upperBound: "  + str(leftRelative + maxNodesLeft - 1))
             if (self.index <= leftRelative + maxNodesLeft - 1) and (self.index >= leftRelative):
                 #index is down the left path
                 if normalizedLayer == 1:
@@ -189,18 +199,18 @@ class TreePointer:
                 else:
                     currentLayer += 1 #step down
                     root = root.children[0] #go down the left path
-                    print("went down left path")
+                    #print("went down left path")
                 continue
 
-            print("RIGHT:")
+            #print("RIGHT:")
             #compute max nodes at layer for right side
             if len(root.weights) == 2:
                 maxNodesRemaining = root.weights[1] - (normalizedLayer - 1)
-                print("maxNodesRemaining: " + str(maxNodesRemaining))
+                #print("maxNodesRemaining: " + str(maxNodesRemaining))
                 maxNodesRight = min( (2**normalizedLayer) / 2, maxNodesRemaining)
-                print("maxNodesRight: " + str(maxNodesRight))
-                print("lowerBound: " + str(leftRelative + maxNodesLeft))
-                print("upperBound: "  + str(leftRelative + maxNodesLeft + maxNodesRight - 1))
+                #print("maxNodesRight: " + str(maxNodesRight))
+                #print("lowerBound: " + str(leftRelative + maxNodesLeft))
+                #print("upperBound: "  + str(leftRelative + maxNodesLeft + maxNodesRight - 1))
                 if (self.index <= leftRelative + maxNodesLeft + maxNodesRight - 1) and (self.index >= leftRelative + maxNodesLeft):
                     #index is down the right path
                     if normalizedLayer == 1:
@@ -210,7 +220,7 @@ class TreePointer:
                         currentLayer += 1 #step down
                         root = root.children[1] #go down the left path
                         leftRelative += maxNodesLeft
-                        print("went down right path")
+                        #print("went down right path")
                     continue
 
             break

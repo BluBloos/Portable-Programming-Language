@@ -57,18 +57,21 @@ def IsUnary(char):
     return False
 
 def IsBinary(char):
-    if char in "+-/*":
+    if char in "+-/*%":
         return True
     return False
 
 def Parse_Factor(tokens, logger):
+    #print("factor")
     #the first token can be a parenthesis, a unary op, or an int
     token = tokens.Next()
     if token.type == "SYMBOL":
-        if not IsInteger(token.value):
-            logger.Error("line " + str(token.line) + " expected integer")
-            return (False, tokens)
-        return (Tree(token.value, 0), tokens)
+        if IsInteger(token.value):
+            return (Tree(token.value, 0), tokens)
+        #NOTE(Noah): beware of what "not being an integer" means...
+        else:
+            return (Tree("var:" + token.value, 0), tokens)
+
     elif token.type == "OP" and IsUnary(token.value):
         #the expression is a unary expression
         factor, tokens = Parse_Factor(tokens, logger)
@@ -77,6 +80,7 @@ def Parse_Factor(tokens, logger):
         result = Tree(token.value, 0)
         result.Adopt(factor)
         return (result, tokens)
+
     elif token.type == "PART" and token.value == "(":
         #the next token must be an expression
         expression, tokens = Parse_Expression(tokens, logger)
@@ -88,11 +92,19 @@ def Parse_Factor(tokens, logger):
             logger.Error("line " + str(token.line) + " expected )")
             return (False, tokens)
         return (expression, tokens)
+
+    elif token.type == "KEY" and token.value == "true":
+        return (Tree("1", 0), tokens)
+
+    elif token.type == "KEY" and token.value == "false":
+        return (Tree("0", 0), tokens)
+
     else:
-        logger.Error("line " + str(token.line) + " expected unary, literal, or (")
+        logger.Error("line " + str(token.line) + " expected literal, (, or a unary")
         return (False, tokens)
 
 def Parse_Term(tokens, logger):
+    #print("term")
     #the first token must be a factor
     factor, tokens = Parse_Factor(tokens, logger)
     if not factor:
@@ -113,7 +125,8 @@ def Parse_Term(tokens, logger):
 
     return (lastFactor, tokens)
 
-def Parse_Expression(tokens, logger):
+def Parse_Additive_Expression(tokens, logger):
+    #print("Parse_Additive")
     #the first token must be a term
     term, tokens = Parse_Term(tokens, logger)
     if not term:
@@ -134,14 +147,284 @@ def Parse_Expression(tokens, logger):
 
     return (lastTerm, tokens)
 
-def Parse_Statement(tokens, logger):
-    token = tokens.Next()
-    if not (token.type == "KEY" and token.value == "return"):
-        logger.Error("line " + str(token.line) + " expected return")
+def Parse_Relational_Operator(tokens):
+    #it can be <, >, <=, >=
+    #the function should return how many times to advance, and also the operator
+    token1 = tokens.Query()
+    if token1.type == "OP" and (token1.value == "<" or token1.value == ">"):
+        token1 = tokens.Next()
+        token2 = tokens.Query()
+        if token2.type == "OP" and token2.value == "=":
+            token2 = tokens.Next()
+            return (token1.value + token2.value, tokens)
+        else:
+            return (token1.value, tokens)
+    else:
         return (False, tokens)
 
-    expression, tokens = Parse_Expression(tokens, logger)
-    if not expression:
+def Parse_Relational_Expression(tokens, logger):
+    #print("Parse_Relational_Expression")
+    term, tokens = Parse_Additive_Expression(tokens, logger)
+    if not term:
+        return (False, tokens)
+
+    lastTerm = term
+    op, tokens = Parse_Relational_Operator(tokens)
+    #print("op: " + str(op))
+    while op:
+        term, tokens = Parse_Additive_Expression(tokens, logger)
+        if not term:
+            return (False, tokens)
+        tree = Tree(op, 0)
+        tree.Adopt(lastTerm)
+        tree.Adopt(term)
+        lastTerm = tree
+        op, tokens = Parse_Relational_Operator(tokens)
+
+    return (lastTerm, tokens)
+
+def Parse_Equality_Operator(tokens):
+    token1 = tokens.Query()
+    if token1.type == "OP" and (token1.value == "!" or token1.value == "="):
+        token1 = tokens.Next()
+        token2 = tokens.Query()
+        if token2.type == "OP" and token2.value == "=":
+            token2 = tokens.Next()
+            return (token1.value + token2.value, tokens)
+        else:
+            return (token1.value, tokens)
+    else:
+        return (False, tokens)
+
+def Parse_Equality_Expression(tokens, logger):
+    term, tokens = Parse_Relational_Expression(tokens, logger)
+    if not term:
+        return (False, tokens)
+
+    lastTerm = term
+    op, tokens = Parse_Equality_Operator(tokens)
+    #print("op: " + str(op))
+    while op:
+        term, tokens = Parse_Relational_Expression(tokens, logger)
+        if not term:
+            return (False, tokens)
+        tree = Tree(op, 0)
+        tree.Adopt(lastTerm)
+        tree.Adopt(term)
+        lastTerm = tree
+        op, tokens = Parse_Equality_Operator(tokens)
+
+    return (lastTerm, tokens)
+
+def Parse_Logical_And_Operator(tokens):
+    token1 = tokens.Query()
+    if token1.type == "OP" and token1.value == "&":
+        token1 = tokens.Next()
+        token2 = tokens.Query()
+        if token2.type == "OP" and token2.value == "&":
+            token2 = tokens.Next()
+            return ("&&", tokens)
+        else:
+            return (False, tokens)
+    else:
+        return (False, tokens)
+
+def Parse_Logical_And_Expression(tokens, logger):
+    term, tokens = Parse_Equality_Expression(tokens, logger)
+    if not term:
+        return (False, tokens)
+
+    lastTerm = term
+    op, tokens = Parse_Logical_And_Operator(tokens)
+    #print("op: " + str(op))
+    while op:
+        term, tokens = Parse_Equality_Expression(tokens, logger)
+        if not term:
+            return (False, tokens)
+        tree = Tree(op, 0)
+        tree.Adopt(lastTerm)
+        tree.Adopt(term)
+        lastTerm = tree
+        op, tokens = Parse_Logical_And_Operator(tokens)
+
+    return (lastTerm, tokens)
+
+def Parse_Logical_Or_Operator(tokens):
+    token1 = tokens.Query()
+    if token1.type == "OP" and token1.value == "|":
+        token1 = tokens.Next()
+        token2 = tokens.Query()
+        if token2.type == "OP" and token2.value == "|":
+            token2 = tokens.Next()
+            return ("||", tokens)
+        else:
+            return (False, tokens)
+    else:
+        return (False, tokens)
+
+def Parse_Logical_Or_Expression(tokens, logger):
+    #print("expression")
+    term, tokens = Parse_Logical_And_Expression(tokens, logger)
+    if not term:
+        return (False, tokens)
+
+    lastTerm = term
+    op, tokens = Parse_Logical_Or_Operator(tokens)
+    #print("op: " + str(op))
+    while op:
+        term, tokens = Parse_Logical_And_Expression(tokens, logger)
+        if not term:
+            return (False, tokens)
+        tree = Tree(op, 0)
+        tree.Adopt(lastTerm)
+        tree.Adopt(term)
+        lastTerm = tree
+        op, tokens = Parse_Logical_Or_Operator(tokens)
+
+    return (lastTerm, tokens)
+
+def Parse_Conditional_Expression(tokens, logger):
+    term, tokens = Parse_Logical_Or_Expression(tokens, logger)
+    if not term:
+        return (False, tokens)
+
+    token = tokens.Query()
+    if token.type == "OP" and token.value == "?":
+        tree = Tree("conditional", 0)
+        tree.Adopt(term)
+        token = tokens.Next()
+        expression, tokens = Parse_Expression(tokens, logger)
+        if not expression:
+            return (False, tokens)
+        tree.Adopt(expression)
+
+        token = tokens.Next()
+        if not (token.type == "PART" and token.value == ":"):
+            logger.Error("line " + str(token.line) + " expected :")
+            return (False, tokens)
+
+        conditional, tokens = Parse_Conditional_Expression(tokens, logger)
+        if not conditional:
+            return (False, tokens)
+        tree.Adopt(conditional)
+        return (tree, tokens)
+
+    return (term, tokens)
+
+def Parse_Expression(tokens, logger):
+    conditional, tokens = Parse_Conditional_Expression(tokens, logger)
+    if not conditional:
+        return (False, tokens)
+    return (conditional, tokens)
+
+def Parse_Block(tokens, logger, name):
+    name += ":block"
+
+    statement, tokens = Parse_Statement(tokens, logger)
+    if not statement:
+        return (False, tokens)
+
+    #TODO(Noah): I think this while loop can be done a little better
+    block = Tree(name, 0)
+    while statement:
+        block.Adopt(statement)
+        token = tokens.Query()
+        if not (token.type == "PART" and token.value == "}"):
+            statement, tokens = Parse_Statement(tokens, logger)
+        else:
+            break
+
+    token = tokens.Next()
+    if not (token.type == "PART" and token.value == "}"):
+        logger.Error("line " + str(token.line) + " expected }")
+        return (False, tokens)
+
+    return (block, tokens)
+
+def Parse_Statement(tokens, logger):
+    statement = Tree("statement", 0)
+    token = tokens.Next()
+    if token.type == "KEY" and token.value == "return": #return statement
+        statement.data = "return"
+        expression, tokens = Parse_Expression(tokens, logger)
+        if not expression:
+            return (False, tokens)
+        statement.Adopt(expression)
+
+    elif token.type == "KEY" and token.value == "int": #variable declaration
+        statement.data = "declaration"
+        token = tokens.Next()
+        if not token.type == "SYMBOL":
+            logger.Error("line " + str(token.line) + " expected variable name")
+            return (False, tokens)
+        statement.GiveBirth(token.value)
+        token = tokens.Query()
+        if token.type == "OP" and token.value == "=":
+            token = tokens.Next()
+            expression, tokens = Parse_Expression(tokens, logger)
+            if not expression:
+                return (False, tokens)
+            statement.Adopt(expression)
+
+    elif token.type == "KEY" and token.value == "if": #if statement
+        statement.data = "if"
+        token = tokens.Next()
+        if not (token.type == "PART" and token.value == "("):
+            logger.Error("line " + str(token.line) + " expected (")
+            return (False, tokens)
+
+        expression, tokens = Parse_Expression(tokens, logger)
+        if not expression:
+            return (False, tokens)
+        statement.Adopt(expression)
+
+        token = tokens.Next()
+        if not (token.type == "PART" and token.value == ")"):
+            logger.Error("line " + str(token.line) + " expected )")
+            return (False, tokens)
+
+        body, tokens = Parse_Statement(tokens, logger)
+        if not body:
+            return (False, tokens)
+        statement.Adopt(body)
+
+        token = tokens.Query()
+        if token.type == "KEY" and token.value == "else":
+            token == tokens.Next()
+            tree = Tree("else", 0)
+
+            body, tokens = Parse_Statement(tokens, logger)
+            if not body:
+                return (False, tokens)
+
+            tree.Adopt(body)
+            statement.Adopt(tree)
+
+        #NOTE(Noah): If statements do not end with a semicolon
+        return (statement, tokens)
+
+    elif token.type == "SYMBOL": #varible assignment
+        statement.GiveBirth(token.value)
+        statement.data = "assignment"
+        token = tokens.Next()
+        if not (token.type == "OP" and token.value == "="):
+            logger.Error("line " + str(token.line) + " expected =")
+            return (False, tokens)
+        expression, tokens = Parse_Expression(tokens, logger)
+        if not expression:
+            return (False, tokens)
+        statement.Adopt(expression)
+
+    elif token.type == "PART" and token.value == "{": #compound statement
+        block, tokens = Parse_Block(tokens, logger, "default")
+        if not block:
+            return (False, tokens)
+        statement = block
+        #NOTE(Noah): compound statements do not end with a semicolon
+        return (statement, tokens)
+
+    else:
+        logger.Error("line " + str(token.line) + " expected return, symbol, or int")
         return (False, tokens)
 
     token = tokens.Next()
@@ -149,8 +432,6 @@ def Parse_Statement(tokens, logger):
         logger.Error("line " + str(token.line) + " expected END")
         return (False, tokens)
 
-    statement = Tree("return", 0)
-    statement.Adopt(expression)
     return (statement, tokens)
 
 def Parse_Function(tokens, logger):
@@ -180,18 +461,11 @@ def Parse_Function(tokens, logger):
         logger.Error("line " + str(token.line) + " expected {")
         return (False, tokens)
 
-    statement, tokens = Parse_Statement(tokens, logger)
-    if not statement:
+    block, tokens = Parse_Block(tokens, logger, name)
+    if not block:
         return (False, tokens)
 
-    token = tokens.Next()
-    if not (token.type == "PART" and token.value == "}"):
-        logger.Error("line " + str(token.line) + " expected }")
-        return (False, tokens)
-
-    function = Tree(name, 0)
-    function.Adopt(statement)
-    return (function, tokens)
+    return (block, tokens)
 
 def Parse_Program(tokens, logger):
     function, tokens = Parse_Function(tokens, logger)

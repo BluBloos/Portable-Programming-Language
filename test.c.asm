@@ -1,21 +1,11 @@
-global main
-main:
+global _WinMain@16
+_WinMain@16:
   push ebp
   mov ebp, esp
-  mov eax, 1
-  mov ebx, 2
-  add eax, ebx
-  push eax
-  mov eax, 5
-  test eax, eax
-  xor eax, eax
-  sete eax
-  push eax
+  ; declaration:
+  push dword 4
+  ; return:
   mov eax, [ebp - 4]
-  mov ebx, [ebp - 8]
-  sub eax, ebx
-  push eax
-  mov eax, [ebp - 12]
-  add esp, 12
+  add esp, 4
   pop ebp
-  ret
+  ret 16

@@ -5,6 +5,11 @@ class Tokens:
         return self.tokens.pop(0)
     def Query(self):
         return self.tokens[0]
+    def QueryDistance(self, distance):
+        if distance < len(self.tokens):
+            return self.tokens[distance]
+        else:
+            return False
 
 class Token:
     def __init__(self, type, value, line):
@@ -17,10 +22,10 @@ def IsKeyword(buffer, line):
     tokenValue = "NULL"
     if buffer == "struct":
         tokenValue = buffer
-    elif buffer == "func":
-        tokenValue = buffer
-    elif buffer == "float":
-        tokenValue = buffer
+    elif buffer == "true":
+        tokenValue = "true"
+    elif buffer == "false":
+        tokenValue = "false"
     elif buffer == "int":
         tokenValue = buffer
     elif buffer == "unsigned":
@@ -117,7 +122,7 @@ def Run(raw):
             continue
 
         #handle operators
-        token, token2 = QueryForToken(character, cT, "+-%*!<>=", "OP", currentLine)
+        token, token2 = QueryForToken(character, cT, "+-%*!<>=|&?", "OP", currentLine)
         if token2:
             tokens.append(token2)
         if token:
@@ -133,7 +138,7 @@ def Run(raw):
             foundToken = True
 
         #check for seperators
-        token, token2 = QueryForToken(character, cT, "{}()[].,", "PART", currentLine)
+        token, token2 = QueryForToken(character, cT, "{}()[].,:", "PART", currentLine)
         if token2:
             tokens.append(token2)
         if token:
