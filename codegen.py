@@ -1,5 +1,6 @@
 import logger
 import sys
+import traceback
 
 SPACES_PER_TAB = 2
 
@@ -11,23 +12,57 @@ class ProgramStack:
         self.frames.append(VariableTable())
 
     def Pop(self):
+        result = self.frames[-1].frameOffset
         self.frames.pop()
+        return result
 
     def Append(self, symbol, size):
-        exists = False
-        for frame in self.frames[-1::-1]:
-            if frame[symbol]:
-                exists = True
-        if not exists:
+        #print("appending " + symbol)
+        exist = symbol in self.frames[-1].table
+        if not exist:
             self.frames[-1].Append(symbol, size)
-        logger.Error("redefinition of symbol " + symbol)
-        sys.exit()
+        else:
+            logger.Error("redefinition of symbol " + symbol)
+            for line in traceback.format_stack():
+                print(line.strip())
+            sys.exit()
 
     def GetASM(self, symbol):
-        localOffset = self.frames[-1][symbol]
-        for frame in self.frames[:-1]:
-            localOffset += frame.frameOffset
-        return "[ebp - " + str(offset) + "]"
+        #search for the symbol
+        container, index = None, -1
+        for frame in self.frames[-1::-1]:
+            if symbol in frame.table:
+                container = frame
+                break
+            index -= 1
+
+        if container:
+            offset = container.table[symbol]
+            offset += self.GetOffset(index-1)
+            #print("getasm " + symbol + str(container) + " " + str(offset))
+            return "[ebp - " + str(offset) + "]"
+        logger.Error("symbol " + symbol + " is not defined")
+        sys.exit()
+
+    def GetOffset(self, index=-1):
+        offset = 0
+        for frame in self.frames[index::-1]:
+            offset += frame.frameOffset
+        return offset
+
+    def Free(self, amount, index=-1):
+        self.frames[index].frameOffset -= amount
+
+    def Alloc(self, amount, index=-1):
+        self.frames[index].frameOffset += amount
+
+    def print(self):
+        index = 0
+        for frame in self.frames:
+            print("Frame: #" + str(index))
+            print(frame.table)
+            print("offset: " + str(frame.frameOffset))
+            index += 1
 
 class VariableTable:
     def __init__(self):
@@ -35,14 +70,8 @@ class VariableTable:
         self.table = {}
 
     def Append(self, symbol, size):
-        if self.table[symbol]: #check if it already exists in this frame
-            return False
         self.frameOffset += size
         self.table[symbol] = self.frameOffset
-
-    def GetASM(self, symbol):
-        offset = self.table[symbol]
-        return "[ebp - " + str(offset) + "]"
 
 class LabelMaker:
     def __init__(self):
@@ -184,8 +213,8 @@ def WriteBinaryInstruction(file, instruction, variableTable, indentation):
         WriteStatement(file, "and eax, ebx", indentation)
         WriteStatement(file, "push eax", indentation)
 
-    variableTable.frameOffset += 4
-    return "id:" + str(variableTable.frameOffset)
+    variableTable.Alloc(4)
+    return "id:" + str(variableTable.GetOffset())
 
 def WriteUnaryInstruction(file, instruction, variableTable, indentation):
     parent, child = instruction
@@ -206,14 +235,14 @@ def WriteUnaryInstruction(file, instruction, variableTable, indentation):
         WriteStatement(file, "sete al", indentation)
         WriteStatement(file, "push eax", indentation)
 
-    variableTable.frameOffset += 4
-    return "id:" + str(variableTable.frameOffset)
+    variableTable.Alloc(4)
+    return "id:" + str(variableTable.GetOffset())
 
 def CopyFromID(file, source, dest, indentation):
     WriteStatement(file, "mov " + dest + ", " + GetASMFromID(source), indentation)
 
 def EvaluateExpressionWrapper(file, expression, variableTable, labelMaker, indentation):
-    prevOffset = variableTable.frameOffset
+    prevOffset = variableTable.GetOffset()
 
     result = EvaluateExpression(file, expression, variableTable, labelMaker, indentation)
 
@@ -227,10 +256,10 @@ def EvaluateExpressionWrapper(file, expression, variableTable, labelMaker, inden
         WriteStatement(file, "mov eax, " + result, indentation)
 
     #deallocate the memory used
-    deltaOffset = variableTable.frameOffset - prevOffset
+    deltaOffset = variableTable.GetOffset() - prevOffset
     if deltaOffset > 0:
         WriteStatement(file, "add esp, " + str(deltaOffset), indentation)
-        variableTable.frameOffset -= deltaOffset
+        variableTable.Free(deltaOffset)
 
 def EvaluateExpression(file, expression, variableTable, labelMaker, indentation):
     if expression.children:
@@ -346,14 +375,17 @@ def EvaluateStatement(file, statement, variableTable, labelMaker, indentation):
         WriteStatement(file, "; declaration:", indentation)
         symbol = statement.children[0].data
         variableTable.Append(symbol, 4)
+        #print(variableTable.GetOffset())
+        #variableTable.print()
 
         if not len(statement.children) == 2:
             WriteStatement(file, "push dword 0", indentation)
         else:
             expression = statement.children[1]
-            prevOffset = variableTable.frameOffset
+            prevOffset = variableTable.GetOffset()
             result = EvaluateExpression(file, expression, variableTable, labelMaker, indentation)
-            variableTable.frameOffset = prevOffset
+            #variableTable.Free(variableTable.GetOffset() - prevOffset)
+            #print(variableTable.GetOffset())
 
             if "var:" in result:
                 result = variableTable.GetASM(result.replace("var:", ""))
@@ -388,27 +420,25 @@ def EvaluateStatement(file, statement, variableTable, labelMaker, indentation):
         #put otherwise body here!
         if len(statement.children) == 3:
             statement = statement.children[2].children[0]
-            if ":block" in statement.data:
-                for stat in statement.children:
-                    EvaluateStatement(file, stat, variableTable, labelMaker, indentation)
-            else:
-                EvaluateStatement(file, statement, variableTable, labelMaker, indentation)
+            EvaluateStatement(file, statement, variableTable, labelMaker, indentation)
 
         WriteStatement(file, "jmp " + label_end, indentation)
         WriteStatement(file, label_if + ":", indentation)
 
         #put if body here!
-        if ":block" in body.data:
-            for statement in body.children:
-                EvaluateStatement(file, statement, variableTable, labelMaker, indentation)
-        else:
-            EvaluateStatement(file, body, variableTable, labelMaker, indentation)
-
+        EvaluateStatement(file, body, variableTable, labelMaker, indentation)
         WriteStatement(file, label_end + ":", indentation)
+
+    elif ":block" in statement.data:
+        variableTable.Push()
+        for line in statement.children:
+            EvaluateStatement(file, line, variableTable, labelMaker, indentation)
+        frameOffset = variableTable.Pop()
+        WriteStatement(file, "add esp, " + str(frameOffset), indentation)
 
 def Run(tree, file):
 
-    variableTable = VariableTable()
+    variableTable = ProgramStack()
     labelMaker = LabelMaker()
 
     for function in tree.children:
@@ -420,9 +450,7 @@ def Run(tree, file):
         WriteStatement(file, "push ebp", indentation)
         WriteStatement(file, "mov ebp, esp", indentation)
 
-        for statement in function.children:
-            EvaluateStatement(file, statement, variableTable, labelMaker, indentation)
+        EvaluateStatement(file, function, variableTable, labelMaker, indentation)
 
-        WriteStatement(file, "add esp, " + str(variableTable.frameOffset), indentation)
         WriteStatement(file, "pop ebp", indentation)
         WriteStatement(file, "ret 16", indentation)

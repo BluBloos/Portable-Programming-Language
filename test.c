@@ -11,22 +11,19 @@
 //------------OPTIMIZATION-----------------
 //TODO(Noah): Add an optimization pass to remove redudant code, or just don't generate it in the first place (faster option).
 
-//------------CODE GEN---------------------
-//TODO(Noah): Implement scopes and variables obeying scope, inner variables mask outer scope variables.
-//TODO(Noah): Make sure we don't assign values to variables that don't exist. 
-//TODO(Noah): Make sure we don't create variables that already exist. DONE
-
 //-------------SYNTAX---------------
 //TODO(Noah): add compound operators like += and -= and such (somewhat challenging)
 
 int _WinMain@16()
 {
-  {
-    int gotem;
-    int hello = gotem;
-    //hello = 2 * (4 + 5) / 4 - 3 == (3 >= hello);
-    if (hello == 0) hello = 4; //else if(hello == 2) hello = 3; else hello = 5;
-  }
   int wassup = 4;
+  {
+    int gotem = wassup;
+    int wassup = 5;
+
+    //int hello = gotem;
+    //hello = 2 * (4 + 5) / 4 - 3 == (3 >= hello);
+    //if (hello == 0) hello = 4; //else if(hello == 2) hello = 3; else hello = 5;
+  }
   return wassup;
 }

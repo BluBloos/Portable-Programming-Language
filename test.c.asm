@@ -4,8 +4,8 @@ _WinMain@16:
   mov ebp, esp
   ; declaration:
   push dword 4
-  ; return:
-  mov eax, [ebp - 4]
-  add esp, 4
-  pop ebp
-  ret 16
+  ; declaration:
+  push dword [ebp - 4]
+  ; declaration:
+  push dword 5
+  ; declaration:
