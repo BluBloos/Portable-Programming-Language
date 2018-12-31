@@ -1,4 +1,6 @@
 from tree import Tree
+import traceback
+
 
 '''
 class Node:
@@ -62,17 +64,42 @@ def IsBinary(char):
     return False
 
 def Parse_Factor(tokens, logger):
-    #print("factor")
-    #the first token can be a parenthesis, a unary op, or an int
     token = tokens.Next()
-    if token.type == "SYMBOL":
+    if token.type == "SYMBOL": #check if a literal, a variable, or a function call
         if IsInteger(token.value):
             return (Tree(token.value, 0), tokens)
         #NOTE(Noah): beware of what "not being an integer" means...
         else:
-            return (Tree("var:" + token.value, 0), tokens)
+            symbol = token.value
+            token = tokens.Query()
+            tree = Tree("call:" + symbol, 0)
+            if token.type == "PART" and token.value == "(":
+                token = tokens.Next() #actually advance
+                token = tokens.Query()
+                if not (token.type == "PART" and token.value == ")"):
+                    expression, tokens = Parse_Expression(tokens, logger)
+                    if not expression:
+                        return (False, tokens)
+                    tree.Adopt(expression)
+                    token = tokens.Query()
+                    while(token.type == "PART" and token.value == ","):
+                        token = tokens.Next()
+                        expression, tokens = Parse_Expression(tokens, logger)
+                        if not expression:
+                            return (False, tokens)
+                        #params.append(token.value)
+                        tree.Adopt(expression)
+                        token = tokens.Query()
+                token = tokens.Next()
+                if not (token.type == "PART" and token.value == ")"):
+                    logger.Error("line " + str(token.line) + " expected )")
+                    return (False, tokens)
+                return (tree, tokens)
 
-    elif token.type == "OP" and IsUnary(token.value):
+            else:
+                return (Tree("var:" + symbol, 0), tokens)
+
+    elif token.type == "OP" and IsUnary(token.value): #check if <unary> <factor>
         #the expression is a unary expression
         factor, tokens = Parse_Factor(tokens, logger)
         if not factor:
@@ -81,7 +108,7 @@ def Parse_Factor(tokens, logger):
         result.Adopt(factor)
         return (result, tokens)
 
-    elif token.type == "PART" and token.value == "(":
+    elif token.type == "PART" and token.value == "(": #check if (<exp>)
         #the next token must be an expression
         expression, tokens = Parse_Expression(tokens, logger)
         if not expression:
@@ -90,6 +117,8 @@ def Parse_Factor(tokens, logger):
         token = tokens.Next()
         if not (token.type == "PART" and token.value == ")"):
             logger.Error("line " + str(token.line) + " expected )")
+            for line in traceback.format_stack():
+                logger.Log(line.strip())
             return (False, tokens)
         return (expression, tokens)
 
@@ -100,7 +129,7 @@ def Parse_Factor(tokens, logger):
         return (Tree("0", 0), tokens)
 
     else:
-        logger.Error("line " + str(token.line) + " expected literal, (, or a unary")
+        logger.Error("line " + str(token.line) + " expected factor")
         return (False, tokens)
 
 def Parse_Term(tokens, logger):
@@ -341,7 +370,7 @@ def Parse_Block(tokens, logger, name):
 
     return (block, tokens)
 
-def Parse_Statement(tokens, logger):
+def Parse_Statement(tokens, logger, end=True):
     statement = Tree("statement", 0)
     token = tokens.Next()
     if token.type == "KEY" and token.value == "return": #return statement
@@ -403,6 +432,47 @@ def Parse_Statement(tokens, logger):
         #NOTE(Noah): If statements do not end with a semicolon
         return (statement, tokens)
 
+    elif token.type == "KEY" and token.value == "for":
+        statement.data = "for"
+        token = tokens.Next()
+        if not (token.type == "PART" and token.value == "("):
+            logger.Error("line " + str(token.line) + " expected (")
+            return (False, tokens)
+
+        init, tokens = Parse_Statement(tokens, logger)
+        if not init:
+            return (False, tokens)
+        statement.Adopt(init)
+
+        condition, tokens = Parse_Expression(tokens, logger)
+        if not condition:
+            return (False, tokens)
+        statement.Adopt(condition)
+
+        token = tokens.Next()
+        if not token.type == "END":
+            logger.Error("line " + str(token.line) + " expected END")
+            for line in traceback.format_stack():
+                logger.Log(line.strip())
+            return (False, tokens)
+
+        #NOTE(Noah): The following is a bodge. That's because I don't want to make variable declarations expressions.
+        end, tokens = Parse_Statement(tokens, logger, False)
+        if not end:
+            return (False, tokens)
+        statement.Adopt(end)
+
+        token = tokens.Next()
+        if not (token.type == "PART" and token.value == ")"):
+            logger.Error("line " + str(token.line) + " expected )")
+            return (False, tokens)
+
+        body, tokens = Parse_Statement(tokens, logger)
+        if not body:
+            return (False, tokens)
+        statement.Adopt(body)
+        return (statement, tokens)
+
     elif token.type == "SYMBOL": #varible assignment
         statement.GiveBirth(token.value)
         statement.data = "assignment"
@@ -423,18 +493,49 @@ def Parse_Statement(tokens, logger):
         #NOTE(Noah): compound statements do not end with a semicolon
         return (statement, tokens)
 
+    elif token.type == "KEY" and token.value == "break":
+        statement.data = "break"
+
+    elif token.type == "KEY" and token.value == "continue":
+        statement.data = "continue"
+
+    elif token.type == "KEY" and token.value == "while":
+        statement.data = "while"
+        token = tokens.Next()
+        if not (token.type == "PART" and token.value == "("):
+            logger.Error("line " + str(token.line) + " expected (")
+            return (False, tokens)
+        expression, tokens = Parse_Expression(tokens, logger)
+        if not expression:
+            return (False, tokens)
+        statement.Adopt(expression)
+        token = tokens.Next()
+        if not (token.type == "PART" and token.value == ")"):
+            logger.Error("line " + str(token.line) + " expected )")
+            return (False, tokens)
+        body, tokens = Parse_Statement(tokens, logger)
+        if not body:
+            return (False, tokens)
+        statement.Adopt(body)
+        return (statement, tokens)
+
     else:
         logger.Error("line " + str(token.line) + " expected return, symbol, or int")
         return (False, tokens)
 
-    token = tokens.Next()
-    if not token.type == "END":
-        logger.Error("line " + str(token.line) + " expected END")
-        return (False, tokens)
+    if end:
+        token = tokens.Next()
+        if not token.type == "END":
+            logger.Error("line " + str(token.line) + " expected END")
+            for line in traceback.format_stack():
+                logger.Log(line.strip())
+            return (False, tokens)
 
     return (statement, tokens)
 
 def Parse_Function(tokens, logger):
+    params = []
+
     token = tokens.Next()
     if not (token.type == "KEY" and token.value == "int"):
         logger.Error("line " + str(token.line) + " expected int")
@@ -451,6 +552,29 @@ def Parse_Function(tokens, logger):
         logger.Error("line " + str(token.line) + " expected (")
         return (False, tokens)
 
+    token = tokens.Query()
+    if token.type == "KEY" and token.value == "int":
+        token = tokens.Next()
+        token = tokens.Next()
+        if not token.type == "SYMBOL":
+            logger.Error("line " + str(token.line) + " expected symbol")
+            return (False, tokens)
+        params.append(token.value)
+
+        token = tokens.Query()
+        while(token.type == "PART" and token.value == ","):
+            token = tokens.Next()
+            token = tokens.Next()
+            if not (token.type == "KEY" and token.value == "int"):
+                logger.Error("line " + str(token.line) + " expected int")
+                return (False, tokens)
+            token = tokens.Next()
+            if not token.type == "SYMBOL":
+                logger.Error("line " + str(token.line) + " expected symbol")
+                return (False, tokens)
+            params.append(token.value)
+            token = tokens.Query()
+
     token = tokens.Next()
     if not (token.type == "PART" and token.value == ")"):
         logger.Error("line " + str(token.line) + " expected )")
@@ -461,18 +585,27 @@ def Parse_Function(tokens, logger):
         logger.Error("line " + str(token.line) + " expected {")
         return (False, tokens)
 
-    block, tokens = Parse_Block(tokens, logger, name)
+    block, tokens = Parse_Block(tokens, logger, "default")
     if not block:
         return (False, tokens)
 
-    return (block, tokens)
+    function = Tree(name, 0)
+    for param in params:
+        function.GiveBirth(param)
+    function.Adopt(block)
+
+    return (function, tokens)
 
 def Parse_Program(tokens, logger):
-    function, tokens = Parse_Function(tokens, logger)
-    if not function:
-        return (False, tokens)
     program = Tree("program", 0)
-    program.Adopt(function)
+
+    while(tokens.Len()):
+        function, tokens = Parse_Function(tokens, logger)
+        if not function:
+            #NOTE(Noah): We are going to return false if we get a half function
+            return (False, tokens)
+        program.Adopt(function)
+
     return (program, tokens)
 
 def Run(tokens, logger):

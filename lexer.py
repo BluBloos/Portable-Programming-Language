@@ -1,10 +1,21 @@
 class Tokens:
     def __init__(self, tokens):
         self.tokens = tokens
+
+    def Len(self):
+        return len(self.tokens)    
+
     def Next(self):
-        return self.tokens.pop(0)
+        if len(self.tokens) > 0:
+            return self.tokens.pop(0)
+        else:
+            #TODO(Noah): Fix this inconsistency. Where is the logger?
+            print("[ERROR]: No more tokens")
+            return False
+
     def Query(self):
         return self.tokens[0]
+
     def QueryDistance(self, distance):
         if distance < len(self.tokens):
             return self.tokens[distance]
@@ -30,9 +41,9 @@ def IsKeyword(buffer, line):
         tokenValue = buffer
     elif buffer == "unsigned":
         tokenValue = buffer
-    elif buffer == "char":
+    elif buffer == "continue":
         tokenValue = buffer
-    elif buffer == "short":
+    elif buffer == "break":
         tokenValue = buffer
     elif buffer == "if":
         tokenValue = buffer
