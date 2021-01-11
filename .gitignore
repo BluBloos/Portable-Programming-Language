@@ -3,3 +3,4 @@
 *.asm
 *.pyc
 /__pycache__/*
+/.vs/*
