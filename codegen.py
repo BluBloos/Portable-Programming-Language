@@ -3,6 +3,7 @@ import sys
 import traceback
 
 SPACES_PER_TAB = 2
+PLATFORM = "WINDOWS"
 
 class ProgramStack:
     def __init__(self):
@@ -12,10 +13,19 @@ class ProgramStack:
         self.frames.append(VariableTable())
 
     def Pop(self):
+
+        # NOTE: This function should never be called
+        # when the stack is empty
+        if (len(self.frames) == 0):
+            logger.Error("Trying to pop empty program stack")
+            return 0
+
         result = self.frames[-1].frameOffset
         self.frames.pop()
         return result
 
+    # Adopt is for adding variables to a frame without increasing the offset.
+    # Good for taking variables from another frame (happens in scoping).
     def Adopt(self, symbol, offset, direction):
         exist = symbol in self.frames[-1].table
         if not exist:
@@ -63,19 +73,20 @@ class ProgramStack:
             offset += frame.frameOffset
         return offset
 
+    # NOTE: Free and Alloc are used when expressions are pushed to the Stack
+    # and not stored in any explicit variable.
+
     def Free(self, amount, index=-1):
         self.frames[index].frameOffset -= amount
 
     def Alloc(self, amount, index=-1):
         self.frames[index].frameOffset += amount
 
-    def print(self):
-        index = 0
-        for frame in self.frames:
-            print("Frame: #" + str(index))
-            print(frame.table)
-            print("offset: " + str(frame.frameOffset))
-            index += 1
+    def __str__(self):
+        str_frames = [str(x) for x in self.frames]
+        result = ", ".join(str_frames)
+        return result
+
 
 class VariableTable:
     def __init__(self):
@@ -86,12 +97,22 @@ class VariableTable:
         self.frameOffset += size
         self.table[symbol] = (self.frameOffset, "forward")
 
+    def __str__(self):
+        result = "[frameOffset: {}, table: {}]".format(self.frameOffset, self.table)
+        return result
+
 class LabelMaker:
     def __init__(self):
         self.index = 0
     def MakeLabel(self, symbol):
         self.index += 1
         return symbol + str(self.index)
+
+def PlatformReturnStatement(functionName):
+    if PLATFORM == "WINDOWS" and functionName == "main":
+        return "ret 16"
+    else:
+        return "ret"
 
 def WriteStatement(file, statement, indentation):
     file.write(" " * indentation + statement + "\n")
@@ -281,9 +302,10 @@ def EvaluateExpression(file, expression, variableTable, labelMaker, indentation)
             #we are going to call the function! And then push eax to generate ID
             #Push the children on the stack from right to left!
 
+            prevOffset = variableTable.GetOffset()
             totalParamSize = 0
             for child in expression.children[-1::-1]:
-                print("evalutating childs")
+                #print("evalutating childs")
                 result = EvaluateExpression(file, child, variableTable, labelMaker, indentation)
                 if "var:" in result:
                     result = variableTable.GetASM(result.replace("var:", ""))
@@ -293,9 +315,17 @@ def EvaluateExpression(file, expression, variableTable, labelMaker, indentation)
                 totalParamSize += 4
 
             WriteStatement(file, "call " + symbol, indentation)
+
+            # free the stack space used to generate then function params,
+            # and free the variable table offset generate by intermediate values
+            # for the function param
             WriteStatement(file, "add esp, " + str(totalParamSize), indentation)
+            deltaOffset = variableTable.GetOffset() - prevOffset
+            variableTable.Free(deltaOffset)
+
             WriteStatement(file, "push eax", indentation)
 
+            print(variableTable)
             variableTable.Alloc(4)
             return "id:" + str(variableTable.GetOffset())
 
@@ -400,17 +430,25 @@ def EvaluateExpression(file, expression, variableTable, labelMaker, indentation)
     else:
         return expression.data
 
-def EvaluateStatement(file, statement, variableTable, labelMaker, indentation, args=[]):
+def EvaluateStatement(functionName, file, statement, variableTable, labelMaker, indentation, args=[]):
     if statement.data == "return":
         WriteStatement(file, "; return:", indentation)
         EvaluateExpressionWrapper(file, statement.children[0], variableTable, labelMaker, indentation)
 
-        frameOffset = variableTable.Pop()
-        if frameOffset > 0:
-            WriteStatement(file, "add esp, " + str(frameOffset), indentation)
+        #frameOffset = variableTable.Pop()
+        #if frameOffset > 0:
+
+        # NOTE: The total frame offset should be the scope of the containing function
+        # for the return statement. As of writing this comment, the compiler does
+        # not support defining functions in functions. Meaning if we use the offset of
+        # the variable table, which is actually program stack, then .GetOffset() returns
+        # the value we want.
+        totalFrameOffset = variableTable.GetOffset()
+        if totalFrameOffset > 0:
+            WriteStatement(file, "add esp, " + str(totalFrameOffset), indentation)
 
         WriteStatement(file, "pop ebp", indentation)
-        WriteStatement(file, "ret", indentation)
+        WriteStatement(file, PlatformReturnStatement(functionName), indentation)
         return True
         #NOTE(Noah): Should we break here, as in not handle any more statements?
         #NOTE(Noah): We can no longer break because we are inside a function!
@@ -474,14 +512,14 @@ def EvaluateStatement(file, statement, variableTable, labelMaker, indentation, a
         #put otherwise body here!
         if len(statement.children) == 3:
             statement = statement.children[2].children[0]
-            if EvaluateStatement(file, statement, variableTable, labelMaker, indentation, args):
+            if EvaluateStatement(functionName, file, statement, variableTable, labelMaker, indentation, args):
                 done = True
 
         WriteStatement(file, "jmp " + label_end, indentation)
         WriteStatement(file, label_if + ":", indentation)
 
         #put if body here!
-        if EvaluateStatement(file, body, variableTable, labelMaker, indentation, args):
+        if EvaluateStatement(functionName, file, body, variableTable, labelMaker, indentation, args):
             done = True
 
         WriteStatement(file, label_end + ":", indentation)
@@ -501,7 +539,7 @@ def EvaluateStatement(file, statement, variableTable, labelMaker, indentation, a
         continueLabel = labelMaker.MakeLabel("continue")
         breakLabel = labelMaker.MakeLabel("break")
 
-        if EvaluateStatement(file, init, variableTable, labelMaker, indentation, args):
+        if EvaluateStatement(functionName, file, init, variableTable, labelMaker, indentation, args):
             done = True
 
         WriteStatement(file, continueLabel + ":", indentation)
@@ -516,10 +554,10 @@ def EvaluateStatement(file, statement, variableTable, labelMaker, indentation, a
         WriteStatement(file, "cmp eax, 1", indentation)
         WriteStatement(file, "jne " + breakLabel, indentation)
 
-        if EvaluateStatement(file, body, variableTable, labelMaker, indentation, [breakLabel, continueLabel]):
+        if EvaluateStatement(functionName, file, body, variableTable, labelMaker, indentation, [breakLabel, continueLabel]):
             done = True
 
-        if EvaluateStatement(file, end, variableTable, labelMaker, indentation, args):
+        if EvaluateStatement(functionName, file, end, variableTable, labelMaker, indentation, args):
             done = True
 
         WriteStatement(file, "jmp " + continueLabel, indentation)
@@ -558,7 +596,7 @@ def EvaluateStatement(file, statement, variableTable, labelMaker, indentation, a
         WriteStatement(file, "cmp eax, 1", indentation)
         WriteStatement(file, "jne " + breakLabel, indentation)
 
-        return EvaluateStatement(file, body, variableTable, labelMaker, indentation, [breakLabel, continueLabel])
+        EvaluateStatement(functionName, file, body, variableTable, labelMaker, indentation, [breakLabel, continueLabel])
 
         WriteStatement(file, "jmp " + continueLabel, indentation)
         WriteStatement(file, breakLabel + ":", indentation)
@@ -568,50 +606,64 @@ def EvaluateStatement(file, statement, variableTable, labelMaker, indentation, a
         done = False
         variableTable.Push()
         for line in statement.children:
-            if EvaluateStatement(file, line, variableTable, labelMaker, indentation, args):
+            if EvaluateStatement(functionName, file, line, variableTable, labelMaker, indentation, args):
                 done = True
-        #NOTE(Noah): So this is interesting because I'm saying if I did a return statement during one of the statements,
-        #I no longer need to pop the scope, because it's already been done
-        if not done:
-            frameOffset = variableTable.Pop()
-            if frameOffset > 0:
-                WriteStatement(file, "add esp, " + str(frameOffset), indentation)
+
+        frameOffset = variableTable.Pop()
+        if frameOffset > 0:
+            WriteStatement(file, "add esp, " + str(frameOffset), indentation)
+
         return done
 
-def Run(tree, file):
+def Run(platform, tree, file):
 
+    PLATFORM = platform
     variableTable = ProgramStack()
     labelMaker = LabelMaker()
 
+    # For function section -> assembly text section
+    WriteStatement(file, "section .text", 0)
+
+    # iterate through each function node
     for function in tree.children:
         indentation = 0
         functionName = function.data
         variableTable.Push()
 
         body = None
-        offset = 4
+        offset = 4 # account for stack frame pointer on the stack
         for child in function.children:
             if ":block" in child.data:
                 body = child
             else:
-                variableTable.Adopt(child.data, offset, "backward")
+                # if the child is not the function body, it is a function parameter
                 offset += 4
+                variableTable.Adopt(child.data, offset, "backward")
 
-        WriteStatement(file, "global " + functionName, indentation)
-        WriteStatement(file, functionName + ":", indentation)
+
+        if (functionName == "main"):
+            WriteStatement(file, "global start", indentation)
+            WriteStatement(file, "start:", indentation)
+        else:
+            WriteStatement(file, functionName + ":", indentation)
         indentation += SPACES_PER_TAB
         #Setup the function stack frame
         WriteStatement(file, "push ebp", indentation)
         WriteStatement(file, "mov ebp, esp", indentation)
 
         if body:
-            good = EvaluateStatement(file, body, variableTable, labelMaker, indentation)
+            good = EvaluateStatement(functionName, file, body, variableTable, labelMaker, indentation)
 
-        #if there was no return statement at all in the function, well, it's gonna return 0
-        if not good:
-            WriteStatement(file, "pop ebp", indentation)
-            WriteStatement(file, "xor eax, eax", indentation)
-            WriteStatement(file, "ret", indentation)
+        #print("Program Stack Offset at end: {}".format(variableTable.GetOffset()))
+        #print("Program Stack: {}".format(variableTable))
 
         #WriteStatement(file, "ret 16", indentation)
         frameOffset = variableTable.Pop()
+
+        #if frameOffset > 0:
+        WriteStatement(file, "add esp, " + str(frameOffset), indentation)
+
+        # Default return value of functions is zero
+        WriteStatement(file, "pop ebp", indentation)
+        WriteStatement(file, "xor eax, eax", indentation)
+        WriteStatement(file, PlatformReturnStatement(functionName), indentation)
