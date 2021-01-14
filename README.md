@@ -1,4 +1,4 @@
-# Plasma Compiler 🖥️
+# Plasma Compiler ⚡
 Friendly C compiler written in Python. It does not comply with any standards for the C language, but man can this thing compile, just check out the examples in the tests folder!
 
 ## Details
