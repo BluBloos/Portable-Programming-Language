@@ -1,3 +1,5 @@
+<img src="https://i.gyazo.com/66cada5c7538e5597443c1e467c862aa.gif" />
+
 # Plasma Compiler ⚡
 C compiler written in Python. It does not comply with any standards for the C language. Likely Turing complete.
 
