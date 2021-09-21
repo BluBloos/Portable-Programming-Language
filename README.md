@@ -6,6 +6,14 @@ C compiler written in Python. It does not comply with any standards for the C la
 ## Details
 Works by transpiling C source to x86 assembly. Third party tools assemble and link the program. The code is fully custom, everything from the lexer to code generation. 
 
+## How to Use
+
+Simply run,
+```
+$ python compile.py <fileName>
+```
+Plasma Compiler will compile the file, run it, and display rhe result of the program to the console window.
+
 ## Build Steps
 - NOTE: The compiler is only supported to run on Windows host machines, and it will only compile win32 binaries.
 
