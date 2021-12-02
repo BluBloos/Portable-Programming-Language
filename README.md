@@ -12,7 +12,7 @@ Simply run,
 ```
 $ python compile.py <fileName>
 ```
-Plasma Compiler will compile the file, run it, and display rhe result of the program to the console window.
+Plasma Compiler will compile the file, run it, and display the result of the program to the console window.
 
 ## Build Steps
 - NOTE: The compiler is only supported to run on Windows host machines, and it will only compile win32 binaries.
