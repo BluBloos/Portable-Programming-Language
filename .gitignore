@@ -1,0 +1,6 @@
+*.exe
+*.obj
+*.asm
+*.pyc
+/__pycache__/*
+/.vs/*
