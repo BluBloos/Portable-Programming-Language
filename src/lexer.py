@@ -110,6 +110,7 @@ def Run(raw):
         else:
             currentLine += 1
             # NOTE(Noah): We cannot skip here because comments exit on newline.
+            # Also, newlines are used to find the end of SYMBOLS.
         cleanToken = currentToken.strip()
 
         # if in a comment or multiline comment state, we simply just skip over the current character.
@@ -219,9 +220,10 @@ def Run(raw):
             foundToken = True
 
         # NOTE(Noah): Note sure if this should go here...but we will try.
-        # We want to check for symbols if we have hit a space character.
-        if (character == ' '):
-            symbolToken = QueryForSymbolToken(cleanToken + ' ', currentLine)
+        # We want to check for symbols if we have hit a space character or newline character (some whitespace).
+        if (character == ' ' or character == '\n'):
+            realLine = currentLine - 1 if character == '\n' else currentLine
+            symbolToken = QueryForSymbolToken(cleanToken + ' ', realLine)
             if (symbolToken):
                 tokens.append(symbolToken)
                 foundToken = True

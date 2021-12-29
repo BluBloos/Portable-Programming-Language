@@ -2,6 +2,7 @@ import time
 TIMER_START = time.time()
 import logger
 import lexer
+import preparser
 import sys
 def Run(filePath, DEBUG, target):
     try:
@@ -12,6 +13,10 @@ def Run(filePath, DEBUG, target):
         if DEBUG:
             for token in tokens.tokens:
                 logger.Log("TYPE: " + token.type + ", VALUE: " + token.value)
+        
+        preparser_context = preparser.Run(tokens)
+        #tree = syntax.Run(tokens, logger)
+
     except IOError:
         logger.Error("Could not open/read file: " + filePath)
 if __name__ == "__main__":
