@@ -85,7 +85,7 @@ int main(
         // NOTE(Noah): (0,0) follows proper coordinate systems. So it is based on bottom left of the screen.
         // and the window rect has (0,0) as bottom left.
         std::PhysicalScreenWindow window = std::CreatePhysicalScreenWindow(
-            screens[0].id // which screen to create window on.
+            screens[0].id, // which screen to create window on.
             "Window Title", // title of window.
             x, y, windowWidth, windowHeight, // window rect.
             WindowMsgCallback, // callback to handle window messages.
