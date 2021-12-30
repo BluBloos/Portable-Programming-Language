@@ -1,6 +1,15 @@
 from tree import Tree
 import lexer
 
+equivalences = {}
+equivalences["term"] = ["factor"]
+equivalences["additive_exp"] = ["term", "factor"]
+equivalences["relational_exp"] = ["additive_exp", "term", "factor"]
+equivalences["equality_exp"] = ["relational_exp", "additive_exp", "term", "factor"]
+equivalences["logical_and_exp"] = ["equality_exp", "relational_exp", "additive_exp", "term", "factor"]
+equivalences["logical_or_exp"] = ["logical_and_exp", "equality_exp", "relational_exp", "additive_exp", "term", "factor"]
+equivalences["conditional_exp"] = ["logical_or_exp", "logical_and_exp", "equality_exp", "relational_exp", "additive_exp", "term", "factor"]
+
 # NOTE(Noah): Grammer definition are custom regular expressions that I invented,
 # regardless of if there are parsing libraries out there...
 class GrammerDefinition:
@@ -57,7 +66,7 @@ def CreateRegexTree(grammer, regex):
                 newTree = Tree( newStr[8:] )
                 contextStack[-1].Adopt(newTree)
                 n += 1 + len(newStr) # skip over () block
-            elif newStr.startswith("op="):
+            elif newStr.startswith("op,"):
                 newTree = Tree( "op" + newStr[3:] )
                 contextStack[-1].Adopt(newTree)
                 n += 1 + len(newStr) # skip over () block
@@ -72,10 +81,10 @@ def CreateRegexTree(grammer, regex):
             if len(contextStack[-1].children) == 0:
                 # if there are no children, then for sure the last thing added to regex tree
                 # was in fact the Any/Group root node itself.  
-                contextStack[-1].data += char
+                contextStack[-1].modifier = char
             else:
                 # preceeding_re is assumed to be a child of a tree
-                contextStack[-1].children[-1].data += char
+                contextStack[-1].children[-1].modifier = char
         elif char == '\\': 
             # the escape sequence:
             # TODO(Noah): Investigage if this is unsafe or something like this...
@@ -165,27 +174,27 @@ def LoadGrammer():
     )
     grammer.defs["logical_or_exp"] = GrammerDefinition(
         "logical_or_exp",
-        r"(logical_and_exp)||(logical_and_exp)"
+        r"(logical_and_exp)(op,||)(logical_and_exp)"
     )
     grammer.defs["logical_and_exp"] = GrammerDefinition(
         "logical_and_exp",
-        r"(equality_exp)&&(equality_exp)"
+        r"(equality_exp)(op,&&)(equality_exp)"
     )
     grammer.defs["equality_exp"] = GrammerDefinition(
         "equality_exp",
-        r"(relational_exp)==(relational_exp)"
+        r"(relational_exp)[(op,==)(op,!=)](relational_exp)"
     )
     grammer.defs["relational_exp"] = GrammerDefinition(
         "relational_exp",
-        r"(additive_exp)[<>](additive_exp)"
+        r"(additive_exp)[(op,<)(op,>)](additive_exp)"
     )
     grammer.defs["additive_exp"] = GrammerDefinition(
         "additive_exp",
-        r"(term)[\+-](term)"
+        r"(term)[(op,+)(op,-)](term)"
     )
     grammer.defs["term"] = GrammerDefinition(
         "term",
-        r"(factor)[\*/](factor)"
+        r"(factor)[(op,*)(op,/)](factor)"
     )
     '''
     # TODO(Noah): To add operators.
@@ -199,7 +208,7 @@ def LoadGrammer():
     
     grammer.defs["factor"] = GrammerDefinition(
         "factor",
-        r"[(literal)(symbol)(function_call)([(op=!)(op=-)](factor))(\((expression)\))]"
+        r"[(literal)(symbol)(function_call)([(op,!)(op,-)](factor))(\((expression)\))]"
     )
     # TODO(Noah): Okay, there seems to be a very large amount
     # of operators in C, and the precedence is quite clear.

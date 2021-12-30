@@ -1,9 +1,10 @@
 class Tree:
 
-    def __init__(self, data, parent=None):
+    def __init__(self, data, parent=None, modifier=None):
         self.parent = parent
         self.children = []
         self.data = data
+        self.modifier = modifier
         #self.weights = [] # what is this advanced stuff?
         # self.number = num # also not sure what this is
         

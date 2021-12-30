@@ -33,9 +33,6 @@ logger.CloseLogger()
 
 # Run integration test of lexer and ast generation on single grammer objects
 logger.InitLogger()
-
-
-
 try:
     dir = "design/tests/grammer"
     for fileName in os.listdir(dir):

@@ -1,3 +1,6 @@
+def CreateNullToken():
+    return Token("EOL", "EOL", None)
+
 class Tokens:
     def __init__(self, tokens):
         self.tokens = tokens
@@ -11,16 +14,19 @@ class Tokens:
         else:
             #TODO(Noah): Fix this inconsistency. Where is the logger?
             print("[ERROR]: No more tokens")
-            return False
+            return CreateNullToken()
 
     def QueryNext(self):
-        return self.tokens[0]
+        if len(self.tokens) > 0:
+            return self.tokens[0]
+        else:
+            return CreateNullToken()
 
     def QueryDistance(self, distance):
         if distance < len(self.tokens):
             return self.tokens[distance]
         else:
-            return False
+            return CreateNullToken()
 
 class Token:
     def __init__(self, type, value, line):

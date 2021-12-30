@@ -2,15 +2,6 @@ from tree import Tree
 import grammer as g
 import lexer
 
-equivalences = {}
-equivalences["term"] = ["factor"]
-equivalences["additive_exp"] = ["term", "factor"]
-equivalences["relational_exp"] = ["additive_exp", "term", "factor"]
-equivalences["equality_exp"] = ["relational_exp", "additive_exp", "term", "factor"]
-equivalences["logical_and_exp"] = ["equality_exp", "relational_exp", "additive_exp", "term", "factor"]
-equivalences["logical_or_exp"] = ["logical_and_exp", "equality_exp", "relational_exp", "additive_exp", "term", "factor"]
-equivalences["conditional_exp"] = ["logical_or_exp", "logical_and_exp", "equality_exp", "relational_exp", "additive_exp", "term", "factor"]
-
 # TODO(Noah):
 ''' Handle the following tree case
 [LOG]: Printing REGEX tree for r"(type)(symbol)\(((lv),)*(lv)\)[;(block)]"
@@ -41,16 +32,20 @@ def ParseWithRegexTree(tokens, grammer, regexTree, logger):
     while k < len(regexTree.children):
         child = regexTree.children[k]
 
+        # TODO(Noah): Fix error where regexTree includes * as a data item
+        # which then gets interpreted as a false modifier. This is simply an
+        # operation.
+
         # find the modifier, which applies to any of these!
-        modifier = None
-        possibleModifier = child.data[-1]
-        if possibleModifier in "?*+":
-            modifier = possibleModifier
+        modifier = child.modifier
+        #possibleModifier = child.data[-1]
+        #if possibleModifier in "?*+":
+        #    modifier = possibleModifier
 
         child_data = child.data
-        if modifier != None:
-            # trim modifier on child data
-            child_data = child_data[:-1]
+        #if modifier != None:
+        #    # trim modifier on child data
+        #    child_data = child_data[:-1]
 
         # None means 1 and exactly 1.
         # ? is the 0 or 1 modifier
@@ -113,10 +108,17 @@ def ParseWithRegexTree(tokens, grammer, regexTree, logger):
                         break # expected symbol, didn't get it.
                 elif child_data.startswith("op"):
                     op = child_data[2:]
-                    token = tokens.QueryNext()
-                    if token.type == "OP" and token.value == op:
-                        tokens.Next()
-                        treesParsed.append(Tree("OP:"+token.value))
+                    matched = True
+                    for char in op:
+                        token = tokens.QueryNext()
+                        if token.type == "OP" and token.value == char:
+                            tokens.Next()
+                            token = tokens.QueryNext()
+                        else:
+                            matched = False
+                            break
+                    if matched:
+                        treesParsed.append(Tree("OP:"+op))
                         re_matched += 1
                     else:
                         break # expected specific op, didn't get it.
@@ -179,10 +181,11 @@ def ParseTokensWithGrammer(tokens, grammer, grammerDef, logger):
     # I would say that there MUST be a better way to do this...
     # Namely I do not like len(trees) == 1...
     if fail_flag and len(trees) == 1:
-        if equivalences[grammerDef.name]:
-            for eq in equivalences[grammerDef.name]:
+        if g.equivalences[grammerDef.name]:
+            for eq in g.equivalences[grammerDef.name]:
                 if eq == trees[0].data:
                     fail_flag = False # redemption.
+                    return trees[0] # override upper level grammer object. Makes AST simpler.
 
     if not fail_flag:
         for t in trees:
