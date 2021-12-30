@@ -117,26 +117,34 @@ def LoadGrammer():
     )
     grammer.defs["type"] = GrammerDefinition(
         "type",
-        r"[(keyword)(symbol)((symbol)::(symbol))]"
+        r"[((symbol)::(symbol))(symbol)(keyword)]"
     )
     grammer.defs["block"]=GrammerDefinition(
         "block",
         r"\{(statement)*\}"
     )
+    grammer.defs["_break"]=GrammerDefinition(
+        "_break",
+        r"(keyword=break)"
+    )
+    grammer.defs["_continue"]=GrammerDefinition(
+        "_continue",
+        r"(keyword=continue)"
+    )
     grammer.defs["statement"]=GrammerDefinition(
         "statement",
-        r"[([(return)(expression)(keyword=break)(keyword=continue)(var_decl)];)(if)(for)(while)(switch)(block)]"
+        r"[([(var_decl)(expression)(_return)(_break)(_continue)];)(_if)(for)(while)(switch)(block)]"
     )
-    grammer.defs["return"] = GrammerDefinition(
-        "return",
+    grammer.defs["_return"] = GrammerDefinition(
+        "_return",
         r"(keyword=return)(expression)"
     )
     grammer.defs["var_decl"] = GrammerDefinition(
         "var_decl",
-        r"(lv)=(expression)"
+        r"(lv)(=(expression))?"
     )
-    grammer.defs["if"] = GrammerDefinition(
-        "if",
+    grammer.defs["_if"] = GrammerDefinition(
+        "_if",
         r"(keyword=if)\((expression)\)(statement)((keyword=else)(statement))?"
     )
     grammer.defs["statement_noend"] = GrammerDefinition(

@@ -32,28 +32,48 @@ logger.CloseLogger()
 # REGEX TREE GENERATION UNIT TEST
 
 # Run integration test of lexer and ast generation on single grammer objects
+def SingleTestAST(dir, fileName):
+    filePath = join(dir, fileName)
+    grammerDefName = fileName[:-3]
+    file = open(filePath, "r")
+    raw = file.read()
+    #TODO(Noah): What happens if the file read fails?
+    file.close()
+    tokens = lexer.Run(raw)
+    logger.Log("Generating AST for {}".format(filePath))
+    ast = syntax.ParseTokensWithGrammer(tokens, grammer, grammer.defs[grammerDefName], logger)
+    if ast:
+        logger.Log("Printing AST for {}".format(filePath))
+        ast.Print(0, logger)
+    else:
+        logger.Error("Unable to generate ast for {}".format(fileName))
 logger.InitLogger()
-try:
-    dir = "design/tests/grammer"
-    for fileName in os.listdir(dir):
-        filePath = join(dir, fileName)
-        #num = int(fileName[-3])
-        grammerDefName = fileName[:-3]
-        file = open(filePath, "r")
-        raw = file.read()
-        #TODO(Noah): What happens if the file read fails?
-        file.close()
-        tokens = lexer.Run(raw)
-        ast = syntax.ParseTokensWithGrammer(tokens, grammer, grammer.defs[grammerDefName], logger)
-        if ast:
-            logger.Log("Printing AST for {}".format(filePath))
-            ast.Print(0, logger)
-        else:
-            logger.Error("Unable to generate ast for {}".format(fileName))
-except IOError:
-    logger.Error("Unable to open file? :(")
+SINGLE_TEST = False
+if not SINGLE_TEST:
+    try:
+        dir = "design/tests/grammer"
+        for fileName in os.listdir(dir):
+            SingleTestAST(dir, fileName)
+    except IOError:
+        logger.Error("Unable to open file? :(")
+else:
+    SingleTestAST('design/tests/grammer', 'statement1.c')
 logger.CloseLogger()
 # INTEGRATION TEST FOR SINGLE GRAMMER OBJECTS
+
+# TODO(Noah): Failed because the Any bit found the expression, then we tried for ;, Group failed.
+# But if the Any had instead returned the var decl, we would have been good.
+# Also of issue is that since the expression returned valid, we called tokens.Next()
+
+# Possible solution might be to make it such that the Any returns a complete list of all valid things parsed.
+# This is simply the issue that the beginning of the var_decl might be an expression. 
+# And then we have that inside the Any.
+# A good solution is to have, if you have made an Any, put the "subtring" ones LAST.
+# Want to check first for the LONGEST ones.
+
+# TODO(Noah): Potentially investigate if there is a failure on the Any call, saving some sort of frame.
+# because if tokens.Next() is called, we need to be able to revert back on failure. Thinking this MIGHT be the case.
+# that we are getting lucky to not see this failure right now.
 
 #SingleTest("design/tests/variable_scoping.c", 3)
 #SingleTest("design/tests/variables.c", 5)

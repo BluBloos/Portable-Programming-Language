@@ -1,6 +1,7 @@
 from tree import Tree
 import grammer as g
 import lexer
+import copy
 
 # TODO(Noah):
 ''' Handle the following tree case
@@ -28,6 +29,10 @@ def ParseWithRegexTree(tokens, grammer, regexTree, logger):
     # Easy, we just check if regexTree is an Any.
     any_flag = "Any" in regexTree.data 
     k = 0
+
+    # presuming that we are inside of an Any block, we want to preserve state.
+    if any_flag:
+        tokens_deep_copy = copy.deepcopy(tokens.tokens)
 
     while k < len(regexTree.children):
         child = regexTree.children[k]
@@ -122,6 +127,14 @@ def ParseWithRegexTree(tokens, grammer, regexTree, logger):
                         re_matched += 1
                     else:
                         break # expected specific op, didn't get it.
+                elif child_data == "keyword":
+                    token = tokens.QueryNext()
+                    if token.type == "KEY":
+                        tokens.Next()
+                        treesParsed.append(Tree("KEY:"+token.value))
+                        re_matched += 1
+                    else:
+                        break
                 else:
                     # Single character to match, presumably?
                     token = tokens.QueryNext()
@@ -144,6 +157,13 @@ def ParseWithRegexTree(tokens, grammer, regexTree, logger):
         if fail_flag and not any_flag or any_flag and not fail_flag:
             break
     
+        # TODO(Noah): An alterior method than this is to just always query if under an Any block...    
+        if any_flag:
+            # presuming we have not yet succeeded, and we are inside an Any block
+            # this means we are trying the next child.
+            # we need to reset the state of Tokens.
+            tokens.tokens = tokens_deep_copy    
+
         k += 1
         
     return (treesParsed, fail_flag)
@@ -181,7 +201,7 @@ def ParseTokensWithGrammer(tokens, grammer, grammerDef, logger):
     # I would say that there MUST be a better way to do this...
     # Namely I do not like len(trees) == 1...
     if fail_flag and len(trees) == 1:
-        if g.equivalences[grammerDef.name]:
+        if grammerDef.name in g.equivalences.keys():
             for eq in g.equivalences[grammerDef.name]:
                 if eq == trees[0].data:
                     fail_flag = False # redemption.
