@@ -62,6 +62,10 @@ def IsKeyword(buffer, line):
 
     return result
 
+# searches a string buffer str starting at index until string end
+# or reaches term. Returns string from index to term (not including)
+# plus it returns the length of the string.
+# NOTE(Noah): I am realizing now how redudant this is.
 def searchUntil(str, index, term):
     sum = 0
     newStr = ""
@@ -181,7 +185,7 @@ def Run(raw):
         if symbolToken:
             tokens.append(symbolToken)
         if token:
-            tokens.append(Token("END", "END", currentLine))
+            tokens.append(Token("END", ";", currentLine))
             foundToken = True
 
         #check for seperators
