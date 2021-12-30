@@ -4,6 +4,10 @@ import logger
 from colorama import init
 from colorama import Fore, Back, Style
 import grammer as g
+import lexer
+import syntax
+import os
+from os.path import isfile, join
 
 init()
 def colored(string, color):
@@ -26,6 +30,33 @@ for key in grammer.defs.keys():
     regexTree.Print(0, logger)
 logger.CloseLogger()
 # REGEX TREE GENERATION UNIT TEST
+
+# Run integration test of lexer and ast generation on single grammer objects
+logger.InitLogger()
+
+
+
+try:
+    dir = "design/tests/grammer"
+    for fileName in os.listdir(dir):
+        filePath = join(dir, fileName)
+        #num = int(fileName[-3])
+        grammerDefName = fileName[:-3]
+        file = open(filePath, "r")
+        raw = file.read()
+        #TODO(Noah): What happens if the file read fails?
+        file.close()
+        tokens = lexer.Run(raw)
+        ast = syntax.ParseTokensWithGrammer(tokens, grammer, grammer.defs[grammerDefName], logger)
+        if ast:
+            logger.Log("Printing AST for {}".format(filePath))
+            ast.Print(0, logger)
+        else:
+            logger.Error("Unable to generate ast for {}".format(fileName))
+except IOError:
+    logger.Error("Unable to open file? :(")
+logger.CloseLogger()
+# INTEGRATION TEST FOR SINGLE GRAMMER OBJECTS
 
 #SingleTest("design/tests/variable_scoping.c", 3)
 #SingleTest("design/tests/variables.c", 5)

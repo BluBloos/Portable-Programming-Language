@@ -13,7 +13,7 @@ class Tokens:
             print("[ERROR]: No more tokens")
             return False
 
-    def Query(self):
+    def QueryNext(self):
         return self.tokens[0]
 
     def QueryDistance(self, distance):
@@ -34,8 +34,6 @@ def IsKeyword(buffer, line):
     
     keywords = [
         "struct",
-        "true",
-        "false",
         "int",
         "void",
         "char",
@@ -62,6 +60,12 @@ def IsKeyword(buffer, line):
 
     return result
 
+def IsNumber(potNum):
+    for char in potNum:
+        if char not in "0123456789":
+            return False
+    return True
+
 # searches a string buffer str starting at index until string end
 # or reaches term. Returns string from index to term (not including)
 # plus it returns the length of the string.
@@ -80,8 +84,16 @@ def QueryForSymbolToken(cleanToken, line):
     # Supposing that there exists a previous token, which would not include the current character (hence why the strip to [:-1])
     # then this previous token is in fact a symbol.
     # the symbole token does not include current character because symbols are found at the beginning of another token.
-    if cleanToken[:-1] != "":
-        return Token("SYMBOL", cleanToken[:-1].strip(), line)
+    trimmed = cleanToken[:-1]
+    if trimmed != "":
+        # Check if the symbol is a literal, like a number.
+        if IsNumber(trimmed):
+            return Token("LITERAL", trimmed.strip(), line)
+        elif trimmed == "true":
+            return Token("LITERAL", "1", line)
+        elif trimmed == "false":
+            return Token("LITERAL", "0", line)
+        return Token("SYMBOL", trimmed.strip(), line)
     return False
 
 # take current character, the current token but clean.
@@ -95,6 +107,10 @@ def QueryForToken(character, cleanToken, test, label, line):
     return (token, token2)
 
 def Run(raw):
+
+    # for the sake of parsing a raw input of ' '
+    # append onto raw.
+    raw += ' '
 
     # each of these variables is self-explanatory.
     tokens = []

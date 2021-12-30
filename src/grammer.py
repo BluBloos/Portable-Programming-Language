@@ -49,12 +49,16 @@ def CreateRegexTree(grammer, regex):
         elif char == '(':
             # Check first if we are looking at a grammer object.
             length, newStr = lexer.searchUntil(regex, n + 1, ')')
-            if newStr in grammer.defs.keys() or newStr == "symbol" or newStr == "keyword":
+            if newStr in grammer.defs.keys() or newStr == "symbol" or newStr == "keyword" or newStr == "literal":
                 newTree = Tree(newStr)
                 contextStack[-1].Adopt(newTree)
                 n += 1 + len(newStr) # skip over () block
             elif newStr.startswith("keyword="):
                 newTree = Tree( newStr[8:] )
+                contextStack[-1].Adopt(newTree)
+                n += 1 + len(newStr) # skip over () block
+            elif newStr.startswith("op="):
+                newTree = Tree( "op" + newStr[3:] )
                 contextStack[-1].Adopt(newTree)
                 n += 1 + len(newStr) # skip over () block
             else:
@@ -195,7 +199,7 @@ def LoadGrammer():
     
     grammer.defs["factor"] = GrammerDefinition(
         "factor",
-        r"[(symbol)(function_call)([!-](factor))(\((expression)\))(keyword=true)(keyword=false)]"
+        r"[(literal)(symbol)(function_call)([(op=!)(op=-)](factor))(\((expression)\))]"
     )
     # TODO(Noah): Okay, there seems to be a very large amount
     # of operators in C, and the precedence is quite clear.
