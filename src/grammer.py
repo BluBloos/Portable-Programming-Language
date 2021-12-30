@@ -133,7 +133,7 @@ def LoadGrammer():
     )
     grammer.defs["statement"]=GrammerDefinition(
         "statement",
-        r"[([(var_decl)(expression)(_return)(_break)(_continue)];)(_if)(for)(while)(switch)(block)]"
+        r"[([(var_decl)(expression)(_return)(_break)(_continue)];)(block)(_if)(_for)(_while)(_switch)]"
     )
     grammer.defs["_return"] = GrammerDefinition(
         "_return",
@@ -149,31 +149,35 @@ def LoadGrammer():
     )
     grammer.defs["statement_noend"] = GrammerDefinition(
         "statement_noend",
-        r"[(return)(expression)(keyword=break)(keyword=continue)(var_decl)(if)(for)(while)(switch)(block)]"
+        r"[(var_decl)(expression)(_return)(_break)(_continue)(block)(_if)(_for)(_while)(_switch)]"
     )
     # NOTE(Noah): Noticing that this allows for having for-loops as the end condition
     # of a higher-level for-loop. I guess that is not so bad LOL.
     # Of course, we can ensure the validity of the tree after it is made. Maybe dissalow
     # silly things like this.    
-    grammer.defs["for"] = GrammerDefinition(
-        "for",
+    grammer.defs["_for"] = GrammerDefinition(
+        "_for",
         r"(keyword=for)\((statement)(expression);(statement_noend)\)(statement)"
     )
-    grammer.defs["while"] = GrammerDefinition(
-        "while",
+    grammer.defs["_while"] = GrammerDefinition(
+        "_while",
         r"(keyword=while)\((expression)\)(statement)"
     )
     '''
     NOTE(Noah): Due to the way that I have defined the grammer for the switch statements,
     we cannot have default: in front of any case:. It must be that default: comes at the end...
     '''
-    grammer.defs["switch"] = GrammerDefinition(
-        "switch",
+    grammer.defs["_switch"] = GrammerDefinition(
+        "_switch",
         r"(keyword=switch)\((expression)\)\{((keyword=case)(expression):(statement)*)*((keyword=default):(statement)*)?\}"
     )
     grammer.defs["expression"] = GrammerDefinition(
         "expression",
-        r"(conditional_exp)"
+        r"[(assignment_exp)(conditional_exp)]"
+    )
+    grammer.defs["assignment_exp"] = GrammerDefinition(
+        "assignment_exp",
+        r"(symbol)=(expression)"
     )
     # Some of that ternary operator shit. Apparently it is very high level...
     grammer.defs["conditional_exp"] = GrammerDefinition(

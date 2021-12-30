@@ -57,7 +57,7 @@ if not SINGLE_TEST:
     except IOError:
         logger.Error("Unable to open file? :(")
 else:
-    SingleTestAST('design/tests/grammer', 'statement1.c')
+    SingleTestAST('design/tests/grammer', '_for1.c')
 logger.CloseLogger()
 # INTEGRATION TEST FOR SINGLE GRAMMER OBJECTS
 
