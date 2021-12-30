@@ -1,0 +1,1 @@
+myFun(6, myVar)

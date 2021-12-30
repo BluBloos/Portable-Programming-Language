@@ -1,7 +1,6 @@
 from tree import Tree
 import grammer as g
 import lexer
-import copy
 
 # TODO(Noah):
 ''' Handle the following tree case
@@ -19,7 +18,6 @@ import copy
 [LOG]:     ;
 [LOG]:     block
 '''
-
 def ParseWithRegexTree(tokens, grammer, regexTree, logger):
     treesParsed = []
     fail_flag = False
@@ -31,26 +29,16 @@ def ParseWithRegexTree(tokens, grammer, regexTree, logger):
     k = 0
 
     # presuming that we are inside of an Any block, we want to preserve state.
+    # to rollback tokens upon failure.
+    tokens_savepoint = None
     if any_flag:
-        tokens_deep_copy = copy.deepcopy(tokens.tokens)
+        tokens_savepoint = tokens.GetSavepoint()
 
     while k < len(regexTree.children):
         child = regexTree.children[k]
-
-        # TODO(Noah): Fix error where regexTree includes * as a data item
-        # which then gets interpreted as a false modifier. This is simply an
-        # operation.
-
         # find the modifier, which applies to any of these!
         modifier = child.modifier
-        #possibleModifier = child.data[-1]
-        #if possibleModifier in "?*+":
-        #    modifier = possibleModifier
-
         child_data = child.data
-        #if modifier != None:
-        #    # trim modifier on child data
-        #    child_data = child_data[:-1]
 
         # None means 1 and exactly 1.
         # ? is the 0 or 1 modifier
@@ -65,86 +53,79 @@ def ParseWithRegexTree(tokens, grammer, regexTree, logger):
         re_matched = 0
 
         while while_cond(n):   
-            if child_data == "Group":
-                trees, flag = ParseWithRegexTree(tokens, grammer, child, logger)
-                if not flag:
+            if child_data == "Group" or child_data == "Any":
+                trees, err_flag = ParseWithRegexTree(tokens, grammer, child, logger)
+                if not err_flag:
                     re_matched += 1
                     for t in trees:
                         treesParsed.append(t)
                 else:
                     break
-            elif child_data == "Any":
-                trees, flag = ParseWithRegexTree(tokens, grammer, child, logger)
-                if not flag:
+            # Is this a grammer element?
+            elif child_data in grammer.defs.keys():
+                treeChild = ParseTokensWithGrammer(tokens, \
+                    grammer, grammer.defs[child_data], logger)
+                if treeChild:
+                    treesParsed.append(treeChild)
                     re_matched += 1
-                    for t in trees:
-                        treesParsed.append(t)
+                else:
+                    # TODO(Noah): This point here is potentially where
+                    # we want to include logger statements.
+                    break # didn't find grammer object we wanted.
+            # TODO(Noah): Factor literal and symbol into one thing because they basically do 
+            # the same thing...
+            elif child_data == "literal":
+                token = tokens.QueryNext() # the whole LR k+1 idea :)
+                if token.type == "LITERAL" or token.type == "QUOTE":
+                    tokens.Next()
+                    treesParsed.append(Tree("LITERAL:"+token.value))
+                    re_matched += 1
+                else:
+                    break
+            elif child_data == "symbol":
+                token = tokens.QueryNext() # the whole LR k+1 idea :)
+                if token.type == "SYMBOL":
+                    tokens.Next()
+                    treesParsed.append(Tree("SYMBOL:"+token.value))
+                    re_matched += 1
+                else:
+                    break # expected symbol, didn't get it.
+            elif child_data.startswith("op"):
+                op = child_data[2:]
+                matched = True
+                for char in op:
+                    token = tokens.QueryNext()
+                    if token.type == "OP" and token.value == char:
+                        tokens.Next()
+                        token = tokens.QueryNext()
+                    else:
+                        matched = False
+                        break
+                if matched:
+                    treesParsed.append(Tree("OP:"+op))
+                    re_matched += 1
+                else:
+                    break # expected specific op, didn't get it.
+            elif child_data == "keyword":
+                token = tokens.QueryNext()
+                if token.type == "KEY":
+                    tokens.Next()
+                    treesParsed.append(Tree("KEY:"+token.value))
+                    re_matched += 1
                 else:
                     break
             else:
-                # Is this a grammer element?
-                if child_data in grammer.defs.keys():
-                    treeChild = ParseTokensWithGrammer(tokens, 
-                        grammer, grammer.defs[child_data], logger)
-                    if treeChild:
-                        treesParsed.append(treeChild)
-                        re_matched += 1
-                    else:
-                        # TODO(Noah): This point here is potentially where
-                        # we want to include logger statements.
-                        break # didn't find grammer object we wanted.
-                # TODO(Noah): Factor literal and symbol into one thing because they basically do 
-                # the same thing...
-                elif child_data == "literal":
-                    token = tokens.QueryNext() # the whole LR k+1 idea :)
-                    if token.type == "LITERAL":
-                        tokens.Next()
-                        treesParsed.append(Tree("LITERAL:"+token.value))
-                        re_matched += 1
-                    else:
-                        break
-                elif child_data == "symbol":
-                    token = tokens.QueryNext() # the whole LR k+1 idea :)
-                    if token.type == "SYMBOL":
-                        tokens.Next()
-                        treesParsed.append(Tree("SYMBOL:"+token.value))
-                        re_matched += 1
-                    else:
-                        break # expected symbol, didn't get it.
-                elif child_data.startswith("op"):
-                    op = child_data[2:]
-                    matched = True
-                    for char in op:
-                        token = tokens.QueryNext()
-                        if token.type == "OP" and token.value == char:
-                            tokens.Next()
-                            token = tokens.QueryNext()
-                        else:
-                            matched = False
-                            break
-                    if matched:
-                        treesParsed.append(Tree("OP:"+op))
-                        re_matched += 1
-                    else:
-                        break # expected specific op, didn't get it.
-                elif child_data == "keyword":
-                    token = tokens.QueryNext()
-                    if token.type == "KEY":
-                        tokens.Next()
-                        treesParsed.append(Tree("KEY:"+token.value))
-                        re_matched += 1
-                    else:
-                        break
+                # Single character to match, presumably?
+                # NOTE(Noah): Experimentally untrue
+                token = tokens.QueryNext()
+                if token.value == child_data:
+                    tokens.Next()
+                    re_matched += 1
+                    # NOTE(Noah): Simply consume character,
+                    # no Tree to add for this one.
                 else:
-                    # Single character to match, presumably?
-                    token = tokens.QueryNext()
-                    if token.value == child_data:
-                        tokens.Next()
-                        re_matched += 1
-                        # NOTE(Noah): Simply consume character,
-                        # no Tree to add for this one.
-                    else:
-                        break # didn't match character
+                    logger.Error("Line {}. Expected {}".format(token.line, child_data))
+                    break # didn't match character
             
             n += 1
         
@@ -162,7 +143,7 @@ def ParseWithRegexTree(tokens, grammer, regexTree, logger):
             # presuming we have not yet succeeded, and we are inside an Any block
             # this means we are trying the next child.
             # we need to reset the state of Tokens.
-            tokens.tokens = tokens_deep_copy    
+            tokens.ResetSavepoint(tokens_savepoint)    
 
         k += 1
         
@@ -219,5 +200,5 @@ def ParseTokensWithGrammer(tokens, grammer, grammerDef, logger):
 def Run(tokens, logger):
     grammer = g.LoadGrammer()
     abstractSyntaxTree = ParseTokensWithGrammer(tokens, grammer, grammer.defs["program"], logger)
-    # We want to check if the syntax parser failed, which is to say that the code has improper grammar.
+
     return abstractSyntaxTree

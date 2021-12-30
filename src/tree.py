@@ -5,19 +5,23 @@ class Tree:
         self.children = []
         self.data = data
         self.modifier = modifier
-        #self.weights = [] # what is this advanced stuff?
+        # self.weights = [] # what is this advanced stuff?
         # self.number = num # also not sure what this is
         
         # depth is the amount of layers beneath this node.
         self.depth = 0
         
-        #self.numberOfNodes = 1 # also was is this used for?
-        '''if children:
+        # self.numberOfNodes = 1 # also was is this used for?
+        '''
+        if children:
             # my guess is that weights is the amount of 
             # nodes if we chose a specific path down the tree?
             for i in range(len(children)):
                 self.weights.append(1)
         '''
+
+    def __str__(self):
+        return self.data
 
     def Print(tree, indentation, logger):
         # print(" " * indentation +  str(tree.data) + ", " + str(tree.number))

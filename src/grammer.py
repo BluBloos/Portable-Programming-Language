@@ -113,7 +113,7 @@ def LoadGrammer():
     )
     grammer.defs["function"]=GrammerDefinition(
         "function",
-        r"(type)(symbol)\(((lv),)*(lv)\)[;(block)]"
+        r"(type)(symbol)\(((lv),)*(lv)\)[;(statement)]"
     )
     grammer.defs["type"] = GrammerDefinition(
         "type",
@@ -215,12 +215,12 @@ def LoadGrammer():
     '''
     grammer.defs["function_call"] = GrammerDefinition(
         "function_call",
-        r"(symbol)\(((expression),)*(expression)\)(statement)"
+        r"(symbol)\((expression)(,(expression))*\)"
     )
     
     grammer.defs["factor"] = GrammerDefinition(
         "factor",
-        r"[(literal)(symbol)(function_call)([(op,!)(op,-)](factor))(\((expression)\))]"
+        r"[(literal)(function_call)(symbol)([(op,!)(op,-)](factor))(\((expression)\))]"
     )
     # TODO(Noah): Okay, there seems to be a very large amount
     # of operators in C, and the precedence is quite clear.

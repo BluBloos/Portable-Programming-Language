@@ -41,11 +41,16 @@ def SingleTestAST(dir, fileName):
     file.close()
     tokens = lexer.Run(raw)
     logger.Log("Generating AST for {}".format(filePath))
+    logger.StartInternalRecording()
     ast = syntax.ParseTokensWithGrammer(tokens, grammer, grammer.defs[grammerDefName], logger)
+    logger.StopInternalRecording()
     if ast:
         logger.Log("Printing AST for {}".format(filePath))
         ast.Print(0, logger)
     else:
+        # We want to check if the syntax parser failed, which is to say that the code has improper grammar.
+        logger.FlushLast()
+        logger.ClearRecording()
         logger.Error("Unable to generate ast for {}".format(fileName))
 logger.InitLogger()
 SINGLE_TEST = False
@@ -57,7 +62,7 @@ if not SINGLE_TEST:
     except IOError:
         logger.Error("Unable to open file? :(")
 else:
-    SingleTestAST('design/tests/grammer', '_for1.c')
+    SingleTestAST('design/tests/grammer', '_switch1.c')
 logger.CloseLogger()
 # INTEGRATION TEST FOR SINGLE GRAMMER OBJECTS
 
@@ -71,9 +76,23 @@ logger.CloseLogger()
 # A good solution is to have, if you have made an Any, put the "subtring" ones LAST.
 # Want to check first for the LONGEST ones.
 
-# TODO(Noah): Potentially investigate if there is a failure on the Any call, saving some sort of frame.
-# because if tokens.Next() is called, we need to be able to revert back on failure. Thinking this MIGHT be the case.
-# that we are getting lucky to not see this failure right now.
+# TODO(Noah): Add syntax errors given from the compiler. This well help us in debugging.
+# I just spent a ridiculous amount of time debugging my code to figure out that the source dode
+# that I was trying to compile literally had the wrong syntax, and thus the compiler claimed it could
+# simply not parse the AST. It's working too well...
+
+
+'''
+Supose we are trying to get rid of error prints that occur when the lexer is "seeing" if something is there.
+Ex) expected 'case'.
+This is it trying to search for the 0 or more many groups, where the first thing to find is 'case'.
+
+Let's think of when specifically we want to print that we were unable to match a character, for example.
+If this character not being there results in the lexer to stop and no longer look for any more tokens.
+Largely, this is in fact the very last error. So taking the last error is the exact solution...
+
+'''
+
 
 #SingleTest("design/tests/variable_scoping.c", 3)
 #SingleTest("design/tests/variables.c", 5)

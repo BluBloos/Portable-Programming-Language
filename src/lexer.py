@@ -4,27 +4,35 @@ def CreateNullToken():
 class Tokens:
     def __init__(self, tokens):
         self.tokens = tokens
+        self.savepoint = 0
 
     def Len(self):
         return len(self.tokens)    
 
+    def GetSavepoint(self):
+        return self.savepoint
+
+    def ResetSavepoint(self, newSave):
+        self.savepoint = newSave
+
     def Next(self):
-        if len(self.tokens) > 0:
-            return self.tokens.pop(0)
+        if self.savepoint < len(self.tokens):
+            self.savepoint += 1
+            return self.tokens[self.savepoint - 1]
         else:
             #TODO(Noah): Fix this inconsistency. Where is the logger?
             print("[ERROR]: No more tokens")
             return CreateNullToken()
 
     def QueryNext(self):
-        if len(self.tokens) > 0:
-            return self.tokens[0]
+        if self.savepoint < len(self.tokens):
+            return self.tokens[self.savepoint]
         else:
             return CreateNullToken()
 
     def QueryDistance(self, distance):
         if distance < len(self.tokens):
-            return self.tokens[distance]
+            return self.tokens[self.savepoint + distance]
         else:
             return CreateNullToken()
 
