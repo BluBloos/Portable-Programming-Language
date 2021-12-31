@@ -38,7 +38,7 @@ def Run(inFile, outFile, platform, logger):
                 ast.Print(0, logger)
             object_file_path, r = compiler.Run(ast, outFile, logger)
             linker.Run(object_file_path, outFile)
-            logger.Log("Compiled to {}".format(outFile))
+            logger.Success("Compiled to {}".format(outFile))
         else:
             logger.Error("Unable to generate AST")
     except IOError:

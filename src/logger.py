@@ -31,6 +31,12 @@ class Logger:
         # Print to console with red color.
         print(colored(_str, "red"))
         print(Style.RESET_ALL, end='')
+    def Success(self, string):
+        _str = "[SUCCESS]: " + string
+        self.printf(_str)
+        # Print to console with green color.
+        print(colored(_str, "green"))
+        print(Style.RESET_ALL, end='')
 
 
 
