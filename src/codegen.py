@@ -201,7 +201,7 @@ def GenerateFor(ast, fileHandle, logger):
     GenerateStatement(init_statement, fileHandle, logger)
     GenerateExpression(eval_exp, fileHandle, logger)
     fileHandle.write(';')
-    GenerateStatement(end_statement, fileHandle, logger)
+    GenerateStatement(end_statement, fileHandle, logger, noend=True)
     fileHandle.write(")\n")
     GenerateStatement(loop_statement, fileHandle, logger)
 
@@ -244,7 +244,7 @@ def GenerateSwitch(ast, fileHandle, logger):
     fileHandle.write('}\n')
 
 # r"[;([(var_decl)(expression)(_return)(_break)(_continue)];)(block)(_if)(_for)(_while)(_switch)]"
-def GenerateStatement(ast, fileHandle, logger):
+def GenerateStatement(ast, fileHandle, logger, noend=False):
     children_count = len(ast.children)
     if children_count == 0:
         # Literally just a semi-colon for this statement.
@@ -254,7 +254,8 @@ def GenerateStatement(ast, fileHandle, logger):
         child = ast.children[0]
         if child.data == "var_decl":
             GenerateVarDecl(child, fileHandle, logger)
-            fileHandle.write(';\n')
+            if not noend:
+                fileHandle.write(';\n')
         elif child.data == "expression":
             content, pure_functional_flag = _GenerateExpression(child, fileHandle, logger)
             if not pure_functional_flag: 
@@ -262,7 +263,8 @@ def GenerateStatement(ast, fileHandle, logger):
                 # i.e. a function call or a variable assignemnt.
                 # i.e. does it modify memory???
                 fileHandle.write(content)
-                fileHandle.write(';\n')
+                if not noend:
+                    fileHandle.write(';\n')
         elif child.data == "_return":
             GenerateReturn(child, fileHandle, logger)
             fileHandle.write(';\n')

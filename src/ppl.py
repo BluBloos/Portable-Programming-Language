@@ -7,16 +7,47 @@ python ppl.py "inFile" -o "outFile" -t "TARGET" [options]
 
 import sys
 import time
-import logger
+import logger as l
 import lexer
 import preparser
 import syntax
 import compiler
 import linker
 
+def Run(inFile, outFile, platform, logger):
+    verbose = False
+    # NOTE(Noah): Here is where we call all the things to do the compilation.
+    try:
+        file = open(inFile, "r")
+        raw = file.read()
+        file.close()
+        tokens = lexer.Run(raw)
+        if verbose:
+            logger.Log("Printing tokens, pre parser")
+            for token in tokens.tokens:
+                l.Log("TYPE: " + token.type + ", VALUE: " + token.value)
+        preparser.Run(tokens) # Directly modifies the tokens object.
+        if verbose:
+            logger.Log("Printing tokens, post parser")
+            for token in tokens.tokens:
+                logger.Log("TYPE: " + token.type + ", VALUE: " + token.value)
+        ast = syntax.Run(tokens, logger)
+        if ast and tokens.QueryNext().type == "EOL":
+            if verbose:
+                logger.Log("Printing AST")
+                ast.Print(0, logger)
+            object_file_path, r = compiler.Run(ast, outFile, logger)
+            linker.Run(object_file_path, outFile)
+            logger.Log("Compiled to {}".format(outFile))
+        else:
+            logger.Error("Unable to generate AST")
+    except IOError:
+        logger.Error("Unable to read {}".format(inFile))
+
+
 if __name__ == "__main__":
     TIMER_START = time.time()
-    logger = logger.Logger()
+    logger = l.Logger()
     if len(sys.argv) > 1:
         platform = "MAC_OS" # Default platform.
         verbose = False
@@ -32,38 +63,7 @@ if __name__ == "__main__":
                         # does based on the target platform.
                         user_platform = sys.argv[5]
                         if user_platform == "MAC_OS":
-
-                            # NOTE(Noah): Here is where we call all the things to do the compilation.
-                            try:
-                                file = open(inFile, "r")
-                                raw = file.read()
-                                file.close()
-                                tokens = lexer.Run(raw)
-                                if verbose:
-                                    logger.Log("Printing tokens, pre parser")
-                                    for token in tokens.tokens:
-                                        logger.Log("TYPE: " + token.type + ", VALUE: " + token.value)
-                                preparser.Run(tokens) # Directly modifies the tokens object.
-                                if verbose:
-                                    logger.Log("Printing tokens, post parser")
-                                    for token in tokens.tokens:
-                                        logger.Log("TYPE: " + token.type + ", VALUE: " + token.value)
-                                ast = syntax.Run(tokens, logger)
-                                if ast and tokens.QueryNext().type == "EOL":
-                                    if verbose:
-                                        logger.Log("Printing AST")
-                                        ast.Print(0, logger)
-                                    object_file_path, r = compiler.Run(ast, outFile, logger)
-                                    if r:
-                                        linker.Run(object_file_path, outFile)
-                                        logger.Log("Compiled to {}".format(outFile))
-                                    else:
-                                        logger.Error("Compilation failed.")
-                                else:
-                                    logger.Error("Unable to generate AST")
-                            except IOError:
-                                logger.Error("Unable to read {}".format(inFile))
-
+                            Run(inFile, outFile, platform, logger)
                         else:
                             logger.Error("Platform of {} not valid".format(user_platform))
                     else:

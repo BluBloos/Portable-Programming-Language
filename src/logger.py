@@ -30,7 +30,7 @@ class Logger:
         self.printf(_str)
         # Print to console with red color.
         print(colored(_str, "red"))
-        print(Style.RESET_ALL, end="")
+        print(Style.RESET_ALL, end='')
 
 
 

@@ -12,5 +12,13 @@
             "console": "integratedTerminal",
             "args": ["design/tests/fib.c", "-o", "bin/out", "-t", "MAC_OS"]
         }
+        {
+            "name": "Python: Tests",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": ["integration"]
+        }
     ]
 }

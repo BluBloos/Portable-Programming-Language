@@ -1,28 +1,40 @@
 # File exists to run the tests in /tests
 import compiler
-import logger
-from colorama import init
-from colorama import Fore, Back, Style
+import logger as l
 import grammer as g
 import lexer
 import syntax
 import os
 from os.path import isfile, join
-import optimization as meatBullet
-init() # init the colored console stuffs
-def colored(string, color):
-    if color == "green":
-        return Fore.GREEN + string
-    elif color == "red":
-        return Fore.RED + string
-def SingleTest(fileName, desired_result):
-    r = compiler.Run(fileName, True, "MAC_OS")
-    if r:
-        print(colored("{} compiled.".format(fileName), "green"))
-        print(Style.RESET_ALL)
+import sys
+import ppl
+
+def SingleIntegrationTest(filePath, logger):
+    outPath = filePath.replace(".c", "")
+    ppl.Run(filePath, outPath, "MAC_OS", logger)
+
+if __name__ == "__main__":
+    logger = l.Logger()
+    if len(sys.argv) > 1:
+        # go the command
+        command = sys.argv[1]
+        if command == "integration":
+            # Check for file to run through ppl toolchain
+            # TODO(Noah): Add target platform testing for this.
+            try:
+                dir = "design/tests/"
+                for fileName in os.listdir(dir):
+                    path = dir + fileName
+                    if isfile(path) and path.endswith(".c"):
+                        SingleIntegrationTest(path, logger)
+            except IOError as e:
+                print(e)
+            
     else:
-        print(colored("{} failed to compile.".format(fileName), "red"))
-        print(Style.RESET_ALL)
+        pass # silently fail / do nothing.
+        
+
+'''
 # REGEX TREE GENERATION UNIT TEST
 logger.InitLogger()
 grammer = g.LoadGrammer()
@@ -86,3 +98,4 @@ SingleTest("design/tests/for.c", 5)
 SingleTest("design/tests/while.c", 10)
 # INTEGRATION TEST FOR FULL PROGRAMS.
 logger.CloseLogger()
+'''
