@@ -25,8 +25,8 @@ def Run(inFile, outFile, platform, logger):
         if verbose:
             logger.Log("Printing tokens, pre parser")
             for token in tokens.tokens:
-                l.Log("TYPE: " + token.type + ", VALUE: " + token.value)
-        preparser.Run(tokens) # Directly modifies the tokens object.
+                logger.Log("TYPE: " + token.type + ", VALUE: " + token.value)
+        pContext = preparser.Run(tokens) # Directly modifies the tokens object.
         if verbose:
             logger.Log("Printing tokens, post parser")
             for token in tokens.tokens:
@@ -37,7 +37,7 @@ def Run(inFile, outFile, platform, logger):
                 logger.Log("Printing AST")
                 ast.Print(0, logger)
             object_file_path, r = compiler.Run(ast, outFile, logger)
-            linker.Run(object_file_path, outFile)
+            linker.Run(pContext, object_file_path, outFile, logger)
             logger.Success("Compiled to {}".format(outFile))
         else:
             logger.Error("Unable to generate AST")

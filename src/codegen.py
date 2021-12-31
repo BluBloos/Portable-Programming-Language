@@ -8,7 +8,7 @@ TAB_AMOUNT = 4
 
 def CheckLiteralInt(obj):
     if obj.data.startswith("LITERAL:"):
-        return lexer.IsNumber(obj.data)
+        return lexer.IsNumber(obj.data[8:])
     return False
 
 def GetLiteralString(obj):
@@ -40,7 +40,12 @@ def _GenerateFactor(ast, fileHandle, logger):
 
     child = ast.children[0]
     if child.data.startswith("LITERAL:"):
-        content += GetLiteralString(child)
+        _content = GetLiteralString(child)
+        if CheckLiteralInt(child):
+            content += _content
+        else:
+            # the literal is a QUOTE.
+            content += '"' + _content.replace('"', "\\\"") + '"'
     elif child.data == "function_call":
         content += _GenerateFunctionCall(child, fileHandle, logger)
     elif child.data.startswith("SYMBOL:"):

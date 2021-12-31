@@ -9,6 +9,7 @@ import os
 from os.path import isfile, join
 import sys
 import ppl
+import preparser
 
 def SingleIntegrationTest(filePath, logger):
     outPath = filePath.replace(".c", "")
@@ -33,6 +34,7 @@ def SingleTestAST(grammer, dir, fileName, logger):
 if __name__ == "__main__":
     timer = timing.Timer()
     logger = l.Logger()
+    verbose = True
     if len(sys.argv) > 1:
         # go the command
         command = sys.argv[1]
@@ -46,7 +48,7 @@ if __name__ == "__main__":
                     if isfile(path) and path.endswith(".c"):
                         SingleIntegrationTest(path, logger)
             except IOError as e:
-                print(e)
+                logger.Error(str(e))
         elif command == "regex_gen":
             # REGEX TREE GENERATION UNIT TEST
             grammer = g.LoadGrammer()
@@ -63,8 +65,34 @@ if __name__ == "__main__":
                 dir = "design/tests/grammer"
                 for fileName in os.listdir(dir):
                     SingleTestAST(grammer, dir, fileName, logger)
-            except IOError:
-                logger.Error("Unable to open file? :(")
+            except IOError as e:
+                logger.Error(str(e))
+        elif command == "preparser":
+            try:
+                dir = "design/tests/preparse"
+                for fileName in os.listdir(dir):
+                    inFile = join(dir, fileName)
+                    logger.Log("Testing preparser for {}".format(fileName))    
+                    file = open(inFile, "r")
+                    raw = file.read()
+                    file.close()
+                    tokens = lexer.Run(raw)
+                    if verbose:
+                        logger.Log("Printing tokens, pre parser")
+                        for token in tokens.tokens:
+                            logger.Log("TYPE: " + token.type + ", VALUE: " + token.value)
+                    pContext = preparser.Run(tokens) # Directly modifies the tokens object.
+                    if verbose:
+                        logger.Log("Printing pContext")
+                        logger.Log("libs:"+",".join(pContext.libs))
+                        logger.Log("targets:"+",".join(pContext.targets))
+                        logger.Log("Printing tokens, post parser")
+                        for token in tokens.tokens:
+                            logger.Log("TYPE: " + token.type + ", VALUE: " + token.value)
+                    
+            except IOError as e:
+                logger.Error(str(e))
+            
 
     else:
         pass # silently fail / do nothing.

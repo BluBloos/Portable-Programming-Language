@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 int fib(int n)
 {
     if (n <= 1)
@@ -7,5 +9,5 @@ int fib(int n)
 
 int main()
 {
-  return fib(7); // returns 13
+  printf("Fib(7)=%d", fib(7)); // should return 13
 }

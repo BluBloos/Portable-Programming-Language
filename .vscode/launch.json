@@ -5,20 +5,20 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Current File",
+            "name": "Python: PPL",
             "type": "python",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
             "args": ["design/tests/fib.c", "-o", "bin/out", "-t", "MAC_OS"]
-        }
+        },
         {
             "name": "Python: Tests",
             "type": "python",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": ["grammers"]
+            "args": ["integration"]
         }
     ]
 }
