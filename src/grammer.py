@@ -10,6 +10,9 @@ equivalences["logical_and_exp"] = ["equality_exp", "relational_exp", "additive_e
 equivalences["logical_or_exp"] = ["logical_and_exp", "equality_exp", "relational_exp", "additive_exp", "term", "factor"]
 equivalences["conditional_exp"] = ["logical_or_exp", "logical_and_exp", "equality_exp", "relational_exp", "additive_exp", "term", "factor"]
 
+def IsValidType(typeStr):
+    return typeStr in ["float", "double", "int", "char", "short"]
+
 # NOTE(Noah): Grammer definition are custom regular expressions that I invented,
 # regardless of if there are parsing libraries out there...
 class GrammerDefinition:
@@ -97,7 +100,6 @@ def CreateRegexTree(grammer, regex):
     return regexTree
 
 def LoadGrammer():
-    # we start by defining the Grammer
     grammer = Grammer()
     grammer.defs["program"] = GrammerDefinition(
         "program",
@@ -113,7 +115,7 @@ def LoadGrammer():
     )
     grammer.defs["function"]=GrammerDefinition(
         "function",
-        r"(type)(symbol)\((lv)(,(lv))*\)[;(statement)]"
+        r"(type)(symbol)\(((lv)(,(lv))*)?\)[;(statement)]"
     )
     grammer.defs["type"] = GrammerDefinition(
         "type",
@@ -133,7 +135,7 @@ def LoadGrammer():
     )
     grammer.defs["statement"]=GrammerDefinition(
         "statement",
-        r"[;([(var_decl)(expression)(_return)(_break)(_continue)];)(block)(_if)(_for)(_while)(_switch)]"
+        r"[;([(_return)(var_decl)(expression)(_break)(_continue)];)(block)(_if)(_for)(_while)(_switch)]"
     )
     grammer.defs["_return"] = GrammerDefinition(
         "_return",
@@ -153,8 +155,8 @@ def LoadGrammer():
     )
     # NOTE(Noah): Noticing that this allows for having for-loops as the end condition
     # of a higher-level for-loop. I guess that is not so bad LOL.
-    # Of course, we can ensure the validity of the tree after it is made. Maybe dissalow
-    # silly things like this.    
+    # Of course, we can ensure the validity of the tree after it is made.
+    # TODO(Noah): Maybe not allow silly things like this.    
     grammer.defs["_for"] = GrammerDefinition(
         "_for",
         r"(keyword=for)\((statement)(expression);(statement_noend)\)(statement)"
@@ -164,8 +166,9 @@ def LoadGrammer():
         r"(keyword=while)\((expression)\)(statement)"
     )
     '''
-    NOTE(Noah): Due to the way that I have defined the grammer for the switch statements,
+    Due to the way that I have defined the grammer for the switch statements,
     we cannot have default: in front of any case:. It must be that default: comes at the end...
+    TODO(Noah): Check if this is valid C
     '''
     grammer.defs["_switch"] = GrammerDefinition(
         "_switch",
@@ -179,7 +182,6 @@ def LoadGrammer():
         "assignment_exp",
         r"(symbol)=(expression)"
     )
-    # Some of that ternary operator shit. Apparently it is very high level...
     grammer.defs["conditional_exp"] = GrammerDefinition(
         "conditional_exp",
         r"(logical_or_exp)\?(expression):(expression)"
@@ -198,33 +200,22 @@ def LoadGrammer():
     )
     grammer.defs["relational_exp"] = GrammerDefinition(
         "relational_exp",
-        r"(additive_exp)[(op,<)(op,>)](additive_exp)"
+        r"(additive_exp)[(op,>=)(op,<=)(op,<)(op,>)](additive_exp)"
     )
     grammer.defs["additive_exp"] = GrammerDefinition(
         "additive_exp",
-        r"(term)[(op,+)(op,-)](term)"
+        r"(term)([(op,+)(op,-)](term))+"
     )
     grammer.defs["term"] = GrammerDefinition(
         "term",
-        r"(factor)[(op,*)(op,/)](factor)"
+        r"(factor)([(op,*)(op,/)](factor))+"
     )
-    '''
-    # TODO(Noah): To add operators.
-    - attribute of a variable
-    - function call on a variable
-    '''
     grammer.defs["function_call"] = GrammerDefinition(
         "function_call",
-        r"(symbol)\((expression)(,(expression))*\)"
+        r"(symbol)\(((expression)(,(expression))*)?\)"
     )
-    
     grammer.defs["factor"] = GrammerDefinition(
         "factor",
         r"[(literal)(function_call)(symbol)([(op,!)(op,-)](factor))(\((expression)\))]"
     )
-    # TODO(Noah): Okay, there seems to be a very large amount
-    # of operators in C, and the precedence is quite clear.
-    # Lot's of work to do here, so we will just try to implement something simple to
-    # begin with
-    # https://en.cppreference.com/w/c/language/operator_precedence
     return grammer

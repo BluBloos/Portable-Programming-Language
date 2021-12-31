@@ -6,3 +6,4 @@
 /.vs/*
 /*.cpp
 log.txt
+design/tests/*.cpp

@@ -1,10 +1,14 @@
 import time
-TIMER_START = time.time()
 import logger
 import lexer
 import preparser
+import preparser2
+import codegen
+import syntax
 import sys
+
 def Run(filePath, DEBUG, target):
+    TIMER_START = time.time()
     try:
         file = open(filePath, "r")
         raw = file.read()
@@ -14,11 +18,34 @@ def Run(filePath, DEBUG, target):
             for token in tokens.tokens:
                 logger.Log("TYPE: " + token.type + ", VALUE: " + token.value)
         
-        preparser_context = preparser.Run(tokens)
-        #tree = syntax.Run(tokens, logger)
+        '''
+        NOTE(Noah): Not sure what we were trying with preparser
+        #preparser_context = preparser.Run(tokens)
+        #pcontext, compiler_output = preparser2.Run(tokens)
+        if DEBUG:
+            logger.Log("NOW SHOWING PREPARSER OUTPUT")
+            for token in compiler_output:
+                logger.Log("TYPE: " + token.type + ", VALUE: " + token.value)
+        '''
+
+        ast = syntax.Run(tokens, logger)
+        if ast:
+            if DEBUG:
+                ast.Print(0, logger)
+            output_file_path = filePath + ".output.cpp"
+            codegen.Run(ast, output_file_path, logger)
+        else:
+            logger.Error("Unable to generate ast for {}".format(filePath))
+            return False
+
+        return True # compile success
 
     except IOError:
         logger.Error("Could not open/read file: " + filePath)
+    TIMER_END = time.time()
+    time_elapsed_in_ms = round((TIMER_END - TIMER_START) * 1000, 2)
+    logger.Log("Total time for compiler.py = " + str( time_elapsed_in_ms ) + " ms" )
+
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         DEBUG = True
@@ -41,4 +68,5 @@ if __name__ == "__main__":
                 DEBUG = False
         Run(sys.argv[1], DEBUG, platform)
     else:
-        logger.Error("No source file specified.")
+        print("[ERROR]: No source file specified.")
+    

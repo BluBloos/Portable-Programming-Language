@@ -209,4 +209,7 @@ def ParseTokensWithGrammer(tokens, grammer, grammerDef, logger):
 def Run(tokens, logger):
     grammer = g.LoadGrammer()
     abstractSyntaxTree = ParseTokensWithGrammer(tokens, grammer, grammer.defs["program"], logger)
-    return abstractSyntaxTree
+    # check if it's valid.
+    if abstractSyntaxTree and tokens.QueryNext().type == "EOL":
+        return abstractSyntaxTree
+    return False
