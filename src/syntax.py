@@ -124,7 +124,7 @@ def ParseWithRegexTree(tokens, grammer, regexTree, logger):
                     # NOTE(Noah): Simply consume character,
                     # no Tree to add for this one.
                 else:
-                    logger.Error("Line {}. Expected {}".format(token.line, child_data))
+                    #logger.Error("Line {}. Expected {}".format(token.line, child_data))
                     break # didn't match character
             
             n += 1
@@ -146,6 +146,12 @@ def ParseWithRegexTree(tokens, grammer, regexTree, logger):
             tokens.ResetSavepoint(tokens_savepoint)    
 
         k += 1
+    
+    '''
+    if not fail_flag:
+        # Flush the recordings. Do not care about any errors before this point.
+        logger.ClearRecording()
+    '''
         
     return (treesParsed, fail_flag)
 
@@ -191,7 +197,10 @@ def ParseTokensWithGrammer(tokens, grammer, grammerDef, logger):
     if not fail_flag:
         for t in trees:
             tree.Adopt(t)
+        # Flush the recordings. Do not care about any errors before this point.
+        #logger.ClearRecording()
     else:
+        #logger.Error('Unable to parse grammer={}'.format(grammerDef.name))
         return False # Fail condition. We either get the grammer object or we do not...
 
     return tree
@@ -200,5 +209,4 @@ def ParseTokensWithGrammer(tokens, grammer, grammerDef, logger):
 def Run(tokens, logger):
     grammer = g.LoadGrammer()
     abstractSyntaxTree = ParseTokensWithGrammer(tokens, grammer, grammer.defs["program"], logger)
-
     return abstractSyntaxTree

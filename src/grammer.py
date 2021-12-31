@@ -101,11 +101,11 @@ def LoadGrammer():
     grammer = Grammer()
     grammer.defs["program"] = GrammerDefinition(
         "program",
-        r"[(function)(statement)(struct_decl)]*"
+        r"[(function)((var_decl);)(struct_decl)]*"
     )
     grammer.defs["struct_decl"] = GrammerDefinition(
         "struct_decl",
-        r"(keyword=struct)\{(var_decl)*\};"
+        r"(keyword=struct)(symbol)\{((var_decl);)*\};"
     )
     grammer.defs["lv"] = GrammerDefinition(
         "lv",
@@ -113,7 +113,7 @@ def LoadGrammer():
     )
     grammer.defs["function"]=GrammerDefinition(
         "function",
-        r"(type)(symbol)\(((lv),)*(lv)\)[;(statement)]"
+        r"(type)(symbol)\((lv)(,(lv))*\)[;(statement)]"
     )
     grammer.defs["type"] = GrammerDefinition(
         "type",

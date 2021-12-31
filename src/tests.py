@@ -41,10 +41,10 @@ def SingleTestAST(dir, fileName):
     file.close()
     tokens = lexer.Run(raw)
     logger.Log("Generating AST for {}".format(filePath))
-    logger.StartInternalRecording()
+    #logger.StartInternalRecording()
     ast = syntax.ParseTokensWithGrammer(tokens, grammer, grammer.defs[grammerDefName], logger)
-    logger.StopInternalRecording()
-    if ast:
+    #logger.StopInternalRecording()
+    if ast and tokens.QueryNext().type == "EOL":
         logger.Log("Printing AST for {}".format(filePath))
         ast.Print(0, logger)
     else:
@@ -53,7 +53,7 @@ def SingleTestAST(dir, fileName):
         logger.ClearRecording()
         logger.Error("Unable to generate ast for {}".format(fileName))
 logger.InitLogger()
-SINGLE_TEST = False
+SINGLE_TEST = True
 if not SINGLE_TEST:
     try:
         dir = "design/tests/grammer"
@@ -62,7 +62,7 @@ if not SINGLE_TEST:
     except IOError:
         logger.Error("Unable to open file? :(")
 else:
-    SingleTestAST('design/tests/grammer', '_switch1.c')
+    SingleTestAST('design/tests/grammer', 'program1.c')
 logger.CloseLogger()
 # INTEGRATION TEST FOR SINGLE GRAMMER OBJECTS
 
@@ -81,6 +81,17 @@ logger.CloseLogger()
 # that I was trying to compile literally had the wrong syntax, and thus the compiler claimed it could
 # simply not parse the AST. It's working too well...
 
+# TODO(Noah): for program1.c, because the function failed and it was the last...and we had the whole * (0 or more),
+# because it failed, it simply didn't care because it got enough! It got some and like half.
+# right so the error is because we have reached the end of the program and there remains tokens to be parsed.
+# In fact, it goes exactly like this. Unless we reach the EOL token, the ast has failed?
+
+# TODO(Noah): Last error is okay at best. Like, it's hiding the details. I know the function wasn't found,
+# then it didn't find a var_decl, so the last thing it tried to do was see if what it was looking at was a struct.
+# I need to be able to print 'Expected ; on line ___.' 
+
+# Here's one way to look at it. Once we get an error like 'Expected ; on Line___'. After this point, NOTHING ELSE
+# goes correctly. 
 
 '''
 Supose we are trying to get rid of error prints that occur when the lexer is "seeing" if something is there.
@@ -90,9 +101,7 @@ This is it trying to search for the 0 or more many groups, where the first thing
 Let's think of when specifically we want to print that we were unable to match a character, for example.
 If this character not being there results in the lexer to stop and no longer look for any more tokens.
 Largely, this is in fact the very last error. So taking the last error is the exact solution...
-
 '''
-
 
 #SingleTest("design/tests/variable_scoping.c", 3)
 #SingleTest("design/tests/variables.c", 5)
@@ -108,3 +117,49 @@ Largely, this is in fact the very last error. So taking the last error is the ex
 #SingleTest("design/tests/fib.c", 13)
 #SingleTest("design/tests/for.c", 5)
 #SingleTest("design/tests/while.c", 10)
+
+
+'''
+TODO(Noah):
+
+Logger stuff brainstorm
+
+r"[(function_decl)(function_impl)(var_decl)(struct_decl)]*"
+
+r"(type)(symbol)\(((lv),)*(lv)?\)[;(block)]"
+
+((lv),)
+Suppose we try to parse a group like this.
+this is like parsing something on the regular.
+
+like "(lv),"
+
+so if we fail on the ,
+we simply print that this is how we failed.
+
+but if we fail on the (lv), this contains many sub-components.
+
+r"(type)(symbol)"
+
+can fail on either type or symbol.
+
+type has sub-components.
+
+r"[((symbol)::(symbol))(symbol)(keyword)]"
+
+if type fails, (which is an Any).
+- we simply say "Expected one of : ___, ___, ___"
+
+if we fail on symbol we simply say "Expected symbol".
+
+What happens if the components of the Any block are sufficiently advanced?
+- Like we are looking at a program and it could have been either of the struct, program, or var_decl.
+
+Maybe we have like a "best guess" type of thing. The options of the Any that got the most amount 
+of tokens matched before failure. We store different error buffers for each child.
+
+- Then we print the errors of this sub-component.
+
+Okay now what about the modifiers???
+- Gets quite complicated...
+'''

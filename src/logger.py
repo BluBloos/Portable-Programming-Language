@@ -27,11 +27,12 @@ def PrintF(string):
     file_handle.write(string)
     file_handle.write('\n')
 
+# NOTE(Noah): Kind of flushes the first...
 def FlushLast():
     global file_handle
     global recordingSave
     if len(recordingSave):
-        PrintF(recordingSave[-1])
+        PrintF(recordingSave[0])
 
 def Error(string):
     global recordingActive

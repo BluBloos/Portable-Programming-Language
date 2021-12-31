@@ -60,7 +60,9 @@ def IsKeyword(buffer, line):
         "while",
         "for",
         "else",
-        "return"
+        "return",
+        "float",
+        "double"
     ]
 
     if buffer in keywords:
