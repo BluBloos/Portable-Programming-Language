@@ -117,9 +117,13 @@ def LoadGrammer():
         "function",
         r"(type)(symbol)\(((lv)(,(lv))*)?\)[;(statement)]"
     )
+    grammer.defs["_symbol"] = GrammerDefinition(
+        "_symbol",
+        r"[((symbol)::(symbol))(symbol)]"
+    )
     grammer.defs["type"] = GrammerDefinition(
         "type",
-        r"[((symbol)::(symbol))(symbol)(keyword)]"
+        r"[(_symbol)(keyword)]"
     )
     grammer.defs["block"]=GrammerDefinition(
         "block",
@@ -212,7 +216,7 @@ def LoadGrammer():
     )
     grammer.defs["function_call"] = GrammerDefinition(
         "function_call",
-        r"(symbol)\(((expression)(,(expression))*)?\)"
+        r"(_symbol)\(((expression)(,(expression))*)?\)"
     )
     grammer.defs["factor"] = GrammerDefinition(
         "factor",

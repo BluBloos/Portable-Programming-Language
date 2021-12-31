@@ -38,7 +38,7 @@ def LexAndPreparse(inFile, logger, verbose):
     return (pContext, tokens)
 
 def Run(inFile, outFile, platform, logger):
-    verbose = False
+    verbose = True
     # NOTE(Noah): Here is where we call all the things to do the compilation.
     try:
         pContext, tokens = LexAndPreparse(inFile, logger, verbose)
@@ -47,6 +47,8 @@ def Run(inFile, outFile, platform, logger):
             if verbose:
                 logger.Log("Printing AST")
                 ast.Print(0, logger)
+            # compilation and linker steps are where the targets start to matter
+            # and we need to change behaviour accordingly.
             object_file_path, r = compiler.Run(ast, outFile, logger)
             linker.Run(pContext, object_file_path, outFile, logger)
             logger.Success("Compiled to {}".format(outFile))

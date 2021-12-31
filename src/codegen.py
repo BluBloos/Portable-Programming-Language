@@ -20,11 +20,12 @@ def GetLiteralInt(obj):
 def GetSymbol(ast):
     return ast.data[7:]
 
-# r"(symbol)\(((expression)(,(expression))*)?\)"
+# r"(_symbol)\(((expression)(,(expression))*)?\)"
 def _GenerateFunctionCall(ast, fileHandle, logger):
     content = ""
     symbol_obj = ast.children[0]
-    content += GetSymbol(symbol_obj) + '('
+    content += _Generate_Symbol(symbol_obj, fileHandle, logger) + '('
+
     exps = []    
     for child in ast.children[1:]:
         exp_obj = child
@@ -127,15 +128,24 @@ def GenerateExpression(ast, fileHandle, logger):
     content, pf_flag = _GenerateExpression(ast, fileHandle, logger)
     fileHandle.write(content)
 
-def _GenerateType(ast, fileHandle, logger):
+#  r"[((symbol)::(symbol))(symbol)]"
+def _Generate_Symbol(ast, fileHandle, logger):
     content = ""
     if len(ast.children) == 2:
-        # is symbol::symbol
+       # is symbol::symbol
         content += (GetSymbol(ast.children[0]))
         content += ("::")
         content += (GetSymbol(ast.children[1]))
     else:
-        # is either symbol or keyword
+        # is a symbol.
+        # SYMBOL:, 7 chars
+        content += (GetSymbol(ast.children[0]))
+    return content
+
+def _GenerateType(ast, fileHandle, logger):
+    content = ""
+    if len(ast.children) == 1:
+        # is either _symbol or keyword
         data_object_data = ast.children[0].data
         if data_object_data.startswith("KEY:"):
             keyword = data_object_data[4:]
@@ -145,12 +155,11 @@ def _GenerateType(ast, fileHandle, logger):
                 # TODO(Noah): Can be much better logging here, like.... what line?
                 logger.Error("Invalid core type of {}".format(keyword))
                 sys.exit()
-        else: # its a symbol
-            # SYMBOL:, 7 chars
-            content += (GetSymbol(ast.children[0]))
+        else: # its a _symbol
+            content += _Generate_Symbol(ast.childre[0], fileHandle, logger)
     return content
 
-# r"[((symbol)::(symbol))(symbol)(keyword)]"
+# r"[(_symbol)(keyword)]"
 def GenerateType(ast, fileHandle, logger):
     fileHandle.write(_GenerateType(ast, fileHandle, logger))
 
