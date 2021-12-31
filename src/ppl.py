@@ -20,7 +20,7 @@ import linker
 #logger.Log("Total time for compiler.py = " + str( time_elapsed_in_ms ) + " ms" )
 
 if __name__ == "__main__":
-    logger.InitLogger()
+    logger = logger.Logger()
     if len(sys.argv) > 1:
         platform = "MAC_OS" # Default platform.
         verbose = False
@@ -80,4 +80,3 @@ if __name__ == "__main__":
             print("No output file specified.")
     else:
         logger.Error("No input source file specified")
-    logger.CloseLogger()

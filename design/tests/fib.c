@@ -1,4 +1,4 @@
-int fib(int n)
+int fibint n)
 {
     if (n <= 1)
         return n;

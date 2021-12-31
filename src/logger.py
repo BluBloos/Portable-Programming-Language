@@ -1,7 +1,41 @@
-file_handle = None
+from colorama import init
+from colorama import Fore, Back, Style
+
 recordingActive = False
 recordingSave = []
+init()
 
+def colored(string, color):
+    if color == "green":
+        return Fore.GREEN + string
+    elif color == "red":
+        return Fore.RED + string
+
+class Logger:
+    def __init__(self):
+        self.file_handle = open("log.txt", "w")
+    def __del__(self):
+        self.file_handle.close()
+    def printf(self, string):
+        self.file_handle.write(string)
+        self.file_handle.write('\n')
+    def Log(self, string):
+        _str = "[LOG]: " + string
+        # Print to File.
+        self.printf(_str)
+        #PrintF(_str)
+        print(_str) # No need for color information.
+    def Error(self, string):
+        _str = "[ERROR]: " + string
+        self.printf(_str)
+        # Print to console with red color.
+        print(colored(_str, "red"))
+        print(Style.RESET_ALL, end="")
+
+
+
+
+'''
 def StartInternalRecording():
     global recordingActive
     recordingActive = True
@@ -14,51 +48,10 @@ def ClearRecording():
     global recordingSave
     recordingSave = []
 
-def InitLogger():
-    global file_handle
-    file_handle = open("log.txt", "w")
-
-def CloseLogger():
-    global file_handle
-    file_handle.close()
-
-def PrintF(string):
-    global file_handle
-    file_handle.write(string)
-    file_handle.write('\n')
-
 # NOTE(Noah): Kind of flushes the first...
 def FlushLast():
     global file_handle
     global recordingSave
     if len(recordingSave):
         PrintF(recordingSave[0])
-
-def Error(string):
-    global recordingActive
-    global recordingSave
-    _str = "[ERROR]: " + string
-    if recordingActive:
-        recordingSave.append(_str)
-    else:
-        PrintF(_str)
-        print(_str)
-
-def Log(string):
-    global recordingActive
-    global recordingSave
-    _str = "[LOG]: " + string
-    if recordingActive:
-        recordingSave.append(_str)
-    else:
-        PrintF(_str)
-        print(_str)
-
 '''
-def Error(string):
-    print("[ERROR]: " + string)
-
-def Log(string):
-    print("[LOG]: " + string)
-'''
-
