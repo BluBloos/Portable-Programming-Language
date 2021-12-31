@@ -45,15 +45,17 @@ def SingleTestAST(dir, fileName):
     ast = syntax.ParseTokensWithGrammer(tokens, grammer, grammer.defs[grammerDefName], logger)
     #logger.StopInternalRecording()
     if ast and tokens.QueryNext().type == "EOL":
-        logger.Log("Printing AST for {}".format(filePath))
+        logger.Log(colored("Printing AST for {}".format(filePath), "green"))
+        print(Style.RESET_ALL, end="")
         ast.Print(0, logger)
     else:
         # We want to check if the syntax parser failed, which is to say that the code has improper grammar.
         logger.FlushLast()
         logger.ClearRecording()
-        logger.Error("Unable to generate ast for {}".format(fileName))
+        logger.Error(colored("Unable to generate ast for {}".format(fileName), "red"))
+        print(Style.RESET_ALL, end="")
 logger.InitLogger()
-SINGLE_TEST = True
+SINGLE_TEST = False
 if not SINGLE_TEST:
     try:
         dir = "design/tests/grammer"
