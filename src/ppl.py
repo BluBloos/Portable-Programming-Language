@@ -13,24 +13,35 @@ import preparser
 import syntax
 import compiler
 import linker
+import os
+
+def LexAndPreparse(inFile, logger, verbose):
+    file = open(inFile, "r")
+    raw = file.read()
+    file.close()
+    tokens = lexer.Run(raw)
+    if verbose:
+        logger.Log("Printing tokens, pre parser")
+        for token in tokens.tokens:
+            logger.Log("TYPE: " + token.type + ", VALUE: " + token.value)
+    # compute cwd from inFile.
+    cwd = os.path.dirname(inFile)
+    pContext = preparser.Run(cwd, tokens, verbose, logger) # Directly modifies the tokens object.
+    if verbose:
+        logger.Log("Printing pContext")
+        logger.Log("libs:"+",".join(pContext.libs))
+        logger.Log("targets:"+",".join(pContext.targets))
+        logger.Log("Printing tokens, post parser")
+        for token in tokens.tokens:
+            logger.Log("TYPE: " + token.type + ", VALUE: " + token.value)
+    
+    return (pContext, tokens)
 
 def Run(inFile, outFile, platform, logger):
     verbose = False
     # NOTE(Noah): Here is where we call all the things to do the compilation.
     try:
-        file = open(inFile, "r")
-        raw = file.read()
-        file.close()
-        tokens = lexer.Run(raw)
-        if verbose:
-            logger.Log("Printing tokens, pre parser")
-            for token in tokens.tokens:
-                logger.Log("TYPE: " + token.type + ", VALUE: " + token.value)
-        pContext = preparser.Run(tokens) # Directly modifies the tokens object.
-        if verbose:
-            logger.Log("Printing tokens, post parser")
-            for token in tokens.tokens:
-                logger.Log("TYPE: " + token.type + ", VALUE: " + token.value)
+        pContext, tokens = LexAndPreparse(inFile, logger, verbose)
         ast = syntax.Run(tokens, logger)
         if ast and tokens.QueryNext().type == "EOL":
             if verbose:

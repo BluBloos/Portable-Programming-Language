@@ -1,9 +1,14 @@
+import os
+from os.path import isfile, join
+import ppl
+
 # TODO(Noah): There must be a way to have something approximating a struct or object literal in python.
 # Is this not named tuples? But why is the syntax so poor :(
 class Context:
     def __init__(self, libs, targets):
         self.libs = libs
         self.targets = targets
+        self.failFlag = False
 
 '''
 TODO(Noah): 
@@ -19,7 +24,7 @@ and
 - Name mangle the main entry point so that I can link it with the stub -> very stupid and silly, but just change the name of the main function.
 - Change all std:: namespaces to the PPL:: namespace -> Easy a simple search and replace.
 '''
-def Run(tokens):
+def Run(cwd, tokens, verbose, logger):
    
     #- We want to be looking for #include statments, namely the ones for the standard libraries.
     #We simply want to note which ones that the user wishes to include.
@@ -47,14 +52,40 @@ def Run(tokens):
                 #Find the text.
                 text = ""
                 nextToken = tokens.QueryDistance(n+1)
-                if nextToken.type == "QUOTE":
-                    text = nextToken.value
-                elif nextToken.value == "<":
+                #if nextToken.type == "QUOTE":
+                    #text = nextToken.value
+                if nextToken.value == "<":
                     j = n + 2
                     while tokens.QueryDistance(j).value != ">":
                         text += tokens.QueryDistance(j).value
                         j += 1
-                context.libs.append(text) # Append all libraries to include.
+                else:
+                    # BAD!
+                    context.failFlag = True
+                    logger.Error("Line {}. Expected <".format(nextToken.line))
+                    break
+
+                # Check for the lib as a local PPL file. If so, we need to include this proper as lexed tokens.
+                # TODO(Noah): Add list of directories for includes so we can do -I dir on the command line!
+                # NOTE(Noah): Right now we only support the cwd.
+                filePath = join(cwd, text)
+                # TODO(Noah): Prevent the recursive bullshit that happens if someone tries to include a file
+                # that is literally the current file. This is an infinite #include...
+                if os.path.exists(filePath):
+                    pContext, _tokens = ppl.LexAndPreparse(filePath, logger, verbose)
+                    # Steal libs from here to add.
+                    for lib in pContext.libs:
+                        if lib not in context.lins:
+                            context.libs.append(lib)
+                    # Insert the tokens inline.
+                    newTokens += _tokens.tokens
+                else:
+                    # NOTE(Noah): Passthru standard libraries.
+                    context.libs.append(text) # Append all libraries to include.
+                    #logger.Error("{} does not exist".format(filePath))
+                    #context.failFlag = True
+                    #break
+                
                 n = j # advance n because we want to skip over all tokens for this #include.
         else:
             # default case is to simply pass through the token
@@ -63,6 +94,7 @@ def Run(tokens):
         n += 1
     
     # TODO(Noah): Is there a fast way to do this?
-    tokens.tokens = newTokens # assign new tokens arr.
+    if not context.failFlag:
+        tokens.tokens = newTokens # assign new tokens arr.
 
     return context

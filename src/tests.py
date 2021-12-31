@@ -71,28 +71,11 @@ if __name__ == "__main__":
             try:
                 dir = "design/tests/preparse"
                 for fileName in os.listdir(dir):
-                    inFile = join(dir, fileName)
-                    logger.Log("Testing preparser for {}".format(fileName))    
-                    file = open(inFile, "r")
-                    raw = file.read()
-                    file.close()
-                    tokens = lexer.Run(raw)
-                    if verbose:
-                        logger.Log("Printing tokens, pre parser")
-                        for token in tokens.tokens:
-                            logger.Log("TYPE: " + token.type + ", VALUE: " + token.value)
-                    pContext = preparser.Run(tokens) # Directly modifies the tokens object.
-                    if verbose:
-                        logger.Log("Printing pContext")
-                        logger.Log("libs:"+",".join(pContext.libs))
-                        logger.Log("targets:"+",".join(pContext.targets))
-                        logger.Log("Printing tokens, post parser")
-                        for token in tokens.tokens:
-                            logger.Log("TYPE: " + token.type + ", VALUE: " + token.value)
-                    
+                    logger.Log("Testing preparser for {}".format(fileName))
+                    inFile = join(dir, fileName)  
+                    pContext, tokens = ppl.LexAndPreparse(inFile, logger, verbose)
             except IOError as e:
                 logger.Error(str(e))
-            
 
     else:
         pass # silently fail / do nothing.
