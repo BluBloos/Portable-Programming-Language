@@ -6,7 +6,7 @@ python ppl.py "inFile" -o "outFile" -t "TARGET" [options]
 '''
 
 import sys
-# TODO(Noah): logger.Error() needs to print red color
+import time
 import logger
 import lexer
 import preparser
@@ -14,12 +14,8 @@ import syntax
 import compiler
 import linker
 
-# TODO(Noah): Implement timing stuffs.
-#TIMER_END = time.time()
-#time_elapsed_in_ms = round((TIMER_END - TIMER_START) * 1000, 2)
-#logger.Log("Total time for compiler.py = " + str( time_elapsed_in_ms ) + " ms" )
-
 if __name__ == "__main__":
+    TIMER_START = time.time()
     logger = logger.Logger()
     if len(sys.argv) > 1:
         platform = "MAC_OS" # Default platform.
@@ -80,3 +76,6 @@ if __name__ == "__main__":
             print("No output file specified.")
     else:
         logger.Error("No input source file specified")
+    TIMER_END = time.time()
+    time_elapsed_in_ms = round((TIMER_END - TIMER_START) * 1000, 2)
+    logger.Log("Total time for compiler.py = " + str( time_elapsed_in_ms ) + " ms" )
