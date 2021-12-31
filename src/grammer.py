@@ -133,7 +133,7 @@ def LoadGrammer():
     )
     grammer.defs["statement"]=GrammerDefinition(
         "statement",
-        r"[([(var_decl)(expression)(_return)(_break)(_continue)];)(block)(_if)(_for)(_while)(_switch)]"
+        r"[;([(var_decl)(expression)(_return)(_break)(_continue)];)(block)(_if)(_for)(_while)(_switch)]"
     )
     grammer.defs["_return"] = GrammerDefinition(
         "_return",

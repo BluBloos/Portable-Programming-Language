@@ -17,7 +17,7 @@ int main(int argc, A largeLad) {
     // really need to implement the j++ thing...
     for (int j; j < argc; j = j + 1) {
         argc = j + 1; // this should be fun.
-        //while (true); // also fun.
+        while (true); // also fun.
     }
 
     {
