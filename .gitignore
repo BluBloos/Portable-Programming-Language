@@ -9,3 +9,4 @@ log.txt
 design/tests/*
 bin/*
 !design/tests/*.c
+*.o

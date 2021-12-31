@@ -194,7 +194,9 @@ def Run(raw):
                 currentToken = ""
             if character == '\\' and raw[n-1] != '\\':
                 # the escape character is here.
-                currentToken = currentToken[:-1] # remove escape character.
+                # but we must ensure that we pass forward all \n 's.
+                if raw[n+1] != 'n':
+                    currentToken = currentToken[:-1] # remove escape character.
             n += 1
             continue
         elif character == '"': # Condition for entering the quote state.
