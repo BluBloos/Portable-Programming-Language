@@ -37,8 +37,7 @@ def LexAndPreparse(inFile, logger, verbose):
     
     return (pContext, tokens)
 
-def Run(inFile, outFile, platform, logger):
-    verbose = True
+def Run(inFile, outFile, platform, logger, verbose):
     # NOTE(Noah): Here is where we call all the things to do the compilation.
     try:
         pContext, tokens = LexAndPreparse(inFile, logger, verbose)
@@ -76,7 +75,7 @@ if __name__ == "__main__":
                         # does based on the target platform.
                         user_platform = sys.argv[5]
                         if user_platform == "MAC_OS":
-                            Run(inFile, outFile, platform, logger)
+                            Run(inFile, outFile, platform, logger, verbose)
                         else:
                             logger.Error("Platform of {} not valid".format(user_platform))
                     else:

@@ -118,3 +118,32 @@ Okay now what about the modifiers???
 
 '''
 
+'''
+TODO(Noah):
+We want to get the console target working. Along with linking with a standard library.
+What do we need to do to get this example working?
+
+- Parse \n as newline PLEASE :(
+
+- basic ppl::scan implementation
+- string data type
+- utf8 string literals
+- prints should work with utf8, scanf's too
+- ppl::print_color implementation
+- running system commands
+- add to the grammer -> in the type grammer (pointer type).
+- add the alloc keyword as an expression (kind of like var assignment/func decl).
+- add the free keyword as a statement.
+- enum for colors, Ex) PPL::RED
+- >> operator for piping function calls to object instances
+    - I'll have it in the syntax parser as an expression, because '>>' is an operator.
+    - But I will NOT put any codegen to it because I don't even have objects...
+
+- Need to implement proper targeting of platforms.
+    - Right now it is really difficult to look forward and be like: 'Yes, this is how
+    we mght implement the other platforms and therefore we should prepare by architecting
+    our code like ___.
+    Not going to work. Let's just keep it in mind that this is the end goal. In the meantime
+    everything is to target the console target.
+
+'''

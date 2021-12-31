@@ -11,9 +11,9 @@ import sys
 import ppl
 import preparser
 
-def SingleIntegrationTest(filePath, logger):
+def SingleIntegrationTest(filePath, logger, verbose):
     outPath = filePath.replace(".c", "")
-    ppl.Run(filePath, outPath, "MAC_OS", logger)
+    ppl.Run(filePath, outPath, "MAC_OS", logger, verbose)
 
 def SingleTestAST(grammer, dir, fileName, logger):
     filePath = join(dir, fileName)
@@ -34,7 +34,7 @@ def SingleTestAST(grammer, dir, fileName, logger):
 if __name__ == "__main__":
     timer = timing.Timer()
     logger = l.Logger()
-    verbose = True
+    verbose = False
     if len(sys.argv) > 1:
         # go the command
         command = sys.argv[1]
@@ -42,11 +42,11 @@ if __name__ == "__main__":
             # Check for file to run through ppl toolchain
             # TODO(Noah): Add target platform testing for this.
             try:
-                dir = "design/tests/"
+                dir = "tests/"
                 for fileName in os.listdir(dir):
                     path = dir + fileName
                     if isfile(path) and path.endswith(".c"):
-                        SingleIntegrationTest(path, logger)
+                        SingleIntegrationTest(path, logger, verbose)
             except IOError as e:
                 logger.Error(str(e))
         elif command == "regex_gen":
@@ -62,18 +62,18 @@ if __name__ == "__main__":
         elif command == "grammers":
             grammer = g.LoadGrammer()
             try:
-                dir = "design/tests/grammer"
+                dir = "tests/grammer"
                 for fileName in os.listdir(dir):
                     SingleTestAST(grammer, dir, fileName, logger)
             except IOError as e:
                 logger.Error(str(e))
         elif command == "preparser":
             try:
-                dir = "design/tests/preparse"
+                dir = "tests/preparse"
                 for fileName in os.listdir(dir):
                     logger.Log("Testing preparser for {}".format(fileName))
                     inFile = join(dir, fileName)  
-                    pContext, tokens = ppl.LexAndPreparse(inFile, logger, verbose)
+                    pContext, tokens = ppl.LexAndPreparse(inFile, logger, True)
             except IOError as e:
                 logger.Error(str(e))
 
