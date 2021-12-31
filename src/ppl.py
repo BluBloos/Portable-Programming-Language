@@ -6,7 +6,7 @@ python ppl.py "inFile" -o "outFile" -t "TARGET" [options]
 '''
 
 import sys
-import time
+import timing
 import logger as l
 import lexer
 import preparser
@@ -46,7 +46,7 @@ def Run(inFile, outFile, platform, logger):
 
 
 if __name__ == "__main__":
-    TIMER_START = time.time()
+    timer = timing.Timer()
     logger = l.Logger()
     if len(sys.argv) > 1:
         platform = "MAC_OS" # Default platform.
@@ -76,6 +76,4 @@ if __name__ == "__main__":
             print("No output file specified.")
     else:
         logger.Error("No input source file specified")
-    TIMER_END = time.time()
-    time_elapsed_in_ms = round((TIMER_END - TIMER_START) * 1000, 2)
-    logger.Log("Total time for compiler.py = " + str( time_elapsed_in_ms ) + " ms" )
+    timer.TimerEnd("ppl.py", logger)

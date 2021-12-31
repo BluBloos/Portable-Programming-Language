@@ -4,6 +4,7 @@ import logger as l
 import grammer as g
 import lexer
 import syntax
+import timing
 import os
 from os.path import isfile, join
 import sys
@@ -14,6 +15,7 @@ def SingleIntegrationTest(filePath, logger):
     ppl.Run(filePath, outPath, "MAC_OS", logger)
 
 if __name__ == "__main__":
+    timer = timing.Timer()
     logger = l.Logger()
     if len(sys.argv) > 1:
         # go the command
@@ -29,22 +31,23 @@ if __name__ == "__main__":
                         SingleIntegrationTest(path, logger)
             except IOError as e:
                 print(e)
+        elif command == "regex_gen":
+            # REGEX TREE GENERATION UNIT TEST
+            grammer = g.LoadGrammer()
+            for key in grammer.defs.keys():
+                regex = grammer.defs[key].regExp
+                # TODO(Noah): What if we are unable to print a regex tree?
+                regexTree = g.CreateRegexTree(grammer, regex)
+                logger.Success("Printing REGEX tree for r\"{}\"".format(regex))
+                regexTree.Print(0, logger)
+            # REGEX TREE GENERATION UNIT TEST
             
     else:
         pass # silently fail / do nothing.
-        
+    timer.TimerEnd("tests.py", logger)
 
 '''
-# REGEX TREE GENERATION UNIT TEST
-logger.InitLogger()
-grammer = g.LoadGrammer()
-for key in grammer.defs.keys():
-    regex = grammer.defs[key].regExp
-    regexTree = g.CreateRegexTree(grammer, regex)
-    logger.Log(colored("Printing REGEX tree for r\"{}\"".format(regex), "green"))
-    print(Style.RESET_ALL, end="")
-    regexTree.Print(0, logger)
-# REGEX TREE GENERATION UNIT TEST
+
 # Run integration test of lexer and ast generation on single grammer objects
 def SingleTestAST(dir, fileName):
     filePath = join(dir, fileName)
