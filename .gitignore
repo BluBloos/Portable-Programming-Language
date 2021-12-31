@@ -7,3 +7,4 @@
 /*.cpp
 log.txt
 design/tests/*.cpp
+bin/*

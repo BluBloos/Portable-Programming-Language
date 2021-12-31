@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": ["design/desktop/desktop_helloworld.ppl", "target=MAC_OS"]
+            "args": ["design/tests/fib.c", "-o", "bin/out", "-t", "MAC_OS"]
         }
     ]
 }
