@@ -46,8 +46,11 @@ def IsKeyword(buffer, line):
     result = -1
     tokenValue = "NULL"
     
+    # TODO(Noah): Change to a uint8! Or something like
+    # this.
     keywords = [
         "struct",
+        "string",
         "int",
         "void",
         "char",
@@ -207,9 +210,18 @@ def Run(raw):
             if (token):
                 tokens.append(token)
             currentToken = ""
+        
+        if state not in ["QUOTE", "COMMENT", "COMMENT_MULTILINE"] \
+            and raw[n] == "'" and raw[n+2] == "'":
+            # Found a character literal.
+            c_val = raw[n+1]
+            tokens.append(Token("C_LITERAL", c_val, currentLine))
+            currentToken = "" # reset that shit 
+            n += 3 # skip past both character literal and "'"
+            continue
 
         #handle operators
-        token, symbolToken = QueryForToken(character, cleanToken, "+-%*!<>=|&?", "OP", currentLine)
+        token, symbolToken = QueryForToken(character, cleanToken, "+-%*!<>=|&?[]", "OP", currentLine)
         if symbolToken:
             tokens.append(symbolToken)
         if token:
@@ -227,7 +239,7 @@ def Run(raw):
         #check for seperators
         # NOTE(Noah): We have to add back the . somewhere in the lexer. Right now it gets
         # consumed by literals...
-        token, symbolToken = QueryForToken(character, cleanToken, "{}()[],:", "PART", currentLine)
+        token, symbolToken = QueryForToken(character, cleanToken, "{}(),:", "PART", currentLine)
         if symbolToken:
             tokens.append(symbolToken)
         if token:

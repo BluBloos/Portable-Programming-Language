@@ -26,6 +26,9 @@ def Run(pContext, objectFilePath, outFile, logger):
             lib_includes.append(lib_inc)
             libLines.append("#include <{}>".format(lib_inc.replace(".o", ".h"))) # so we can link.
 
+    # add the core ppl lib
+    libLines.append("#include <ppl_core.h>")
+
     InjectLines(objectFilePath, libLines, logger)
 
     include_path = "src/std/"

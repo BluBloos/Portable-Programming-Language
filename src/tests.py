@@ -71,7 +71,7 @@ if __name__ == "__main__":
             try:
                 dir = "tests/preparse"
                 for fileName in os.listdir(dir):
-                    logger.Log("Testing preparser for {}".format(fileName))
+                    logger.Success("Testing preparser for {}".format(fileName))
                     inFile = join(dir, fileName)  
                     pContext, tokens = ppl.LexAndPreparse(inFile, logger, True)
             except IOError as e:

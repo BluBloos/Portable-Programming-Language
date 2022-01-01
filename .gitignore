@@ -10,4 +10,7 @@ design/*
 bin/*
 tests/*.cpp
 tests/*
+!/tests/*.c
 *.o
+!tests/preparse/
+!tests/grammer

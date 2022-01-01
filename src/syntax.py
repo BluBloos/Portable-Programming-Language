@@ -73,9 +73,12 @@ def ParseWithRegexTree(tokens, grammer, regexTree, logger):
             # the same thing...
             elif child_data == "literal":
                 token = tokens.QueryNext() # the whole LR k+1 idea :)
-                if token.type == "LITERAL" or token.type == "QUOTE":
+                if token.type == "LITERAL" or token.type == "QUOTE" or token.type == "C_LITERAL":
                     tokens.Next()
-                    treesParsed.append(Tree("LITERAL:"+token.value))
+                    if token.type == "C_LITERAL":
+                        treesParsed.append(Tree("C_LITERAL:"+token.value))
+                    else:
+                        treesParsed.append(Tree("LITERAL:"+token.value))
                     re_matched += 1
                 else:
                     logger.Error("Line {}. Expected literal but got {}".format(token.line, token.value))

@@ -5,12 +5,24 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "(lldb) Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/a.out",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb"
+        },
+        {
             "name": "Python: PPL",
             "type": "python",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": ["tests/pointers.c", "-o", "bin/out", "-t", "MAC_OS"]
+            "args": ["tests/console.c", "-o", "bin/out", "-t", "MAC_OS"]
         },
         {
             "name": "Python: Tests",

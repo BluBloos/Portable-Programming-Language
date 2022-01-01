@@ -6,7 +6,7 @@ import lexer
 
 TAB_AMOUNT = 4
 
-def CheckLiteralInt(obj):
+def CheckLiteralNumber(obj):
     if obj.data.startswith("LITERAL:"):
         return lexer.IsNumber(obj.data[8:])
     return False
@@ -16,6 +16,9 @@ def GetLiteralString(obj):
 
 def GetLiteralInt(obj):
     return int(obj.data[8:])
+
+def GetOp(ast):
+    return ast.data[3:]
 
 def GetSymbol(ast):
     return ast.data[7:]
@@ -40,13 +43,20 @@ def _GenerateFactor(ast, fileHandle, logger):
     content = ""
 
     child = ast.children[0]
-    if child.data.startswith("LITERAL:"):
+    if child.data.startswith("C_LITERAL:"):
+        _content = child.data[10:]
+        # C_LITERAL
+        content += hex(ord(_content))
+        #content += _content.encode("utf-8")
+        #content += '*(uint64*)"' + _content + '"'
+
+    elif child.data.startswith("LITERAL:"):
         _content = GetLiteralString(child)
-        if CheckLiteralInt(child):
+        if CheckLiteralNumber(child):
             content += _content
         else:
-            # the literal is a QUOTE.
-            content += '"' + _content.replace('"', "\\\"") + '"'
+            # the literal is a QUOTE 
+            content += '(string)"' + _content.replace('"', "\\\"") + '"'
     elif child.data == "function_call":
         content += _GenerateFunctionCall(child, fileHandle, logger)
     elif child.data == "_symbol":
@@ -55,7 +65,7 @@ def _GenerateFactor(ast, fileHandle, logger):
         _content, p = _GenerateExpression(child, fileHandle, logger)
         content += _content
     elif child.data.startswith("OP:"): # unary op.
-        operator = child.data[3:]
+        operator = GetOp(child)
         child2 = ast.children[1]
         content += operator
         _content = _GenerateFactor(child2, fileHandle, logger)
@@ -63,6 +73,7 @@ def _GenerateFactor(ast, fileHandle, logger):
     elif child.data == "type":
         # Type cast on a factor.
         factor_obj = ast.children[1]
+        # NOTE(Noah): Not going to be casting to static array type!
         content += '(' + _GenerateType(child, fileHandle, logger)
         content += ')'
         content += _GenerateFactor(factor_obj, fileHandle, logger)
@@ -93,7 +104,7 @@ def _GenerateExpression(ast, fileHandle, logger):
         true_obj = child.children[1]
         false_obj = child.children[2]
         true_content, _pf_flag = _GenerateExpression(true_obj, fileHandle, logger)
-        if CheckLiteralInt(cond_obj) and GetLiteralInt(cond_obj) != 0:
+        if CheckLiteralNumber(cond_obj) and GetLiteralInt(cond_obj) != 0:
             content += true_content # small prune here.
         else:
             cond_content, _pf_flag = _GenerateExpression(cond_obj, fileHandle, logger)
@@ -105,7 +116,7 @@ def _GenerateExpression(ast, fileHandle, logger):
         child.data == "equality_exp" or child.data == "relational_exp" or \
         child.data == "additive_exp" or child.data == "term":
         left_obj = child.children[0]
-        operator = child.children[1].data[3:]
+        operator = GetOp(child.children[1])
         right_obj = child.children[2]
         left_content, _pf_flag = _GenerateExpression(left_obj, fileHandle, logger)
         right_content, _pf_flag = _GenerateExpression(right_obj, fileHandle, logger)
@@ -115,7 +126,7 @@ def _GenerateExpression(ast, fileHandle, logger):
             if len(child.children) > 3:
                 n = (len(child.children) - 3) // 2
                 for _n in range(n):
-                    group_op = child.children[3 + _n].data[3:] # TODO(Noah): Make a GetOp function.
+                    group_op = GetOp(child.children[3 + _n])
                     group_exp = child.children[3 + _n + 1]
                     exp_content, _pf_flag = _GenerateExpression(group_exp, fileHandle, logger)
                     content += ' ' + group_op + exp_content
@@ -147,21 +158,51 @@ def _Generate_Symbol(ast, fileHandle, logger):
         content += (GetSymbol(ast.children[0]))
     return content
 
+r"[((op,[)(literal)(op,])(type))((op,[])(type))((op,->)(type))(_symbol)(keyword)]"
 def _GenerateType(ast, fileHandle, logger):
     content = ""
-    if len(ast.children) == 2:
-        # There is op -> and a type.
-        # Alas, this is a type which is a defined as a pointer to type!!!
+    if len(ast.children) == 4:
+        # static array def with element number specified.
+        type_obj = ast.children[3]
+        type_content = _GenerateType(type_obj, fileHandle, logger)
+        l_obj = ast.children[1]
+        # TODO(Noah): Ensure this is an INTEGER literal and not a decimal literal.
+        if CheckLiteralNumber(l_obj):
+            # If type of char and arr, special treatment to handle unicode code point sizes.
+            l_val = GetLiteralInt(l_obj)
+            if type_content == "char":
+                l_val *= 1 # 32 bits for wide characters to allow utf8-sized strings.
+            content += type_content
+            content += ' [' + str(l_val) + ']'
+        else:
+            logger.Error("Expected int literal within [] type")
+            sys.exit()
+    elif len(ast.children) == 2:
+        # There is op and a type.
         type_obj = ast.children[1]
-        content += _GenerateType(type_obj, fileHandle, logger)
-        content += ' *'
+        type_content = _GenerateType(type_obj, fileHandle, logger)
+        op_val = GetOp(ast.children[0])
+        if op_val == "->":
+            # Alas, this is a type which is a defined as a pointer to type!!!
+            content += type_content
+            content += ' *'
+        # NOTE(Noah): For array types, higher level functions should modify the return values.
+        # Need to do (type) (symbol)[]
+        # basically the Lv function has some work to do.
+        elif op_val == "[]":
+            # we are dealing with an array type, but the elements have not been specified.
+            content += type_content
+            content += ' []'      
     elif len(ast.children) == 1:
         # is either _symbol or keyword
         data_object_data = ast.children[0].data
         if data_object_data.startswith("KEY:"):
             keyword = data_object_data[4:]
             if g.IsValidType(keyword):
-                content += (keyword)
+                if keyword == "char":
+                    content += "uint32"
+                else:
+                    content += (keyword)
             else:
                 # TODO(Noah): Can be much better logging here, like.... what line?
                 logger.Error("Invalid core type of {}".format(keyword))
@@ -170,16 +211,20 @@ def _GenerateType(ast, fileHandle, logger):
             content += _Generate_Symbol(ast.childre[0], fileHandle, logger)
     return content
 
-r"[((op,->)(type))(_symbol)(keyword)]"
-def GenerateType(ast, fileHandle, logger):
-    fileHandle.write(_GenerateType(ast, fileHandle, logger))
-
 def _GenerateLv(ast, fileHandle, logger):
     content = ""
     type_object = ast.children[0]
-    content += _GenerateType(type_object, fileHandle, logger)
+    type_content = _GenerateType(type_object, fileHandle, logger)
     symbol = ast.children[1]
-    content += (' ' + GetSymbol(symbol))
+    symbol_content = GetSymbol(symbol)
+
+    if "[" in type_content:
+        # dealing with an array type, special care needed because C is dumb.
+        type, arr = type_content.split(' ')
+        content += type + ' ' + symbol_content + arr 
+    else:
+        content += type_content + ' ' + symbol_content    
+
     return content
 
 # r"(type)(symbol)"
@@ -311,7 +356,8 @@ def GenerateStatement(ast, fileHandle, logger, noend=False):
 # r"(type)(symbol)\((lv)(,(lv))*\)[;(statement)]"
 def GenerateFunction(ast, fileHandle, logger):
     type_object = ast.children[0]
-    GenerateType(type_object, fileHandle, logger)
+    # NOTE(Noah): Array should never return static array (these are stack stored).
+    fileHandle.write(_GenerateType(type_object, fileHandle, logger))
     symbol_object = ast.children[1]
     fileHandle.write(' ' + GetSymbol(symbol_object))
     fileHandle.write('(')
