@@ -77,8 +77,10 @@ def IsKeyword(buffer, line):
     return result
 
 def IsNumber(potNum):
+    if potNum.startswith('.') or potNum.endswith('.'):
+        return False
     for char in potNum:
-        if char not in "0123456789":
+        if char not in "0123456789.":
             return False
     return True
 
@@ -223,7 +225,9 @@ def Run(raw):
             foundToken = True
 
         #check for seperators
-        token, symbolToken = QueryForToken(character, cleanToken, "{}()[].,:", "PART", currentLine)
+        # NOTE(Noah): We have to add back the . somewhere in the lexer. Right now it gets
+        # consumed by literals...
+        token, symbolToken = QueryForToken(character, cleanToken, "{}()[],:", "PART", currentLine)
         if symbolToken:
             tokens.append(symbolToken)
         if token:

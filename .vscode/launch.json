@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": ["tests/console.c", "-o", "bin/out", "-t", "MAC_OS"]
+            "args": ["tests/pointers.c", "-o", "bin/out", "-t", "MAC_OS"]
         },
         {
             "name": "Python: Tests",

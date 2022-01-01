@@ -62,7 +62,7 @@ if __name__ == "__main__":
     logger = l.Logger()
     if len(sys.argv) > 1:
         platform = "MAC_OS" # Default platform.
-        verbose = False
+        verbose = True
         inFile = sys.argv[1]
         if len(sys.argv) > 3:
             dash_o = sys.argv[2]

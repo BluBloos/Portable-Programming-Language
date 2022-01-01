@@ -35,7 +35,7 @@ def _GenerateFunctionCall(ast, fileHandle, logger):
     content += ')'
     return content
 
-# r"[(literal)(function_call)(_symbol)([(op,!)(op,-)(op,&)](factor))(\((expression)\))]"
+# r"[(literal)(function_call)(_symbol)([(op,!)(op,-)(op,&)(op,*)(\((type)\))](factor))(\((expression)\))]"
 def _GenerateFactor(ast, fileHandle, logger):
     content = ""
 
@@ -60,6 +60,12 @@ def _GenerateFactor(ast, fileHandle, logger):
         content += operator
         _content = _GenerateFactor(child2, fileHandle, logger)
         content += _content
+    elif child.data == "type":
+        # Type cast on a factor.
+        factor_obj = ast.children[1]
+        content += '(' + _GenerateType(child, fileHandle, logger)
+        content += ')'
+        content += _GenerateFactor(factor_obj, fileHandle, logger)
     return content
 
 # r"[(assignment_exp)(conditional_exp)]"
@@ -143,7 +149,13 @@ def _Generate_Symbol(ast, fileHandle, logger):
 
 def _GenerateType(ast, fileHandle, logger):
     content = ""
-    if len(ast.children) == 1:
+    if len(ast.children) == 2:
+        # There is op -> and a type.
+        # Alas, this is a type which is a defined as a pointer to type!!!
+        type_obj = ast.children[1]
+        content += _GenerateType(type_obj, fileHandle, logger)
+        content += ' *'
+    elif len(ast.children) == 1:
         # is either _symbol or keyword
         data_object_data = ast.children[0].data
         if data_object_data.startswith("KEY:"):
@@ -158,7 +170,7 @@ def _GenerateType(ast, fileHandle, logger):
             content += _Generate_Symbol(ast.childre[0], fileHandle, logger)
     return content
 
-# r"[(_symbol)(keyword)]"
+r"[((op,->)(type))(_symbol)(keyword)]"
 def GenerateType(ast, fileHandle, logger):
     fileHandle.write(_GenerateType(ast, fileHandle, logger))
 

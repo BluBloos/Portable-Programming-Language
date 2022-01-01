@@ -44,7 +44,6 @@ def ParseWithRegexTree(tokens, grammer, regexTree, logger):
         # ? is the 0 or 1 modifier
         # * is the 0 or many modifier
         # + is the 1 or many modifier
-
         n = 0
         while_cond = lambda n : True 
         if modifier == '?' or modifier == None:
@@ -69,8 +68,6 @@ def ParseWithRegexTree(tokens, grammer, regexTree, logger):
                     treesParsed.append(treeChild)
                     re_matched += 1
                 else:
-                    # TODO(Noah): This point here is potentially where
-                    # we want to include logger statements.
                     break # didn't find grammer object we wanted.
             # TODO(Noah): Factor literal and symbol into one thing because they basically do 
             # the same thing...
@@ -81,6 +78,7 @@ def ParseWithRegexTree(tokens, grammer, regexTree, logger):
                     treesParsed.append(Tree("LITERAL:"+token.value))
                     re_matched += 1
                 else:
+                    logger.Error("Line {}. Expected literal but got {}".format(token.line, token.value))
                     break
             elif child_data == "symbol":
                 token = tokens.QueryNext() # the whole LR k+1 idea :)
@@ -89,6 +87,7 @@ def ParseWithRegexTree(tokens, grammer, regexTree, logger):
                     treesParsed.append(Tree("SYMBOL:"+token.value))
                     re_matched += 1
                 else:
+                    logger.Error("Line {}. Expected symbol but got {}".format(token.line, token.value))
                     break # expected symbol, didn't get it.
             elif child_data.startswith("op"):
                 op = child_data[2:]
@@ -105,6 +104,7 @@ def ParseWithRegexTree(tokens, grammer, regexTree, logger):
                     treesParsed.append(Tree("OP:"+op))
                     re_matched += 1
                 else:
+                    #logger.Error("Line {}. Expected op={}".format())
                     break # expected specific op, didn't get it.
             elif child_data == "keyword":
                 token = tokens.QueryNext()
@@ -113,6 +113,7 @@ def ParseWithRegexTree(tokens, grammer, regexTree, logger):
                     treesParsed.append(Tree("KEY:"+token.value))
                     re_matched += 1
                 else:
+                    logger.Error("Line {}. Expected keyword but got {}".format(token.line, token.value))
                     break
             else:
                 # Single character to match, presumably?
@@ -124,7 +125,7 @@ def ParseWithRegexTree(tokens, grammer, regexTree, logger):
                     # NOTE(Noah): Simply consume character,
                     # no Tree to add for this one.
                 else:
-                    #logger.Error("Line {}. Expected {}".format(token.line, child_data))
+                    logger.Error("Line {}. Expected {} but got {}".format(token.line, child_data, token.value))
                     break # didn't match character
             
             n += 1

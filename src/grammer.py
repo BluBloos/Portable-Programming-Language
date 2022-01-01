@@ -123,7 +123,7 @@ def LoadGrammer():
     )
     grammer.defs["type"] = GrammerDefinition(
         "type",
-        r"[(_symbol)(keyword)]"
+        r"[((op,->)(type))(_symbol)(keyword)]"
     )
     grammer.defs["block"]=GrammerDefinition(
         "block",
@@ -220,6 +220,6 @@ def LoadGrammer():
     )
     grammer.defs["factor"] = GrammerDefinition(
         "factor",
-        r"[(literal)(function_call)(_symbol)([(op,!)(op,-)(op,&)](factor))(\((expression)\))]"
+        r"[(literal)(function_call)(_symbol)([(op,!)(op,-)(op,&)(op,*)(\((type)\))](factor))(\((expression)\))]"
     )
     return grammer
