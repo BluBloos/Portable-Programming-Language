@@ -6,7 +6,8 @@
 /.vs/*
 /*.cpp
 log.txt
-tests/*
+design/*
 bin/*
-!tests/*.c
+tests/*.cpp
+tests/*
 *.o

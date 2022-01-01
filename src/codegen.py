@@ -35,7 +35,7 @@ def _GenerateFunctionCall(ast, fileHandle, logger):
     content += ')'
     return content
 
-# r"[(literal)(function_call)(symbol)([(op,!)(op,-)](factor))(\((expression)\))]"
+# r"[(literal)(function_call)(_symbol)([(op,!)(op,-)(op,&)](factor))(\((expression)\))]"
 def _GenerateFactor(ast, fileHandle, logger):
     content = ""
 
@@ -49,9 +49,8 @@ def _GenerateFactor(ast, fileHandle, logger):
             content += '"' + _content.replace('"', "\\\"") + '"'
     elif child.data == "function_call":
         content += _GenerateFunctionCall(child, fileHandle, logger)
-    elif child.data.startswith("SYMBOL:"):
-        # TODO(Noah): This is dumb and stupid.
-        content += GetSymbol(child)
+    elif child.data == "_symbol":
+        content += _Generate_Symbol(child, fileHandle, logger)
     elif child.data == "expression":
         _content, p = _GenerateExpression(child, fileHandle, logger)
         content += _content

@@ -220,6 +220,6 @@ def LoadGrammer():
     )
     grammer.defs["factor"] = GrammerDefinition(
         "factor",
-        r"[(literal)(function_call)(symbol)([(op,!)(op,-)](factor))(\((expression)\))]"
+        r"[(literal)(function_call)(_symbol)([(op,!)(op,-)(op,&)](factor))(\((expression)\))]"
     )
     return grammer
