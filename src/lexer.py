@@ -41,6 +41,9 @@ class Token:
         self.type = type
         self.value = value
         self.line = line
+    
+    def __str__(self):
+        return "LN: {}, TYPE: {}, VAL: {}".format(self.line, self.type, self.value)
 
 def IsKeyword(buffer, line):
     result = -1

@@ -23,7 +23,7 @@ def LexAndPreparse(inFile, logger, verbose):
     if verbose:
         logger.Log("Printing tokens, pre parser")
         for token in tokens.tokens:
-            logger.Log("TYPE: " + token.type + ", VALUE: " + token.value)
+            logger.Log(str(token))
     # compute cwd from inFile.
     cwd = os.path.dirname(inFile)
     pContext = preparser.Run(cwd, tokens, verbose, logger) # Directly modifies the tokens object.
@@ -33,7 +33,7 @@ def LexAndPreparse(inFile, logger, verbose):
         logger.Log("targets:"+",".join(pContext.targets))
         logger.Log("Printing tokens, post parser")
         for token in tokens.tokens:
-            logger.Log("TYPE: " + token.type + ", VALUE: " + token.value)
+            logger.Log(str(token))
     
     return (pContext, tokens)
 
@@ -59,7 +59,7 @@ def Run(inFile, outFile, platform, logger, verbose):
         logger.Error("Unable to read {}".format(inFile))
         return False
 
-IN_FILE = "tests/console.c"
+IN_FILE = "tests/snake_game.c"
 
 if __name__ == "__main__":
     timer = timing.Timer()

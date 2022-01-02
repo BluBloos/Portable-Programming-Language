@@ -34,7 +34,7 @@ def SingleTestAST(grammer, dir, fileName, logger):
         return False
 
 # TESTING CHOICE.
-TEST = "all"
+TEST = "preparser"
 
 if __name__ == "__main__":
     timer = timing.Timer()
