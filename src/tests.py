@@ -13,7 +13,7 @@ import preparser
 
 def SingleIntegrationTest(filePath, logger, verbose):
     outPath = filePath.replace(".c", "")
-    ppl.Run(filePath, outPath, "MAC_OS", logger, verbose)
+    return ppl.Run(filePath, outPath, "MAC_OS", logger, verbose)
 
 def SingleTestAST(grammer, dir, fileName, logger):
     filePath = join(dir, fileName)
@@ -28,17 +28,28 @@ def SingleTestAST(grammer, dir, fileName, logger):
     if ast and tokens.QueryNext().type == "EOL":
         logger.Success("Printing AST for {}".format(filePath))
         ast.Print(0, logger)
+        return True
     else:
         logger.Error("Unable to generate ast for {}".format(fileName))
+        return False
+
+# TESTING CHOICE.
+TEST = "all"
 
 if __name__ == "__main__":
     timer = timing.Timer()
     logger = l.Logger()
     verbose = False
-    if len(sys.argv) > 1:
-        # go the command
-        command = sys.argv[1]
-        if command == "integration":
+
+    errors = 0
+
+    _tests = [TEST]
+    if TEST == "all":
+        _tests = ["integration", "regex_gen", "grammers", "preparser"]
+
+    for test in _tests:
+
+        if test == "integration":
             # Check for file to run through ppl toolchain
             # TODO(Noah): Add target platform testing for this.
             try:
@@ -46,10 +57,14 @@ if __name__ == "__main__":
                 for fileName in os.listdir(dir):
                     path = dir + fileName
                     if isfile(path) and path.endswith(".c"):
-                        SingleIntegrationTest(path, logger, verbose)
+                        result = SingleIntegrationTest(path, logger, verbose)
+                        if not result:
+                            errors += 1
             except IOError as e:
+                errors += 1
                 logger.Error(str(e))
-        elif command == "regex_gen":
+
+        elif test == "regex_gen":
             # REGEX TREE GENERATION UNIT TEST
             grammer = g.LoadGrammer()
             for key in grammer.defs.keys():
@@ -59,15 +74,19 @@ if __name__ == "__main__":
                 logger.Success("Printing REGEX tree for r\"{}\"".format(regex))
                 regexTree.Print(0, logger)
             # REGEX TREE GENERATION UNIT TEST
-        elif command == "grammers":
+
+        elif test == "grammers":
             grammer = g.LoadGrammer()
             try:
                 dir = "tests/grammer"
                 for fileName in os.listdir(dir):
-                    SingleTestAST(grammer, dir, fileName, logger)
+                    result = SingleTestAST(grammer, dir, fileName, logger)
+                    if not result: errors += 1
             except IOError as e:
                 logger.Error(str(e))
-        elif command == "preparser":
+                errors += 1
+
+        elif test == "preparser":
             try:
                 dir = "tests/preparse"
                 for fileName in os.listdir(dir):
@@ -76,7 +95,10 @@ if __name__ == "__main__":
                     pContext, tokens = ppl.LexAndPreparse(inFile, logger, True)
             except IOError as e:
                 logger.Error(str(e))
+                errors += 1
 
-    else:
-        pass # silently fail / do nothing.
     timer.TimerEnd("tests.py", logger)
+    if errors > 0:
+        logger.Error("Completed with {} error(s)".format(errors))
+    else:
+        logger.Success("Completed with 0  errors.")

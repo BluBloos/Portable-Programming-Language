@@ -51,11 +51,15 @@ def Run(inFile, outFile, platform, logger, verbose):
             object_file_path, r = compiler.Run(ast, outFile, logger)
             linker.Run(pContext, object_file_path, outFile, logger)
             logger.Success("Compiled to {}".format(outFile))
+            return True
         else:
             logger.Error("Unable to generate AST")
+            return False
     except IOError:
         logger.Error("Unable to read {}".format(inFile))
+        return False
 
+IN_FILE = "tests/console.c"
 
 if __name__ == "__main__":
     timer = timing.Timer()
@@ -63,7 +67,8 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         platform = "MAC_OS" # Default platform.
         verbose = True
-        inFile = sys.argv[1]
+        #inFile = sys.argv[1]
+        inFile = IN_FILE
         if len(sys.argv) > 3:
             dash_o = sys.argv[2]
             if dash_o == "-o":

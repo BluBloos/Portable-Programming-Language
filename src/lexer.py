@@ -127,6 +127,9 @@ def QueryForToken(character, cleanToken, test, label, line):
         token = Token(label, character, line)
     return (token, token2)
 
+# TODO(Noah): There are some very unsafe things happeneing here.
+# Namely, no checking if out of range of raw...
+# NOTE(Noah): Unless the addition of ' ' at the end resolves this.
 def Run(raw):
 
     # for the sake of parsing a raw input of ' '

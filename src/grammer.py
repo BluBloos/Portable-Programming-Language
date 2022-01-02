@@ -50,6 +50,7 @@ class Grammer:
             ;
             block
     '''
+# TODO(Noah): Account for failure to generate RegexTree.
 def CreateRegexTree(grammer, regex):
     regexTree = Tree("root")
     contextStack = [regexTree]

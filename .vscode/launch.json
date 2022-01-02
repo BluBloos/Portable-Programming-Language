@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(lldb) Launch",
+            "name": "C++ Debug",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bin/a.out",
@@ -17,20 +17,12 @@
             "MIMode": "lldb"
         },
         {
-            "name": "Python: PPL",
+            "name": "Python",
             "type": "python",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
             "args": ["tests/console.c", "-o", "bin/out", "-t", "MAC_OS"]
-        },
-        {
-            "name": "Python: Tests",
-            "type": "python",
-            "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal",
-            "args": ["preparser"]
         }
     ]
 }
