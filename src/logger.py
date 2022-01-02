@@ -14,6 +14,7 @@ def colored(string, color):
 class Logger:
     def __init__(self):
         self.file_handle = open("log.txt", "w")
+        self._error_count = 0
     def __del__(self):
         self.file_handle.close()
     def printf(self, string):
@@ -25,7 +26,10 @@ class Logger:
         self.printf(_str)
         #PrintF(_str)
         print(_str) # No need for color information.
+    def GetErrorCount(self):
+        return self._error_count
     def Error(self, string):
+        self._error_count += 1
         _str = "[ERROR]: " + string
         self.printf(_str)
         # Print to console with red color.

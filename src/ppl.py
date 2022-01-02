@@ -94,3 +94,5 @@ if __name__ == "__main__":
     else:
         logger.Error("No input source file specified")
     timer.TimerEnd("ppl.py", logger)
+    if logger.GetErrorCount() > 0:
+        logger.Error( "Error count, " + str(logger.GetErrorCount()) )
