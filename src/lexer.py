@@ -145,8 +145,6 @@ class SafeRaw():
     def __len__(self):
         return len(self.raw)
 
-
-
 # TODO(Noah): There are some very unsafe things happeneing here.
 # Namely, no checking if out of range of raw...
 # NOTE(Noah): Unless the addition of ' ' at the end resolves this.
@@ -244,7 +242,12 @@ def Run(raw):
                 tokens.append(Token("C_LITERAL", c_val, currentLine))
                 currentToken = "" # reset that shit 
                 n += 3 # skip past both character literal and "'"
-                    
+            elif raw[n] == "." and IsNumber(cleanToken[:-1]):
+                # What we have is a number then a dot. 
+                # Simply skip over the . so that it doesn't get caught as an
+                # operator. 
+                n += 1
+                continue
 
         #handle operators
         token, symbolToken = QueryForToken(character, cleanToken, "+-%*!<>=|&?[].", "OP", currentLine)
