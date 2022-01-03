@@ -130,6 +130,23 @@ def QueryForToken(character, cleanToken, test, label, line):
         token = Token(label, character, line)
     return (token, token2)
 
+class SafeRaw():
+    def __init__(self, raw):
+        self.raw = raw
+    # NOTE(Noah): We never want to see a negative number in a slice.
+    # And this will probaby never happen.
+    def __getitem__(self, n):
+        if isinstance(n, slice):
+            indices = range(*n.indices(len(self.raw)))
+            return [self.raw[i] for i in indices]
+        if n < 0 or n >= len(self.raw):
+            return ' '
+        return self.raw[n]
+    def __len__(self):
+        return len(self.raw)
+
+
+
 # TODO(Noah): There are some very unsafe things happeneing here.
 # Namely, no checking if out of range of raw...
 # NOTE(Noah): Unless the addition of ' ' at the end resolves this.
@@ -138,6 +155,9 @@ def Run(raw):
     # for the sake of parsing a raw input of ' '
     # append onto raw.
     raw += ' '
+
+    # construct a special object for safe accessing of char array
+    raw = SafeRaw(raw)
 
     # each of these variables is self-explanatory.
     tokens = []
@@ -217,17 +237,17 @@ def Run(raw):
                 tokens.append(token)
             currentToken = ""
         
-        if state not in ["QUOTE", "COMMENT", "COMMENT_MULTILINE"] \
-            and raw[n] == "'" and raw[n+2] == "'":
-            # Found a character literal.
-            c_val = raw[n+1]
-            tokens.append(Token("C_LITERAL", c_val, currentLine))
-            currentToken = "" # reset that shit 
-            n += 3 # skip past both character literal and "'"
-            continue
+        if state not in ["QUOTE", "COMMENT", "COMMENT_MULTILINE"]:
+            if raw[n] == "'" and raw[n+2] == "'":
+                # Found a character literal.
+                c_val = raw[n+1]
+                tokens.append(Token("C_LITERAL", c_val, currentLine))
+                currentToken = "" # reset that shit 
+                n += 3 # skip past both character literal and "'"
+                    
 
         #handle operators
-        token, symbolToken = QueryForToken(character, cleanToken, "+-%*!<>=|&?[]", "OP", currentLine)
+        token, symbolToken = QueryForToken(character, cleanToken, "+-%*!<>=|&?[].", "OP", currentLine)
         if symbolToken:
             tokens.append(symbolToken)
         if token:
