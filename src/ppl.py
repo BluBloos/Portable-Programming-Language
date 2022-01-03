@@ -53,7 +53,7 @@ def Run(inFile, outFile, platform, logger, verbose):
             logger.Success("Compiled to {}".format(outFile))
             return True
         else:
-            logger.Error("Unable to generate AST")
+            logger.Error("Unable to generate AST for {}".format(inFile))
             return False
     except IOError:
         logger.Error("Unable to read {}".format(inFile))

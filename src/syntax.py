@@ -258,13 +258,13 @@ def ParseTokensWithGrammer(tokens, grammer, grammerDef, logger):
     else:
 
         # Print all buffered errors.
-        savepnt = tokens.GetSavepoint()
-        token = tokens.tokens[savepnt]
-        __buffered_errors = [ AST_Error(
-                            "Unable to parse grammer={}".format(grammerDef.name), 
-                            token.line,
-                             savepnt) ]
-        __buffered_errors += (_buffered_errors)
+        #savepnt = tokens.GetSavepoint()
+        # token = tokens.tokens[savepnt]
+        #__buffered_errors = [ AST_Error(
+        #                    "Unable to parse grammer={}".format(grammerDef.name), 
+        #                    token.line,
+        #                     savepnt) ]
+        __buffered_errors = (_buffered_errors)
         
         return (False, __buffered_errors) # Fail condition. We either get the grammer object or we do not...
 

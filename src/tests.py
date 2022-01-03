@@ -34,12 +34,12 @@ def SingleTestAST(grammer, dir, fileName, logger):
         return False
 
 # TESTING CHOICE.
-TEST = "preparser"
+TEST = "integration"
 
 if __name__ == "__main__":
     timer = timing.Timer()
     logger = l.Logger()
-    verbose = False
+    verbose = True
 
     errors = 0
 

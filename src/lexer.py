@@ -242,6 +242,7 @@ def Run(raw):
                 tokens.append(Token("C_LITERAL", c_val, currentLine))
                 currentToken = "" # reset that shit 
                 n += 3 # skip past both character literal and "'"
+                continue
             elif raw[n] == "." and IsNumber(cleanToken[:-1]):
                 # What we have is a number then a dot. 
                 # Simply skip over the . so that it doesn't get caught as an
