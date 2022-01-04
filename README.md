@@ -8,6 +8,10 @@ The offical repo for the portable programming language. Built with ❤️
 
 ## How to Use
 
+Still heavy in development - I am not expecting this project to work on other development matchines. 
+- Only tested on macOS. 
+- Testing requires Python and the Clang compiler.
+
 There are two files of importance:
 - src/ppl.py
 - src/tests.py
