@@ -24,17 +24,25 @@ def SingleTestAST(grammer, dir, fileName, logger):
     file.close()
     tokens = lexer.Run(raw)
     logger.Log("Generating AST for {}".format(filePath))
-    ast = syntax.ParseTokensWithGrammer(tokens, grammer, grammer.defs[grammerDefName], logger)
+    ast, err = syntax.ParseTokensWithGrammer(tokens, grammer, grammer.defs[grammerDefName], logger)
     if ast and tokens.QueryNext().type == "EOL":
         logger.Success("Printing AST for {}".format(filePath))
         ast.Print(0, logger)
         return True
     else:
+
+        if len(err) > 0:
+            tokenIndex = max(error.token_index for error in err)
+            for error in err:
+                if error.token_index == tokenIndex:
+                    logger.Error(str(error))
+
         logger.Error("Unable to generate ast for {}".format(fileName))
         return False
 
 # TESTING CHOICE.
-TEST = "integration"
+# TODO(Noah): Test grammers here because we got the good old maximum recursion depth :(
+TEST = "grammers"
 
 if __name__ == "__main__":
     timer = timing.Timer()

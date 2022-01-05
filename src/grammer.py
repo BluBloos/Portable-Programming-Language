@@ -2,13 +2,13 @@ from tree import Tree
 import lexer
 
 equivalences = {}
-equivalences["term"] = ["factor"]
-equivalences["additive_exp"] = ["term", "factor"]
-equivalences["relational_exp"] = ["additive_exp", "term", "factor"]
-equivalences["equality_exp"] = ["relational_exp", "additive_exp", "term", "factor"]
-equivalences["logical_and_exp"] = ["equality_exp", "relational_exp", "additive_exp", "term", "factor"]
-equivalences["logical_or_exp"] = ["logical_and_exp", "equality_exp", "relational_exp", "additive_exp", "term", "factor"]
-equivalences["conditional_exp"] = ["logical_or_exp", "logical_and_exp", "equality_exp", "relational_exp", "additive_exp", "term", "factor"]
+equivalences["term"] = ["factor", "object"]
+equivalences["additive_exp"] = ["term", "factor", "object"]
+equivalences["relational_exp"] = ["additive_exp", "term", "factor", "object"]
+equivalences["equality_exp"] = ["relational_exp", "additive_exp", "term", "factor", "object"]
+equivalences["logical_and_exp"] = ["equality_exp", "relational_exp", "additive_exp", "term", "factor", "object"]
+equivalences["logical_or_exp"] = ["logical_and_exp", "equality_exp", "relational_exp", "additive_exp", "term", "factor", "object"]
+equivalences["conditional_exp"] = ["logical_or_exp", "logical_and_exp", "equality_exp", "relational_exp", "additive_exp", "term", "factor", "object"]
 
 # TODO(Noah): Must be some way to simplify this.
 def IsValidType(typeStr):
@@ -186,7 +186,7 @@ def LoadGrammer():
     )
     grammer.defs["assignment_exp"] = GrammerDefinition(
         "assignment_exp",
-        r"(symbol)=(expression)"
+        r"(factor)=(expression)"
     )
     grammer.defs["conditional_exp"] = GrammerDefinition(
         "conditional_exp",
@@ -222,6 +222,10 @@ def LoadGrammer():
     )
     grammer.defs["factor"] = GrammerDefinition(
         "factor",
-        r"[(literal)(function_call)(_symbol)([(op,!)(op,-)(op,&)(op,*)(\((type)\))](factor))(\((expression)\))]"
+        r"[(object)([(op,!)(op,-)(op,&)(op,*)(\((type)\))](factor))]"
+    )
+    grammer.defs["object"] = GrammerDefinition(
+        "object",
+        r"[([(function_call)(_symbol)](op,.)(object))(function_call)(_symbol)(literal)(\((expression)\))]"
     )
     return grammer
