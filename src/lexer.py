@@ -45,33 +45,19 @@ class Token:
     def __str__(self):
         return "LN: {}, TYPE: {}, VAL: {}".format(self.line, self.type, self.value)
 
+TYPES = ["float", "double", "int", "char", "short", "string", "bool", "void"]
+KEYWORDS = ["struct", "continue", "break", "if", "while", "for", "else", "return"]
+
 def IsKeyword(buffer, line):
+    global KEYWORDS
+    global TYPES
     result = -1
     tokenValue = "NULL"
     
     # TODO(Noah): Change to a uint8! Or something like
     # this.
-    keywords = [
-        "struct",
-        "string",
-        "int",
-        "void",
-        "char",
-        "short",
-        "unsigned",
-        "signed",
-        "continue",
-        "break",
-        "if",
-        "while",
-        "for",
-        "else",
-        "return",
-        "float",
-        "double"
-    ]
-
-    if buffer in keywords:
+    
+    if buffer in KEYWORDS or buffer in TYPES:
         tokenValue = buffer
 
     if tokenValue != "NULL":

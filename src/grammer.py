@@ -10,9 +10,8 @@ equivalences["logical_and_exp"] = ["equality_exp", "relational_exp", "additive_e
 equivalences["logical_or_exp"] = ["logical_and_exp", "equality_exp", "relational_exp", "additive_exp", "term", "factor", "object"]
 equivalences["conditional_exp"] = ["logical_or_exp", "logical_and_exp", "equality_exp", "relational_exp", "additive_exp", "term", "factor", "object"]
 
-# TODO(Noah): Must be some way to simplify this.
 def IsValidType(typeStr):
-    return typeStr in ["float", "double", "int", "char", "short", "string"]
+    return typeStr in lexer.TYPES
 
 # NOTE(Noah): Grammer definition are custom regular expressions that I invented,
 # regardless of if there are parsing libraries out there...

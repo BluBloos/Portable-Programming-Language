@@ -1,4 +1,5 @@
 int main()
 {
-  return !0 + 6 == 7;
+  bool A = true;
+  return !0 + 6 == A;
 }
