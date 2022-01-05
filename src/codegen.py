@@ -200,21 +200,26 @@ def _GenerateType(ast, fileHandle, logger):
             logger.Error("Expected int literal within [] type")
             sys.exit()
     elif len(ast.children) == 2:
-        # There is op and a type.
-        type_obj = ast.children[1]
-        type_content = _GenerateType(type_obj, fileHandle, logger)
-        op_val = GetOp(ast.children[0])
-        if op_val == "->":
-            # Alas, this is a type which is a defined as a pointer to type!!!
-            content += type_content
-            content += ' *'
-        # NOTE(Noah): For array types, higher level functions should modify the return values.
-        # Need to do (type) (symbol)[]
-        # basically the Lv function has some work to do.
-        elif op_val == "[]":
-            # we are dealing with an array type, but the elements have not been specified.
-            content += type_content
-            content += ' []'      
+        # There is op and a type, or there is simply the const modifier and a type.
+        if ast.children[0].data == "_const":
+            # funny thing this is. const is just a compiler directive. There is no underlying behaviour.
+            content += _GenerateType(ast.children[1], fileHandle, logger)
+            
+        else:
+            type_obj = ast.children[1]
+            type_content = _GenerateType(type_obj, fileHandle, logger)
+            op_val = GetOp(ast.children[0])
+            if op_val == "->":
+                # Alas, this is a type which is a defined as a pointer to type!!!
+                content += type_content
+                content += ' *'
+            # NOTE(Noah): For array types, higher level functions should modify the return values.
+            # Need to do (type) (symbol)[]
+            # basically the Lv function has some work to do.
+            elif op_val == "[]":
+                # we are dealing with an array type, but the elements have not been specified.
+                content += type_content
+                content += ' []'      
     elif len(ast.children) == 1:
         # is either _symbol or keyword
         data_object_data = ast.children[0].data

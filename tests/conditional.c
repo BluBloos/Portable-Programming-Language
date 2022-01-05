@@ -6,8 +6,8 @@ int odd_sum(int a, int b)
 
 int main()
 {
-  int c;
-  int a = 56;
+  const int c;
+  const int a = 56;
   int b = 4;
   return odd_sum(a ? 3 : 0, b) + c;
 }
