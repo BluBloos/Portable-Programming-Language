@@ -124,7 +124,7 @@ def LoadGrammer():
     )
     grammer.defs["type"] = GrammerDefinition(
         "type",
-        r"[((op,[)(literal)(op,])(type))((op,[])(type))((op,->)(type))(_symbol)(keyword)]"
+        r"[([((op,[)(literal)(op,]))(op,->)(op,[])](type))(_symbol)(keyword)]"
     )
     grammer.defs["block"]=GrammerDefinition(
         "block",
