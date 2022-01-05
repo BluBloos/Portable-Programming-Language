@@ -38,45 +38,66 @@ def _GenerateFunctionCall(ast, fileHandle, logger):
     content += ')'
     return content
 
-# r"[(literal)(function_call)(_symbol)([(op,!)(op,-)(op,&)(op,*)(\((type)\))](factor))(\((expression)\))]"
+r"[([(function_call)(_symbol)](op,.)(object))(function_call)(_symbol)(literal)(\((expression)\))]"
+def _GenerateObject(ast, fileHandle, logger):
+    content = ""
+    if len(ast.children) == 3:
+        # The . operator is going on here
+        child = ast.children[0]
+        if child.data == "function_call":
+            content += _GenerateFunctionCall(child, fileHandle, logger)
+        elif child.data == "_symbol":
+            content += _Generate_Symbol(child, fileHandle, logger)
+        content += '.'
+        content += _GenerateObject(ast.children[2], fileHandle, logger)
+
+    elif len(ast.children) == 1:
+        # deailing with either a function_call, a _symbol, a literal, or an expression in ().
+        child = ast.children[0]
+        if child.data.startswith("C_LITERAL:"):
+            _content = child.data[10:]
+            # C_LITERAL
+            content += hex(ord(_content))
+            #content += _content.encode("utf-8")
+            #content += '*(uint64*)"' + _content + '"'
+        elif child.data.startswith("LITERAL:"):
+            _content = GetLiteralString(child)
+            if CheckLiteralNumber(child):
+                content += _content
+            else:
+                # the literal is a QUOTE 
+                content += '(string)"' + _content.replace('"', "\\\"") + '"'
+        elif child.data == "function_call":
+            content += _GenerateFunctionCall(child, fileHandle, logger)
+        elif child.data == "_symbol":
+            content += _Generate_Symbol(child, fileHandle, logger)
+        elif child.data == "expression":
+            _content, p = '(' + _GenerateExpression(child, fileHandle, logger) + ')'
+            content += _content
+    return content
+
+r"[(object)([(op,!)(op,-)(op,&)(op,*)(\((type)\))](factor))]"
 def _GenerateFactor(ast, fileHandle, logger):
     content = ""
-
-    child = ast.children[0]
-    if child.data.startswith("C_LITERAL:"):
-        _content = child.data[10:]
-        # C_LITERAL
-        content += hex(ord(_content))
-        #content += _content.encode("utf-8")
-        #content += '*(uint64*)"' + _content + '"'
-
-    elif child.data.startswith("LITERAL:"):
-        _content = GetLiteralString(child)
-        if CheckLiteralNumber(child):
+    if len(ast.children) == 1:
+        # Child is an object
+        content += _GenerateObject(ast.children[0], fileHandle, logger)
+    elif len(ast.children) == 2:
+        # the child is a unary op.
+        child = ast.children[0]
+        if child.data.startswith("OP:"): # unary op.
+            operator = GetOp(child)
+            child2 = ast.children[1]
+            content += operator
+            _content = _GenerateFactor(child2, fileHandle, logger)
             content += _content
-        else:
-            # the literal is a QUOTE 
-            content += '(string)"' + _content.replace('"', "\\\"") + '"'
-    elif child.data == "function_call":
-        content += _GenerateFunctionCall(child, fileHandle, logger)
-    elif child.data == "_symbol":
-        content += _Generate_Symbol(child, fileHandle, logger)
-    elif child.data == "expression":
-        _content, p = _GenerateExpression(child, fileHandle, logger)
-        content += _content
-    elif child.data.startswith("OP:"): # unary op.
-        operator = GetOp(child)
-        child2 = ast.children[1]
-        content += operator
-        _content = _GenerateFactor(child2, fileHandle, logger)
-        content += _content
-    elif child.data == "type":
-        # Type cast on a factor.
-        factor_obj = ast.children[1]
-        # NOTE(Noah): Not going to be casting to static array type!
-        content += '(' + _GenerateType(child, fileHandle, logger)
-        content += ')'
-        content += _GenerateFactor(factor_obj, fileHandle, logger)
+        if child.data == "type":
+            # Type cast on a factor.
+            factor_obj = ast.children[1]
+            # NOTE(Noah): Not going to be casting to static array type!
+            content += '(' + _GenerateType(child, fileHandle, logger)
+            content += ')'
+            content += _GenerateFactor(factor_obj, fileHandle, logger)
     return content
 
 # r"[(assignment_exp)(conditional_exp)]"
@@ -91,11 +112,12 @@ def _GenerateExpression(ast, fileHandle, logger):
     if ast.data != "expression":
         child = ast
     
+    # r"(factor)=(expression)"
     if child.data == "assignment_exp":
         pf_flag = False # Set pf_flag to true because we are setting the value of some memory.
-        symbol_obj = child.children[0]
+        factor_obj = child.children[0]
         exp_obj = child.children[1]
-        content += (GetSymbol(symbol_obj) + " = ")
+        content += _GenerateFactor(factor_obj, fileHandle, logger) + " = "
         _content, _pf_flag = _GenerateExpression(exp_obj, fileHandle, logger)
         content += _content
     # r"(logical_or_exp)\?(expression):(expression)"
@@ -328,13 +350,13 @@ def GenerateStatement(ast, fileHandle, logger, noend=False):
                 fileHandle.write(';\n')
         elif child.data == "expression":
             content, pure_functional_flag = _GenerateExpression(child, fileHandle, logger)
+            fileHandle.write(content)
+            if not noend:
+                fileHandle.write(';\n')
             if not pure_functional_flag: 
-                # Like it actually does something.
-                # i.e. a function call or a variable assignemnt.
-                # i.e. does it modify memory???
-                fileHandle.write(content)
-                if not noend:
-                    fileHandle.write(';\n')
+                # NOTE(Noah): We are ignoring the pure_functional_flag. Causing problems. Too hard to check.
+                pass
+                
         elif child.data == "_return":
             GenerateReturn(child, fileHandle, logger)
             fileHandle.write(';\n')

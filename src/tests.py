@@ -42,12 +42,12 @@ def SingleTestAST(grammer, dir, fileName, logger):
 
 # TESTING CHOICE.
 # TODO(Noah): Test grammers here because we got the good old maximum recursion depth :(
-TEST = "grammers"
+TEST = "integration"
 
 if __name__ == "__main__":
     timer = timing.Timer()
     logger = l.Logger()
-    verbose = True
+    verbose = False
 
     errors = 0
 
