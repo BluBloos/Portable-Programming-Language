@@ -225,7 +225,7 @@ def LoadGrammer():
     )
     grammer.defs["factor"] = GrammerDefinition(
         "factor",
-        r"[(object)([(op,!)(op,-)(op,&)(op,*)(\((type)\))](factor))]"
+        r"[(object)([(op,!)(op,-)(op,&)(op,*)(op,~)(\((type)\))](factor))]"
     )
     grammer.defs["object"] = GrammerDefinition(
         "object",

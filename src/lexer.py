@@ -47,6 +47,7 @@ class Token:
 
 TYPES = ["float", "double", "int", "char", "short", "string", "bool", "void"]
 KEYWORDS = ["struct", "continue", "break", "if", "while", "for", "else", "return", "const"]
+OPS = "+-%*!<>=|&?[].~"
 
 def IsKeyword(buffer, line):
     global KEYWORDS
@@ -135,6 +136,7 @@ class SafeRaw():
 # Namely, no checking if out of range of raw...
 # NOTE(Noah): Unless the addition of ' ' at the end resolves this.
 def Run(raw):
+    global OPS
 
     # for the sake of parsing a raw input of ' '
     # append onto raw.
@@ -237,7 +239,7 @@ def Run(raw):
                 continue
 
         #handle operators
-        token, symbolToken = QueryForToken(character, cleanToken, "+-%*!<>=|&?[].", "OP", currentLine)
+        token, symbolToken = QueryForToken(character, cleanToken, OPS, "OP", currentLine)
         if symbolToken:
             tokens.append(symbolToken)
         if token:
