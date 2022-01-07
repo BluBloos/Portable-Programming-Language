@@ -235,9 +235,13 @@ def LoadGrammer():
         "function_call",
         r"(_symbol)\(((expression)(,(expression))*)?\)"
     )
+    grammer.defs["_sizeof"] = GrammerDefinition(
+        "_sizeof",
+        r"(keyword=sizeof)"
+    )
     grammer.defs["factor"] = GrammerDefinition(
         "factor",
-        r"[(object)([(op,!)(op,-)(op,&)(op,*)(op,~)(\((type)\))](factor))]"
+        r"[(object)((_sizeof)\([(_symbol)(type)]\))([(op,!)(op,-)(op,&)(op,*)(op,~)(\((type)\))](factor))]"
     )
     grammer.defs["object"] = GrammerDefinition(
         "object",

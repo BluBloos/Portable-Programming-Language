@@ -46,7 +46,7 @@ class Token:
         return "LN: {}, TYPE: {}, VAL: {}".format(self.line, self.type, self.value)
 
 TYPES = ["float", "double", "int", "char", "short", "string", "bool", "void"]
-KEYWORDS = ["struct", "continue", "break", "if", "while", "for", "else", "return", "const"]
+KEYWORDS = ["struct", "continue", "break", "if", "while", "for", "else", "return", "const", "sizeof"]
 OPS = "+-%*!<>=|&?[].~"
 COMPOUND_OPS = ['&&', '||', '>=', '<=', '==', '!=', '->', '[]',
     '+=', '-=', '*=', '/=', '%=', '&=', '|=']

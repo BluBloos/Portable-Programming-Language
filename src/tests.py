@@ -42,8 +42,8 @@ def SingleTestAST(grammer, dir, fileName, logger):
 
 # TESTING CHOICE.
 # TODO(Noah): Test grammers here because we got the good old maximum recursion depth :(
-TEST = "integration"
-SINGLE_UNIT = "expression5.c"
+TEST = "grammers"
+SINGLE_UNIT = "factor"
 
 if __name__ == "__main__":
     timer = timing.Timer()
@@ -83,6 +83,18 @@ if __name__ == "__main__":
                 logger.Success("Printing REGEX tree for r\"{}\"".format(regex))
                 regexTree.Print(0, logger)
             # REGEX TREE GENERATION UNIT TEST
+        
+        elif test == "regex_gen_single":
+            try:
+                grammer = g.LoadGrammer()
+                regex = grammer.defs[SINGLE_UNIT].regExp
+                regexTree = g.CreateRegexTree(grammer, regex)
+                logger.Success("Printing REGEX tree for r\"{}\"".format(regex))
+                regexTree.Print(0, logger)
+            except:
+                logger.Error("Unable to generate REGEX tree for r\"{}\"".format(regex))
+                errors += 1
+
 
         elif test == "grammers":
             grammer = g.LoadGrammer()
