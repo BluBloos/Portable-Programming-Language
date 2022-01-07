@@ -116,8 +116,10 @@ def _GenerateExpression(ast, fileHandle, logger):
     if child.data == "assignment_exp":
         pf_flag = False # Set pf_flag to true because we are setting the value of some memory.
         factor_obj = child.children[0]
-        exp_obj = child.children[1]
-        content += _GenerateFactor(factor_obj, fileHandle, logger) + " = "
+        ass_op_obj = child.children[1]
+        assignment_op = GetOp(ass_op_obj)
+        exp_obj = child.children[2]
+        content += _GenerateFactor(factor_obj, fileHandle, logger) + assignment_op
         _content, _pf_flag = _GenerateExpression(exp_obj, fileHandle, logger)
         content += _content
     # r"(logical_or_exp)\?(expression):(expression)"

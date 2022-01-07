@@ -48,7 +48,8 @@ class Token:
 TYPES = ["float", "double", "int", "char", "short", "string", "bool", "void"]
 KEYWORDS = ["struct", "continue", "break", "if", "while", "for", "else", "return", "const"]
 OPS = "+-%*!<>=|&?[].~"
-COMPOUND_OPS = ['&&', '||', '>=', '<=', '==', '!=', '->', '[]']
+COMPOUND_OPS = ['&&', '||', '>=', '<=', '==', '!=', '->', '[]',
+    '+=', '-=', '*=', '/=', '%=', '&=', '|=']
 
 def IsCompoundOp(raw, n, line):
     global COMPOUND_OPS

@@ -193,7 +193,7 @@ def LoadGrammer():
     )
     grammer.defs["assignment_exp"] = GrammerDefinition(
         "assignment_exp",
-        r"(factor)=(expression)"
+        r"(factor)[(op,=)(op,+=)(op,-=)(op,*=)(op,/=)(op,%=)(op,&=)(op,|=)](expression)"
     )
     grammer.defs["conditional_exp"] = GrammerDefinition(
         "conditional_exp",
