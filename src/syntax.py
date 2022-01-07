@@ -89,8 +89,11 @@ def ParseWithRegexTree(tokens, grammer, regexTree, logger, grammerDefName=""):
             while_cond = lambda n : n < 1
 
         re_matched = 0
+        premature_n = 0 # this variable is how many times we enter the while loop below.
+        stable_n_checkpoint = tokens.GetSavepoint()
 
-        while while_cond(n):   
+        while while_cond(n):
+            premature_n += 1   
             if child_data == "Group" or child_data == "Any":
                 trees, err_flag, _buffered_errors = ParseWithRegexTree(tokens, grammer, child, logger)
                 if not err_flag:
@@ -198,14 +201,22 @@ def ParseWithRegexTree(tokens, grammer, regexTree, logger, grammerDefName=""):
                             tokens.GetSavepoint() ))
                     break # didn't match character
             
+            stable_n_checkpoint = tokens.GetSavepoint()
             n += 1
         
         # Find all fail cases.
         fail_flag = (modifier == None and re_matched != 1) or \
            (modifier == '?' and re_matched > 1) or \
            (modifier == '+' and re_matched == 0)
+
+        if not fail_flag and premature_n > re_matched:
+            # we attempted to go for more n than were matched, which means
+            # that even though we matched enough to fulfill the modifier,
+            # we had to fail the last case to learn this.
+            tokens.ResetSavepoint(stable_n_checkpoint)
         
-        # NOTE(Noah): Below is a logicial xor.
+        # if we have found the correct option under an Any, no more need to search k.
+        # if we have failed and are not under an any, also no more need to searh k.
         if fail_flag and not any_flag or any_flag and not fail_flag:
             break
     

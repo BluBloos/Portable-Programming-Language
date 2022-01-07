@@ -146,9 +146,13 @@ def LoadGrammer():
         "_continue",
         r"(keyword=continue)"
     )
+    grammer.defs["_fallthrough"]=GrammerDefinition(
+        "_fallthrough",
+        r"(keyword=fallthrough)"
+    )
     grammer.defs["statement"]=GrammerDefinition(
         "statement",
-        r"[;([(_return)(var_decl)(expression)(_break)(_continue)];)(block)(_if)(_for)(_while)(_switch)]"
+        r"[;([(_return)(var_decl)(expression)(_break)(_continue)(_fallthrough)];)(block)(_if)(_for)(_while)(_switch)]"
     )
     grammer.defs["_return"] = GrammerDefinition(
         "_return",
@@ -181,13 +185,11 @@ def LoadGrammer():
         r"(keyword=while)\((expression)\)(statement)"
     )
     '''
-    Due to the way that I have defined the grammer for the switch statements,
-    we cannot have default: in front of any case:. It must be that default: comes at the end...
-    TODO(Noah): Check if this is valid C
+    NOTE(Noah): Switch statement grammer makes it such that default case MUST come last.
     '''
     grammer.defs["_switch"] = GrammerDefinition(
         "_switch",
-        r"(keyword=switch)\((expression)\)\{((keyword=case)(expression):(statement)*)*((keyword=default):(statement)*)?\}"
+        r"(keyword=switch)\((expression)\)\{((keyword=case)(expression):(statement)*)*((keyword=case):(statement)*)?\}"
     )
     grammer.defs["expression"] = GrammerDefinition(
         "expression",

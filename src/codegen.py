@@ -338,13 +338,15 @@ class SwitchContext:
 
 # TODO(Noah): Right now the default case in the switch statement does not work because 
 # we have no way of knowing even if the end statement is simply for another case.....
-# r"(keyword=switch)\((expression)\)\{((keyword=case)(expression):(statement)*)*((keyword=default):(statement)*)?\}"
+
 def GenerateSwitch(ast, fileHandle, logger):
     fileHandle.write("switch(")
     switch_exp = ast.children[0]
     GenerateExpression(switch_exp, fileHandle, logger)
     fileHandle.write(')\n')
     fileHandle.write('{\n')
+
+    # TODO(Noah): Augment generation to account for case: with no EXP.
     # Generate case contexts.
     cases = []
     for child in ast.children[1:]:
@@ -352,12 +354,14 @@ def GenerateSwitch(ast, fileHandle, logger):
             cases.append( SwitchContext(child) )
         elif child.data == "statement":
             cases[-1].statements.append(child)
+
     for context in cases:
         fileHandle.write("case ")
         GenerateExpression(context.case_exp, fileHandle, logger)
         fileHandle.write(':\n')
         for s in context.statements:
             GenerateStatement(s, fileHandle, logger)
+
     fileHandle.write('}\n')
 
 # r"[;([(var_decl)(expression)(_return)(_break)(_continue)];)(block)(_if)(_for)(_while)(_switch)]"
@@ -399,6 +403,8 @@ def GenerateStatement(ast, fileHandle, logger, noend=False):
             GenerateWhile(child, fileHandle, logger)
         elif child.data == "_switch":
             GenerateSwitch(child, fileHandle, logger)
+        # NOTE(Noah): Explicit ignoring of the _fallthrough case. This is handled by the parent 
+        # switch statement. Fallthrough statement has NO meaning in C backend.
 
 # r"(type)(symbol)\((lv)(,(lv))*\)[;(statement)]"
 def GenerateFunction(ast, fileHandle, logger):

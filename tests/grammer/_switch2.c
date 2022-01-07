@@ -19,4 +19,5 @@ switch (ppl::getchar()) {
     exit(); 
     return 0;
     case:
+    return 1;
 }
