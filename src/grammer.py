@@ -221,7 +221,7 @@ def LoadGrammer():
     )
     grammer.defs["logical_or_exp"] = GrammerDefinition(
         "logical_or_exp",
-        r"(logical_and_exp)(op,||)(logical_and_exp)"
+        r"(logical_and_exp)[(op,||)(logical_and_exp)]+"
     )
     grammer.defs["logical_and_exp"] = GrammerDefinition(
         "logical_and_exp",

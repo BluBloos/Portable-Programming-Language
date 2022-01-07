@@ -189,7 +189,7 @@ def _GenerateExpression(ast, fileHandle, logger):
             content += (true_content + " : ")
             false_content, _pf_flag = _GenerateExpression(false_obj, fileHandle, logger)
             content += (false_content)
-    elif child.data == "logical_or_exp" or child.data == "logicial_and_exp" or \
+    elif child.data == "logical_or_exp" or child.data == "logical_and_exp" or \
         child.data == "equality_exp" or child.data == "relational_exp" or \
         child.data == "additive_exp" or child.data == "term" or child.data == "bitwise_and_exp" or \
         child.data == "bitwise_or_exp":
@@ -199,8 +199,9 @@ def _GenerateExpression(ast, fileHandle, logger):
         left_content, _pf_flag = _GenerateExpression(left_obj, fileHandle, logger)
         right_content, _pf_flag = _GenerateExpression(right_obj, fileHandle, logger)
         content += left_content + ' ' + operator + ' ' + right_content
-        if child.data == "additive_exp" or child.data == "term":
-            # there may be n many more (+ exp) groups.
+
+        if child.data == "additive_exp" or child.data == "term" or child.data == "logical_or_exp":
+            # there may be n many more (OP exp) groups.
             if len(child.children) > 3:
                 n = (len(child.children) - 3) // 2
                 for _n in range(n):

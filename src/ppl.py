@@ -59,7 +59,7 @@ def Run(inFile, outFile, platform, logger, verbose):
         logger.Error("Unable to read {}".format(inFile))
         return False
 
-IN_FILE = "tests/dynamic_array.c"
+IN_FILE = "tests/snake_game.c"
 
 if __name__ == "__main__":
     timer = timing.Timer()

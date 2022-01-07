@@ -104,6 +104,7 @@ bool snake_eats_itself() {
     int head_y = snake[0].y;
 
     for (int i = 1; i < len(snake); i++) {
+        \
         if (snake[i].x == head_x && snake[i].y == head_y) {
             return true;
         }
@@ -295,7 +296,7 @@ int main () {
                 case 'w': if (DIRECTION != DIRECTION_DOWN)  DIRECTION = DIRECTION_UP;
                 
                 case 27: // ESC key
-                exit(); 
+                exit();
                 return 0;
                 case:
             }
