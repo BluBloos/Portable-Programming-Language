@@ -51,7 +51,7 @@ KEYWORDS = [
     "else", "return", "const", "sizeof", "fallthrough"]
 OPS = "+-%*!<>=|&?[].~"
 COMPOUND_OPS = ['&&', '||', '>=', '<=', '==', '!=', '->', '[]',
-    '+=', '-=', '*=', '/=', '%=', '&=', '|=']
+    '+=', '-=', '*=', '/=', '%=', '&=', '|=', '++', '--']
 
 def IsCompoundOp(raw, n, line):
     global COMPOUND_OPS
@@ -251,8 +251,12 @@ def Run(raw):
                 continue
         
         #check for a compound operator.
+        
         result = IsCompoundOp(raw, n, currentLine)
         if result:
+            symbolToken = QueryForSymbolToken(cleanToken, currentLine)
+            if symbolToken:
+                tokens.append(symbolToken)
             # NOTE(Noah): We must do a continue here because there are some single character
             # ops that are a substring of some compound ops.
             tokens.append(result)

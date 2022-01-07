@@ -42,7 +42,7 @@ def SingleTestAST(grammer, dir, fileName, logger):
 
 # TESTING CHOICE.
 # TODO(Noah): Test grammers here because we got the good old maximum recursion depth :(
-TEST = "grammers_single"
+TEST = "integration"
 SINGLE_UNIT = "_switch2.c"
 
 if __name__ == "__main__":
@@ -127,6 +127,7 @@ if __name__ == "__main__":
             except IOError as e:
                 logger.Error(str(e))
                 errors += 1
+                
         elif test == "preparser_single":
             try:
                 dir = "tests/preparse"

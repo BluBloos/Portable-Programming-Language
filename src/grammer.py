@@ -1,6 +1,10 @@
 from tree import Tree
 import lexer
 
+# TODO(Noah): If we want to make our AST tree dramatically simpler, 
+# we can inline regex. Then we can make it highly modular (human readable),
+# but also have it so that it constructs a well optimized AST.
+
 equivalences = {}
 equivalences["term"] = ["factor", "object"]
 equivalences["additive_exp"] = ["term", "factor", "object"]
@@ -257,8 +261,11 @@ def LoadGrammer():
         "initializer_list",
         r"\[((literal)(,(literal))*)?\]"
     )
+    # TODO(Noah): Prob take out \((expression)\) and put in the factor. Would make the resulting AST simpler.
+    # NOTE(Noah): Right now just making ++ and -- postfix ops act on a _symbol. Makes the most semantics sense.
+    # Maybe might need to change the grammer later but this is the simplest thing.
     grammer.defs["object"] = GrammerDefinition(
         "object",
-        r"[([(function_call)(_symbol)](op,.)(object))(function_call)(_symbol)(literal)(\((expression)\))]"
+        r"[((_symbol)[(op,++)(op,--)])([(function_call)(_symbol)](op,.)(object))(function_call)(_symbol)(literal)(\((expression)\))]"
     )
     return grammer

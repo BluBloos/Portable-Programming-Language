@@ -55,7 +55,7 @@ def _GenerateLiteral(child, fileHandle, logger):
             content += '(string)"' + _content.replace('"', "\\\"") + '"'
     return content
 
-r"[([(function_call)(_symbol)](op,.)(object))(function_call)(_symbol)(literal)(\((expression)\))]"
+r"[((_symbol)[(op,++)(op,--)])([(function_call)(_symbol)](op,.)(object))(function_call)(_symbol)(literal)(\((expression)\))]"
 def _GenerateObject(ast, fileHandle, logger):
     content = ""
     if len(ast.children) == 3:
@@ -67,7 +67,10 @@ def _GenerateObject(ast, fileHandle, logger):
             content += _Generate_Symbol(child, fileHandle, logger)
         content += '.'
         content += _GenerateObject(ast.children[2], fileHandle, logger)
-
+    elif len(ast.children) == 2:
+        # _symbol++ , or maybe --
+        content += _Generate_Symbol(ast.children[0], fileHandle, logger)
+        content += GetOp(ast.children[1])
     elif len(ast.children) == 1:
         # deailing with either a function_call, a _symbol, a literal, or an expression in ().
         child = ast.children[0]
