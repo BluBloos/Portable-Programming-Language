@@ -136,7 +136,8 @@ def _GenerateExpression(ast, fileHandle, logger):
             content += (false_content)
     elif child.data == "logical_or_exp" or child.data == "logicial_and_exp" or \
         child.data == "equality_exp" or child.data == "relational_exp" or \
-        child.data == "additive_exp" or child.data == "term":
+        child.data == "additive_exp" or child.data == "term" or child.data == "bitwise_and_exp" or \
+        child.data == "bitwise_or_exp":
         left_obj = child.children[0]
         operator = GetOp(child.children[1])
         right_obj = child.children[2]
