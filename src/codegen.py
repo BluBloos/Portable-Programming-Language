@@ -335,6 +335,12 @@ class SwitchContext:
     def __init__(self, case_exp):
         self.case_exp = case_exp
         self.statements = []
+    def CheckFallthrough(self):
+        for s in self.statements:
+            child = s.children[0]
+            if child.data == "_fallthrough":
+                return True
+        return False
 
 # TODO(Noah): Right now the default case in the switch statement does not work because 
 # we have no way of knowing even if the end statement is simply for another case.....
@@ -354,13 +360,26 @@ def GenerateSwitch(ast, fileHandle, logger):
             cases.append( SwitchContext(child) )
         elif child.data == "statement":
             cases[-1].statements.append(child)
+        # NOTE(Noah): note the explicit non-inclusion of the _switch_default option.
 
     for context in cases:
+        no_break = context.CheckFallthrough()
         fileHandle.write("case ")
         GenerateExpression(context.case_exp, fileHandle, logger)
         fileHandle.write(':\n')
         for s in context.statements:
             GenerateStatement(s, fileHandle, logger)
+        # PPL lang implicity includes break statement for better switch
+        # statements.
+        if not no_break:
+            fileHandle.write("break;\n")
+
+    # Now we write the default case.
+    if ast.children[-1].data == "_switch_default":
+        fileHandle.write('default:\n')
+        default_switch = ast.children[-1]
+        for statement in default_switch.children:
+            GenerateStatement(statement, fileHandle, logger)
 
     fileHandle.write('}\n')
 

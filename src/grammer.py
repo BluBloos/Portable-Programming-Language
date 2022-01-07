@@ -187,9 +187,13 @@ def LoadGrammer():
     '''
     NOTE(Noah): Switch statement grammer makes it such that default case MUST come last.
     '''
+    grammer.defs["_switch_default"] = GrammerDefinition(
+        "_switch_default",
+        r"(keyword=case):(statement)*"
+    )
     grammer.defs["_switch"] = GrammerDefinition(
         "_switch",
-        r"(keyword=switch)\((expression)\)\{((keyword=case)(expression):(statement)*)*((keyword=case):(statement)*)?\}"
+        r"(keyword=switch)\((expression)\)\{((keyword=case)(expression):(statement)*)*(_switch_default)?\}"
     )
     grammer.defs["expression"] = GrammerDefinition(
         "expression",

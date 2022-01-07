@@ -59,7 +59,7 @@ def Run(inFile, outFile, platform, logger, verbose):
         logger.Error("Unable to read {}".format(inFile))
         return False
 
-IN_FILE = "tests/expression.c"
+IN_FILE = "tests/switch.c"
 
 if __name__ == "__main__":
     timer = timing.Timer()
