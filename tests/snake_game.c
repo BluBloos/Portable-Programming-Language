@@ -211,11 +211,11 @@ void move_snake() {
 
     // changing the head coordinates
     switch (DIRECTION) {
-        case DIRECTION_DOWN: snake[0].y++; break;
-        case DIRECTION_LEFT: snake[0].x--; break;
-        case DIRECTION_UP:   snake[0].y--; break;
-        case DIRECTION_RIGHT: snake[0].x++; break;
-        case: break; // NOTE(Noah): Same as default:
+        case DIRECTION_DOWN: snake[0].y++; 
+        case DIRECTION_LEFT: snake[0].x--; 
+        case DIRECTION_UP:   snake[0].y--; 
+        case DIRECTION_RIGHT: snake[0].x++; 
+        case:
     }
 
     // each next cell gets coordinates of the previous cell
@@ -277,25 +277,27 @@ int main () {
             
             // https://linux.die.net/man/3/getchar
             switch (ppl::getchar()) {
-
-                case 100:
-                case 68: if (DIRECTION != DIRECTION_LEFT)  DIRECTION = DIRECTION_RIGHT; break;
-
-                case 83:
-                case 115: if (DIRECTION != DIRECTION_UP)    DIRECTION = DIRECTION_DOWN; break;
-
-                case 65:
-                case 97: if (DIRECTION != DIRECTION_RIGHT) DIRECTION = DIRECTION_LEFT; break;
-
-                case 119:
-                case 87: if (DIRECTION != DIRECTION_DOWN)  DIRECTION = DIRECTION_UP; break;
-
-                case 27: 
+                
+                case 'D': 
+                    fallthrough;
+                case 'd': if (DIRECTION != DIRECTION_LEFT)  DIRECTION = DIRECTION_RIGHT;
+                
+                case 'S': 
+                    fallthrough;
+                case 's': if (DIRECTION != DIRECTION_UP)    DIRECTION = DIRECTION_DOWN;
+                
+                case 'A': 
+                    fallthrough;
+                case 'a': if (DIRECTION != DIRECTION_RIGHT) DIRECTION = DIRECTION_LEFT;
+                
+                case 'W': 
+                    fallthrough;
+                case 'w': if (DIRECTION != DIRECTION_DOWN)  DIRECTION = DIRECTION_UP;
+                
+                case 27: // ESC key
                 exit(); 
                 return 0;
-
                 case:
-                break;
             }
         }
 
