@@ -65,7 +65,7 @@ const int MAP_HEIGHT = 15;
 const char SNAKE_BODY = '*';
 
 // array of the available characters for food
-const []char FOOD_SYMBOLS = {'%', '$', '&', '@', '+'};
+const []char FOOD_SYMBOLS = ['%', '$', '&', '@', '+'];
 
 // current coordinates of food
 int FOOD_X = 0;
