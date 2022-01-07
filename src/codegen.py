@@ -76,7 +76,7 @@ def _GenerateObject(ast, fileHandle, logger):
             content += '(' + _content + ')'
     return content
 
-r"[(object)([(op,!)(op,-)(op,&)(op,*)(\((type)\))](factor))]"
+r"[(object)((_sizeof)\([(_symbol)(type)]\))([(op,!)(op,-)(op,&)(op,*)(op,~)(\((type)\))](factor))]"
 def _GenerateFactor(ast, fileHandle, logger):
     content = ""
     if len(ast.children) == 1:
@@ -98,6 +98,16 @@ def _GenerateFactor(ast, fileHandle, logger):
             content += '(' + _GenerateType(child, fileHandle, logger)
             content += ')'
             content += _GenerateFactor(factor_obj, fileHandle, logger)
+        if child.data == "_sizeof":
+            # sizeof operator.
+            # NOTE(Noah): Thank god we decided to go with a C backend. Actually getting things done lmao.
+            _content = ""
+            child2 = ast.children[1]
+            if child2.data == "_symbol":
+                _content += _Generate_Symbol(child2, fileHandle, logger)
+            elif child2.data == "type":
+                _content += _GenerateType(child2, fileHandle, logger)
+            content += 'sizeof(' + _content + ')'
     return content
 
 # r"[(assignment_exp)(conditional_exp)]"

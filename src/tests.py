@@ -42,7 +42,7 @@ def SingleTestAST(grammer, dir, fileName, logger):
 
 # TESTING CHOICE.
 # TODO(Noah): Test grammers here because we got the good old maximum recursion depth :(
-TEST = "grammers"
+TEST = "integration"
 SINGLE_UNIT = "factor"
 
 if __name__ == "__main__":
