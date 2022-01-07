@@ -13,23 +13,14 @@
 #include <ppl/random>
 #include <ppl/time>
 
+ppl::terminal attachedTerm;
+
 void input_on()
 {
-    /*struct termios newTerminalSettings;
-
-    tcgetattr( STDIN_FILENO, &terminalSettings );
-
-    newTerminalSettings = terminalSettings;
-
-    newTerminalSettings.c_lflag &= ~( ICANON | ECHO );
-    newTerminalSettings.c_cc[VTIME] = 0;
-    newTerminalSettings.c_cc[VMIN] = 1;
-
-    tcsetattr( STDIN_FILENO, TCSANOW, &newTerminalSettings );
-    */
-
-    ppl::terminal attachedTerm = ppl::get_attached_term();
+    attachedTerm = ppl::get_attached_term();
     ppl::terminal_attr attr = attachedTerm.get_attr();
+    // NOTE(Noah): Shit like ths, ICANON is underlying platform stuff and shouldn't really exist
+    // at this level. But I frankly don't care at this point in time.
     attr.local_modes &= ~( ICANON | ECHO );
     attr.special_characters[VTIME] = 0;
     attr.special_characters[VMIN] = 1;
@@ -39,8 +30,7 @@ void input_on()
 void input_off()
 {
     //tcsetattr(STDIN_FILENO, TCSANOW, &terminalSettings);
-    ppl::terminal attachedTerm = ppl::get_attached_term();
-    attachedTerm.set_default_attr();
+    attachedTerm.reset_attr();
 }
 // INPUT.CPP
 
@@ -104,7 +94,6 @@ bool snake_eats_itself() {
     int head_y = snake[0].y;
 
     for (int i = 1; i < len(snake); i++) {
-        \
         if (snake[i].x == head_x && snake[i].y == head_y) {
             return true;
         }
@@ -163,7 +152,8 @@ void generate_food_coord() {
 
 // generates a new food character
 void generate_food_symbol() {
-    FOOD_SYMBOL_NUM = ppl::rand() % sizeof(FOOD_SYMBOLS);
+    //FOOD_SYMBOL_NUM = ppl::rand() % sizeof(FOOD_SYMBOLS);
+    FOOD_SYMBOL_NUM = ppl::rand() % 5;
 }
 
 // prints score 
@@ -180,21 +170,16 @@ void draw() {
         for (int j = 0; j <= MAP_WIDTH; j++) {
 
             if (is_map_border(j, i)) {
-                ppl::print('#');
-                ppl::flush();
+                ppl::print("#");
 
             } else if (is_snake_body(j, i)) {
                 ppl::print("%c", SNAKE_BODY);
-                ppl::flush();
 
             } else if (is_food(j, i)) {
                 ppl::print("%c", FOOD_SYMBOLS[FOOD_SYMBOL_NUM]);
-                ppl::flush();
 
             } else {
-                ppl::print("%c", ' ');
-                ppl::flush();
-                //cout << ' ' << flush;
+                ppl::print(" ");
             }
         }
 
@@ -241,44 +226,16 @@ void exit() {
 
 int main () {
     
-    //fd_set rfds; // File descriptor set?
-
-    /*
-    The <sys/time.h> header defines the timeval structure that includes at least the following members:
-        time_t         tv_sec      seconds
-        suseconds_t    tv_usec     microseconds
-    */
-    //timeval timeout;
-
-    //timeout.tv_sec = 0;
-    //timeout.tv_usec = 0;
-
     input_on();
-
     generate_food_coord();
     generate_food_symbol();
     init_snake();
 
     while (true) {
 
-        // FD_ZERO(&fdset)  
-        // Initializes the file descriptor set fdset to have zero bits for all file descriptors.
-        //FD_ZERO(&rfds);
-
-        // FD_SET(fd, &fdset)  
-        // Sets the bit for the file descriptor fd in the file descriptor set fdset.
-        //FD_SET(STDIN_FILENO, &rfds);
-
-        // NOTE(Pavel): there is some data in the thread
-        // https://man7.org/linux/man-pages/man2/select.2.html
-        // FD_ISSET(fd, &fdset)
-        // Returns a non-zero value if the bit for the file descriptor 
-        // fd is set in the file descriptor set pointed to by fdset, and 0 otherwise.      
-        if (ppl::block_until_fready(ppl::STDIN, 0)) {
-            
-            // https://linux.die.net/man/3/getchar
+        if (ppl::wait_until_fready(ppl::STDIN)) {
             switch (ppl::getchar()) {
-                
+            
                 case 'D': 
                     fallthrough;
                 case 'd': if (DIRECTION != DIRECTION_LEFT)  DIRECTION = DIRECTION_RIGHT;
@@ -301,6 +258,7 @@ int main () {
                 case:
             }
         }
+
 
         move_snake();
 
@@ -327,8 +285,7 @@ int main () {
 
         draw();
 
-        // usleep(100000);
-        ppl::sleep(100000);
+        ppl::sleep(100);
     }
 
     input_off();

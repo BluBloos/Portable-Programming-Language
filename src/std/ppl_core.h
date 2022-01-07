@@ -1,13 +1,26 @@
 #ifndef PPL_CORE
 #define PPL_CORE
 // TODO(Noah): Implement the len operator on string and Array data types.
-#define len(arr) arr.itemCount
+#define _len(arr) arr.itemCount
 typedef unsigned long long uint64;
 typedef unsigned int uint32; 
 #define string char *
+
 #include <stdlib.h>
 #include <stdio.h>
-namespace PPL {
+#include <unistd.h>
+
+namespace ppl {
+
+    void _system(char *command) {
+        system((const char *)command);
+    }
+
+    void _sleep(unsigned int ms) {
+        unsigned int us = ms * 1000;
+        usleep(us);
+    };
+
     template <class T>
     class _Array {
         public:
@@ -18,7 +31,7 @@ namespace PPL {
         // Bounding amount for underlying allocated memory.
         unsigned int arrSize; /* in items */
         T &operator[](unsigned int i);
-        void append(T item);
+        void _append(T item);
     };
 
     template <class T> _Array<T>::_Array() :
@@ -35,7 +48,7 @@ namespace PPL {
         return this->items[i];
     }
 
-    template <class T> void _Array<T>::append(T item) {
+    template <class T> void _Array<T>::_append(T item) {
         if (this->itemCount == this->arrSize) {
             // TODO(Noah): Maybe implement something more intelligent
             // for realloc.
@@ -56,4 +69,5 @@ namespace PPL {
         }
     }
 }
+
 #endif

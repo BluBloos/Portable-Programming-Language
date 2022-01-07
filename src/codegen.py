@@ -23,12 +23,23 @@ def GetOp(ast):
 def GetSymbol(ast):
     return ast.data[7:]
 
+def NameMangleSymbol(symbol_obj, fileHandle, logger):
+    content = ""
+    sym_content =  _Generate_Symbol(symbol_obj, fileHandle, logger)
+    parts = sym_content.split("::")
+    for part in parts[:-1]:
+        content += part + "::"
+    content += "_" # NOTE(Noah): Underscore for name mangling purposes.
+    content += parts[-1] + '('
+    return content
+
 # r"(_symbol)\(((expression)(,(expression))*)?\)"
 def _GenerateFunctionCall(ast, fileHandle, logger):
     content = ""
     symbol_obj = ast.children[0]
-    content += _Generate_Symbol(symbol_obj, fileHandle, logger) + '('
-
+    
+    content += NameMangleSymbol(symbol_obj, fileHandle, logger)
+   
     exps = []    
     for child in ast.children[1:]:
         exp_obj = child
@@ -262,7 +273,7 @@ def _GenerateType(ast, fileHandle, logger):
             # Deailing with a dynamic array.
             # TODO(Noah): Implement custom dynamic arrays via ANSI C backend. 
                 # For simplicity we going with C++ std::vector<T> for right now.
-            content += "PPL::_Array<{}> ".format(type_content)
+            content += "ppl::_Array<{}> ".format(type_content)
         
 
     elif len(ast.children) == 3:
@@ -279,8 +290,18 @@ def _GenerateType(ast, fileHandle, logger):
     elif len(ast.children) == 2:
         # There is op and a type, or there is simply the const modifier and a type.
         if ast.children[0].data == "_const":
-            # funny thing this is. const is just a compiler directive. There is no underlying behaviour.
-            content += _GenerateType(ast.children[1], fileHandle, logger)
+            type_obj = ast.children[1]
+            _type_content = _GenerateType(type_obj, fileHandle, logger)
+
+            # TODO(Noah): Do something more intelligence with const as seen below.
+            # dynamic arrays cannot be const.
+            # could be some pointers in there.
+                # Ex) const ->int != ->const int
+                # Ex) const ->int = "pointer to an int that is const" = int * const
+                # Ex) -> const int = "pointer to a const int" = const int *
+                # Ex) const -> const int = "const pointer to a const int" = const int * const
+            # static array, _symbol, or keyword -> const is good on far left.
+            content += "const " + _type_content
             
         else:
             type_obj = ast.children[1]
@@ -326,8 +347,13 @@ def _GenerateLv(ast, fileHandle, logger):
 
     if "[" in type_content:
         # dealing with an array type, special care needed because C is dumb.
-        type, arr = type_content.split(' ')
-        content += type + ' ' + symbol_content + arr 
+        if "const" in type_content:
+            const, type, arr = type_content.split(' ')
+            content += const + ' ' + type + ' ' + symbol_content + arr
+        else:
+            type, arr = type_content.split(' ')
+            content += type + ' ' + symbol_content + arr
+
     else:
         content += type_content + ' ' + symbol_content    
 
@@ -439,6 +465,7 @@ def GenerateSwitch(ast, fileHandle, logger):
         default_switch = ast.children[-1]
         for statement in default_switch.children:
             GenerateStatement(statement, fileHandle, logger)
+        fileHandle.write("break;\n")
 
     fileHandle.write('}\n')
 
@@ -489,8 +516,11 @@ def GenerateFunction(ast, fileHandle, logger):
     type_object = ast.children[0]
     # NOTE(Noah): Array should never return static array (these are stack stored).
     fileHandle.write(_GenerateType(type_object, fileHandle, logger))
-    symbol_object = ast.children[1]
-    fileHandle.write(' ' + GetSymbol(symbol_object))
+    symbol_text = GetSymbol(ast.children[1])
+    if symbol_text == "main":
+        fileHandle.write(" main")
+    else: 
+        fileHandle.write(' _' + symbol_text)
     fileHandle.write('(')
     if ast.children[-1].data == "statement":
         lvs = [] 

@@ -23,7 +23,7 @@ def Run(pContext, objectFilePath, outFile, logger):
             libLines.append("#include <{}>".format(lib))
         else:
             lib_inc = lib.replace("/", "_") + ".o"
-            lib_includes.append(lib_inc)
+            #lib_includes.append(lib_inc)
             libLines.append("#include <{}>".format(lib_inc.replace(".o", ".h"))) # so we can link.
 
     # add the core ppl lib
@@ -35,7 +35,7 @@ def Run(pContext, objectFilePath, outFile, logger):
     include_paths_cmd = "-I {}".format(include_path)
     
     # NOTE(Noah): Need to make this more robust and so forth...
-    runString = "g++ {} {} -o {} {}".format(objectFilePath, \
+    runString = "g++ -g {} {} -o {} {}".format(objectFilePath, \
         " ".join([ (include_path + lib) for lib in lib_includes]) ,outFile, include_paths_cmd)
     logger.Success(runString)
     os.system(runString)
