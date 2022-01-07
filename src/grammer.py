@@ -229,7 +229,7 @@ def LoadGrammer():
     )
     grammer.defs["term"] = GrammerDefinition(
         "term",
-        r"(factor)([(op,*)(op,/)](factor))+"
+        r"(factor)([(op,*)(op,/)(op,%)](factor))+"
     )
     grammer.defs["function_call"] = GrammerDefinition(
         "function_call",

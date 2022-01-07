@@ -72,8 +72,8 @@ def _GenerateObject(ast, fileHandle, logger):
         elif child.data == "_symbol":
             content += _Generate_Symbol(child, fileHandle, logger)
         elif child.data == "expression":
-            _content, p = '(' + _GenerateExpression(child, fileHandle, logger) + ')'
-            content += _content
+            _content, fp = _GenerateExpression(child, fileHandle, logger)
+            content += '(' + _content + ')'
     return content
 
 r"[(object)([(op,!)(op,-)(op,&)(op,*)(\((type)\))](factor))]"
@@ -149,8 +149,8 @@ def _GenerateExpression(ast, fileHandle, logger):
             if len(child.children) > 3:
                 n = (len(child.children) - 3) // 2
                 for _n in range(n):
-                    group_op = GetOp(child.children[3 + _n])
-                    group_exp = child.children[3 + _n + 1]
+                    group_op = GetOp(child.children[3 + _n*2])
+                    group_exp = child.children[3 + _n*2 + 1]
                     exp_content, _pf_flag = _GenerateExpression(group_exp, fileHandle, logger)
                     content += ' ' + group_op + exp_content
 
