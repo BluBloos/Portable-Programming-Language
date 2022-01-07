@@ -236,25 +236,45 @@ def _Generate_Symbol(ast, fileHandle, logger):
         content += (GetSymbol(ast.children[0]))
     return content
 
-r"[((op,[)(literal)(op,])(type))((op,[])(type))((op,->)(type))(_symbol)(keyword)]"
+r"[([((op,[)[(_dynamic)(literal)]?(op,]))(op,->)(_const)](type))(_symbol)(keyword)]"
 def _GenerateType(ast, fileHandle, logger):
     content = ""
     if len(ast.children) == 4:
-        # static array def with element number specified.
+        # Array def, either static or dynamic.
         type_obj = ast.children[3]
         type_content = _GenerateType(type_obj, fileHandle, logger)
-        l_obj = ast.children[1]
-        # TODO(Noah): Ensure this is an INTEGER literal and not a decimal literal.
-        if CheckLiteralNumber(l_obj):
-            # If type of char and arr, special treatment to handle unicode code point sizes.
-            l_val = GetLiteralInt(l_obj)
-            if type_content == "char":
-                l_val *= 1 # 32 bits for wide characters to allow utf8-sized strings.
-            content += type_content
-            content += ' [' + str(l_val) + ']'
-        else:
-            logger.Error("Expected int literal within [] type")
-            sys.exit()
+
+        specifier_obj = ast.children[1]
+        if "LITERAL:" in specifier_obj.data:
+            # dealing with a literal.
+            # TODO(Noah): Ensure this is an INTEGER literal and not a decimal literal.
+                # this is a semantic checking step.
+            if CheckLiteralNumber(specifier_obj):
+                # If type of char and arr, special treatment to handle unicode code point sizes.
+                l_val = GetLiteralInt(specifier_obj)
+                content += type_content
+                content += ' [' + str(l_val) + ']'
+            else:
+                logger.Error("Expected int literal within [] type")
+                sys.exit()
+        elif specifier_obj.data == "_dynamic":
+            # Deailing with a dynamic array.
+            # TODO(Noah): Implement custom dynamic arrays via ANSI C backend. 
+                # For simplicity we going with C++ std::vector<T> for right now.
+            content += "PPL::_Array<{}> ".format(type_content)
+        
+
+    elif len(ast.children) == 3:
+        # op, [
+        # op. ]
+        # type
+        # we are dealing with an array type, but the elements have not been specified.
+        type_obj = ast.children[2]
+        type_content = _GenerateType(type_obj, fileHandle, logger)
+        content += type_content
+        content += ' []'
+         
+
     elif len(ast.children) == 2:
         # There is op and a type, or there is simply the const modifier and a type.
         if ast.children[0].data == "_const":
@@ -269,13 +289,15 @@ def _GenerateType(ast, fileHandle, logger):
                 # Alas, this is a type which is a defined as a pointer to type!!!
                 content += type_content
                 content += ' *'
-            # NOTE(Noah): For array types, higher level functions should modify the return values.
+            
+            '''# NOTE(Noah): For array types, higher level functions should modify the return values.
             # Need to do (type) (symbol)[]
             # basically the Lv function has some work to do.
             elif op_val == "[]":
-                # we are dealing with an array type, but the elements have not been specified.
-                content += type_content
-                content += ' []'      
+                
+            '''   
+
+
     elif len(ast.children) == 1:
         # is either _symbol or keyword
         data_object_data = ast.children[0].data

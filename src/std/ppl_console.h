@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdarg.h>
 // NOTE(Noah): LMAOOOOO. Love how my string type is char *. BEAUT.
 #define string char * 

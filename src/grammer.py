@@ -138,9 +138,13 @@ def LoadGrammer():
         "_const",
         r"(keyword=const)"
     )
+    grammer.defs["_dynamic"] = GrammerDefinition(
+        "_dynamic",
+        r"(keyword=dynamic)"
+    )
     grammer.defs["type"] = GrammerDefinition(
         "type",
-        r"[([((op,[)(literal)(op,]))(op,->)(op,[])(_const)](type))(_symbol)(keyword)]"
+        r"[([((op,[)[(_dynamic)(literal)]?(op,]))(op,->)(_const)](type))(_symbol)(keyword)]"
     )
     grammer.defs["block"]=GrammerDefinition(
         "block",

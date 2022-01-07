@@ -50,7 +50,7 @@ KEYWORDS = [
     "struct", "continue", "break", "if", "while", "for", 
     "else", "return", "const", "sizeof", "fallthrough"]
 OPS = "+-%*!<>=|&?[].~"
-COMPOUND_OPS = ['&&', '||', '>=', '<=', '==', '!=', '->', '[]',
+COMPOUND_OPS = ['&&', '||', '>=', '<=', '==', '!=', '->',
     '+=', '-=', '*=', '/=', '%=', '&=', '|=', '++', '--']
 
 def IsCompoundOp(raw, n, line):

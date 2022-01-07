@@ -28,12 +28,14 @@ def Run(pContext, objectFilePath, outFile, logger):
 
     # add the core ppl lib
     libLines.append("#include <ppl_core.h>")
-
     InjectLines(objectFilePath, libLines, logger)
+    #lib_includes.append("ppl_core.o")
 
     include_path = "src/std/"
     include_paths_cmd = "-I {}".format(include_path)
     
     # NOTE(Noah): Need to make this more robust and so forth...
-    os.system("g++ {} {} -o {} {}".format(objectFilePath, \
-        " ".join([ (include_path + lib) for lib in lib_includes]) ,outFile, include_paths_cmd))
+    runString = "g++ {} {} -o {} {}".format(objectFilePath, \
+        " ".join([ (include_path + lib) for lib in lib_includes]) ,outFile, include_paths_cmd)
+    logger.Success(runString)
+    os.system(runString)
