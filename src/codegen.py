@@ -55,9 +55,48 @@ def _GenerateLiteral(child, fileHandle, logger):
             content += '(string)"' + _content.replace('"', "\\\"") + '"'
     return content
 
-r"[((_symbol)[(op,++)(op,--)])([(function_call)(_symbol)](op,.)(object))(function_call)(_symbol)(literal)(\((expression)\))]"
+'''
+beta=r"[(function_call)(_symbol)(literal)]",
+alpha=r"[(op,++)(op,--)((op,[)(expression)(op,]))((op,.)(object))]",
+type="left-recursive"
+'''
 def _GenerateObject(ast, fileHandle, logger):
     content = ""
+    #if len(ast.children) == 1:
+    
+    # deal with beta first
+    # deailing with either a function_call, a _symbol, a literal, or an expression in ().
+    child = ast.children[0]
+    if "LITERAL" in child.data:
+        #.startswith("C_LITERAL:"):
+        content += _GenerateLiteral(child, fileHandle, logger)
+    elif child.data == "function_call":
+        content += _GenerateFunctionCall(child, fileHandle, logger)
+    elif child.data == "_symbol":
+        content += _Generate_Symbol(child, fileHandle, logger)
+    
+    if len(ast.children) > 1:
+        n = 0
+        while n < len(ast.children[1:]):
+            child = ast.children[1+n]
+            # NOTE(Noah): All possible next nextChildren are ops.
+            op = GetOp(child)
+            if op == "++" or op == "--":
+                # postfix op
+                content += op
+                n += 1
+            elif op == "[":
+                # [] subscripting op.
+                exp = ast.children[n+2]
+                _content, fp = _GenerateExpression(exp, fileHandle, logger)
+                content += '[' + _content + ']'
+                n += 3
+            elif op == ".":
+                obj = ast.children[n+2]
+                content += '.' + _GenerateObject(obj, fileHandle, logger)
+                n += 2
+
+    '''       
     if len(ast.children) == 3:
         # The . operator is going on here
         child = ast.children[0]
@@ -71,27 +110,21 @@ def _GenerateObject(ast, fileHandle, logger):
         # _symbol++ , or maybe --
         content += _Generate_Symbol(ast.children[0], fileHandle, logger)
         content += GetOp(ast.children[1])
-    elif len(ast.children) == 1:
-        # deailing with either a function_call, a _symbol, a literal, or an expression in ().
-        child = ast.children[0]
-        if "LITERAL" in child.data:
-            #.startswith("C_LITERAL:"):
-            content += _GenerateLiteral(child, fileHandle, logger)
-        elif child.data == "function_call":
-            content += _GenerateFunctionCall(child, fileHandle, logger)
-        elif child.data == "_symbol":
-            content += _Generate_Symbol(child, fileHandle, logger)
-        elif child.data == "expression":
-            _content, fp = _GenerateExpression(child, fileHandle, logger)
-            content += '(' + _content + ')'
+    '''
+    
     return content
 
-r"[(object)((_sizeof)\([(_symbol)(type)]\))([(op,!)(op,-)(op,&)(op,*)(op,~)(\((type)\))](factor))]"
+r"[(object)((_sizeof)\([(_symbol)(type)]\))([(op,!)(op,-)(op,&)(op,*)(op,~)(\((type)\))](factor))(\((expression)\))]"
 def _GenerateFactor(ast, fileHandle, logger):
     content = ""
     if len(ast.children) == 1:
-        # Child is an object
-        content += _GenerateObject(ast.children[0], fileHandle, logger)
+        # Child is an object or exp
+        child = ast.children[0]
+        if child.data == "object":
+            content += _GenerateObject(ast.children[0], fileHandle, logger)
+        elif child.data == "expression":
+            _content, fp = _GenerateExpression(child, fileHandle, logger)
+            content += '(' + _content + ')'
     elif len(ast.children) == 2:
         # the child is a unary op.
         child = ast.children[0]
@@ -258,7 +291,7 @@ def _GenerateType(ast, fileHandle, logger):
                 logger.Error("Invalid core type of {}".format(keyword))
                 sys.exit()
         else: # its a _symbol
-            content += _Generate_Symbol(ast.childre[0], fileHandle, logger)
+            content += _Generate_Symbol(ast.children[0], fileHandle, logger)
     return content
 
 def _GenerateLv(ast, fileHandle, logger):
@@ -478,10 +511,11 @@ def GenerateStructDecl(ast, fileHandle, logger):
     fileHandle.write('struct ')
     symbol_object = ast.children[0]
     fileHandle.write(GetSymbol(symbol_object))
-    fileHandle.write('{')
+    fileHandle.write('{\n')
     for child in ast.children[1:]:
         fileHandle.write(' ' * TAB_AMOUNT)
         GenerateVarDecl(child, fileHandle, logger)
+        fileHandle.write(';\n')
     fileHandle.write('};\n')
 
 # r"[(function)((var_decl);)(struct_decl)]*"

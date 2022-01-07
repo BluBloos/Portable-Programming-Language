@@ -80,9 +80,9 @@ struct snake_body {
     int y;
 };
 
-// array of cells of the snake's body
-//vector<snake_body> snake;
-[dynamic]snake_body snake; 
+// Array of cells of the snake's body
+// vector<snake_body> snake;
+[dynamic]snake_body snake;
 
 // creates the primary snake
 void init_snake() {
