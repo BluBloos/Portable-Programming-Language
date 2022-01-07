@@ -140,6 +140,19 @@ def ParseWithRegexTree(tokens, grammer, regexTree, logger, grammerDefName=""):
                     break # expected symbol, didn't get it.
             elif child_data.startswith("op"):
                 op = child_data[2:]
+                token = tokens.QueryNext()
+                if token.type == "OP" and token.value == op:
+                    tokens.Next()
+                    treesParsed.append(Tree("OP:"+op))
+                    re_matched += 1
+                else:
+                    buffered_errors.append(AST_Error(
+                            "Expected op={} but got '{}'".format(op, token.value), 
+                            token.line,
+                            tokens.GetSavepoint() ))
+                    #logger.Error("Line {}. Expected op={}".format())
+                    break # expected specific op, didn't get it.
+                '''
                 matched = True
                 for char in op:
                     token = tokens.QueryNext()
@@ -152,9 +165,8 @@ def ParseWithRegexTree(tokens, grammer, regexTree, logger, grammerDefName=""):
                 if matched:
                     treesParsed.append(Tree("OP:"+op))
                     re_matched += 1
-                else:
-                    #logger.Error("Line {}. Expected op={}".format())
-                    break # expected specific op, didn't get it.
+                '''
+                
             elif child_data == "keyword":
                 token = tokens.QueryNext()
                 if token.type == "KEY":

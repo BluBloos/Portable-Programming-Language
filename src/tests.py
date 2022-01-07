@@ -43,6 +43,7 @@ def SingleTestAST(grammer, dir, fileName, logger):
 # TESTING CHOICE.
 # TODO(Noah): Test grammers here because we got the good old maximum recursion depth :(
 TEST = "grammers"
+SINGLE_UNIT = "expression5.c"
 
 if __name__ == "__main__":
     timer = timing.Timer()
@@ -94,6 +95,16 @@ if __name__ == "__main__":
                 logger.Error(str(e))
                 errors += 1
 
+        elif test == "grammers_single":
+            try:
+                grammer = g.LoadGrammer()
+                dir = "tests/grammer"
+                result = SingleTestAST(grammer, dir, SINGLE_UNIT, logger)
+                if not result: errors += 1
+            except IOError as e:
+                logger.Error(str(e))
+                errors += 1
+
         elif test == "preparser":
             try:
                 dir = "tests/preparse"
@@ -101,6 +112,15 @@ if __name__ == "__main__":
                     logger.Success("Testing preparser for {}".format(fileName))
                     inFile = join(dir, fileName)  
                     pContext, tokens = ppl.LexAndPreparse(inFile, logger, True)
+            except IOError as e:
+                logger.Error(str(e))
+                errors += 1
+        elif test == "preparser_single":
+            try:
+                dir = "tests/preparse"
+                logger.Success("Testing preparser for {}".format(SINGLE_UNIT))
+                inFile = join(dir, SINGLE_UNIT)
+                pContext, tokens = ppl.LexAndPreparse(inFile, logger, True)  
             except IOError as e:
                 logger.Error(str(e))
                 errors += 1

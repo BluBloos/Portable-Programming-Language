@@ -6,9 +6,13 @@ equivalences["term"] = ["factor", "object"]
 equivalences["additive_exp"] = ["term", "factor", "object"]
 equivalences["relational_exp"] = ["additive_exp", "term", "factor", "object"]
 equivalences["equality_exp"] = ["relational_exp", "additive_exp", "term", "factor", "object"]
-equivalences["logical_and_exp"] = ["equality_exp", "relational_exp", "additive_exp", "term", "factor", "object"]
-equivalences["logical_or_exp"] = ["logical_and_exp", "equality_exp", "relational_exp", "additive_exp", "term", "factor", "object"]
-equivalences["conditional_exp"] = ["logical_or_exp", "logical_and_exp", "equality_exp", "relational_exp", "additive_exp", "term", "factor", "object"]
+
+equivalences["bitwise_and_exp"] = ["equality_exp", "relational_exp", "additive_exp", "term", "factor", "object"]
+equivalences["bitwise_or_exp"] = ["bitwise_and_exp","equality_exp", "relational_exp", "additive_exp", "term", "factor", "object"]    
+
+equivalences["logical_and_exp"] = ["bitwise_or_exp","bitwise_and_exp","equality_exp", "relational_exp", "additive_exp", "term", "factor", "object"] 
+equivalences["logical_or_exp"] = ["logical_and_exp", "bitwise_or_exp","bitwise_and_exp","equality_exp", "relational_exp", "additive_exp", "term", "factor", "object"]
+equivalences["conditional_exp"] = ["logical_or_exp", "logical_and_exp", "bitwise_or_exp","bitwise_and_exp","equality_exp", "relational_exp", "additive_exp", "term", "factor", "object"]
 
 def IsValidType(typeStr):
     return typeStr in lexer.TYPES
@@ -201,7 +205,15 @@ def LoadGrammer():
     )
     grammer.defs["logical_and_exp"] = GrammerDefinition(
         "logical_and_exp",
-        r"(equality_exp)(op,&&)(equality_exp)"
+        r"(bitwise_or_exp)(op,&&)(bitwise_or_exp)"
+    )
+    grammer.defs["bitwise_or_exp"] = GrammerDefinition(
+        "bitwise_or_exp",
+        r"(bitwise_and_exp)(op,|)(bitwise_and_exp)"
+    )
+    grammer.defs["bitwise_and_exp"] = GrammerDefinition(
+        "bitwise_and_exp",
+        r"(equality_exp)(op,&)(equality_exp)"
     )
     grammer.defs["equality_exp"] = GrammerDefinition(
         "equality_exp",

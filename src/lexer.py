@@ -48,6 +48,15 @@ class Token:
 TYPES = ["float", "double", "int", "char", "short", "string", "bool", "void"]
 KEYWORDS = ["struct", "continue", "break", "if", "while", "for", "else", "return", "const"]
 OPS = "+-%*!<>=|&?[].~"
+COMPOUND_OPS = ['&&', '||', '>=', '<=', '==', '!=', '->', '[]']
+
+def IsCompoundOp(raw, n, line):
+    global COMPOUND_OPS
+    # NOTE(Noah): Can use a constant of 2 cuz all compounds ops have len of 2
+    buffer = raw[n] + raw[n+1]
+    if buffer in COMPOUND_OPS:
+        return Token("OP", buffer, line)
+    return False
 
 def IsKeyword(buffer, line):
     global KEYWORDS
@@ -237,6 +246,16 @@ def Run(raw):
                 # operator. 
                 n += 1
                 continue
+        
+        #check for a compound operator.
+        result = IsCompoundOp(raw, n, currentLine)
+        if result:
+            # NOTE(Noah): We must do a continue here because there are some single character
+            # ops that are a substring of some compound ops.
+            tokens.append(result)
+            currentToken = ""
+            n += len(result.value)
+            continue 
 
         #handle operators
         token, symbolToken = QueryForToken(character, cleanToken, OPS, "OP", currentLine)
