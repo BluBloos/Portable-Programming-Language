@@ -38,6 +38,23 @@ def _GenerateFunctionCall(ast, fileHandle, logger):
     content += ')'
     return content
 
+def _GenerateLiteral(child, fileHandle, logger):
+    content = ""
+    if child.data.startswith("C_LITERAL:"):
+        _content = child.data[10:]
+        # C_LITERAL
+        content += hex(ord(_content))
+        #content += _content.encode("utf-8")
+        #content += '*(uint64*)"' + _content + '"'
+    elif child.data.startswith("LITERAL:"):
+        _content = GetLiteralString(child)
+        if CheckLiteralNumber(child):
+            content += _content
+        else:
+            # the literal is a QUOTE 
+            content += '(string)"' + _content.replace('"', "\\\"") + '"'
+    return content
+
 r"[([(function_call)(_symbol)](op,.)(object))(function_call)(_symbol)(literal)(\((expression)\))]"
 def _GenerateObject(ast, fileHandle, logger):
     content = ""
@@ -54,19 +71,9 @@ def _GenerateObject(ast, fileHandle, logger):
     elif len(ast.children) == 1:
         # deailing with either a function_call, a _symbol, a literal, or an expression in ().
         child = ast.children[0]
-        if child.data.startswith("C_LITERAL:"):
-            _content = child.data[10:]
-            # C_LITERAL
-            content += hex(ord(_content))
-            #content += _content.encode("utf-8")
-            #content += '*(uint64*)"' + _content + '"'
-        elif child.data.startswith("LITERAL:"):
-            _content = GetLiteralString(child)
-            if CheckLiteralNumber(child):
-                content += _content
-            else:
-                # the literal is a QUOTE 
-                content += '(string)"' + _content.replace('"', "\\\"") + '"'
+        if "LITERAL" in child.data:
+            #.startswith("C_LITERAL:"):
+            content += _GenerateLiteral(child, fileHandle, logger)
         elif child.data == "function_call":
             content += _GenerateFunctionCall(child, fileHandle, logger)
         elif child.data == "_symbol":
@@ -417,15 +424,26 @@ def GenerateFunction(ast, fileHandle, logger):
         fileHandle.write(", ".join(lvs))
         fileHandle.write(');\n')
 
-# r"(lv)(=(expression))?"
+r"(lv)(=[(initializer_list)(expression)])?"
 def GenerateVarDecl(ast, fileHandle, logger):
     lv_object = ast.children[0]
     GenerateLv(lv_object, fileHandle, logger)
     if len(ast.children) > 1:
         # there exists an expression to set the lv_object to.
-        fileHandle.write(' = ')
-        exp_obj = ast.children[1]
-        GenerateExpression(exp_obj, fileHandle, logger)
+        # either an initializer_list or an expression.
+        exp = ast.children[1]
+        if exp.data == "expression":
+            fileHandle.write(' = ')
+            GenerateExpression(exp, fileHandle, logger)
+        elif exp.data == "initializer_list":
+            litMen = []
+            for literal in exp.children:
+                litty = _GenerateLiteral(literal, fileHandle, logger)
+                litMen.append(litty)
+            fileHandle.write('= {')
+            fileHandle.write(",".join(litMen))
+            fileHandle.write('}') 
+
 
 # r"(keyword=struct)(symbol)\{((var_decl);)*\};"s
 def GenerateStructDecl(ast, fileHandle, logger):

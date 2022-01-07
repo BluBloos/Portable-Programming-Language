@@ -154,9 +154,11 @@ def LoadGrammer():
         "_return",
         r"(keyword=return)(expression)"
     )
+    # NOTE(Noah): Right now, the only place we allow the use of initializer lists is to init a variable.
+    # It is likely that we will extend this in the future.
     grammer.defs["var_decl"] = GrammerDefinition(
         "var_decl",
-        r"(lv)(=(expression))?"
+        r"(lv)(=[(initializer_list)(expression)])?"
     )
     grammer.defs["_if"] = GrammerDefinition(
         "_if",
@@ -242,6 +244,12 @@ def LoadGrammer():
     grammer.defs["factor"] = GrammerDefinition(
         "factor",
         r"[(object)((_sizeof)\([(_symbol)(type)]\))([(op,!)(op,-)(op,&)(op,*)(op,~)(\((type)\))](factor))]"
+    )
+    # NOTE(Noah): I really don't know if these initializer lists should have like, more than just literals?
+    # But for now this is okay!
+    grammer.defs["initializer_list"] = GrammerDefinition(
+        "initializer_list",
+        r"\[((literal)(,(literal))*)?\]"
     )
     grammer.defs["object"] = GrammerDefinition(
         "object",

@@ -62,6 +62,8 @@ def ParseWithRegexTree(tokens, grammer, regexTree, logger, grammerDefName=""):
 
     # presuming that we are inside of an Any block, we want to preserve state.
     # to rollback tokens upon failure.
+    # NOTE(Noah): We also want to rollback tokens when we tried to parse a group with a modifier
+    #  on the group.
     tokens_savepoint = None
     if any_flag:
         tokens_savepoint = tokens.GetSavepoint()
