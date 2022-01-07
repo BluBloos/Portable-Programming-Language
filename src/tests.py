@@ -127,7 +127,7 @@ if __name__ == "__main__":
             except IOError as e:
                 logger.Error(str(e))
                 errors += 1
-                
+
         elif test == "preparser_single":
             try:
                 dir = "tests/preparse"

@@ -24,9 +24,13 @@ def IsValidType(typeStr):
 # NOTE(Noah): Grammer definition are custom regular expressions that I invented,
 # regardless of if there are parsing libraries out there...
 class GrammerDefinition:
-    def __init__(self, name, regExp):
+    def __init__(self, name, regExp="", beta="", alpha="", type=""):
         self.name = name
         self.regExp = regExp
+        if type == "left-recursive":
+            # Generate the proper right recursive grammer from the left recursive one.
+            self.regExp = beta + "{}*".format(alpha)
+
 class Grammer:
     def __init__(self):
         self.defs = {}
@@ -251,9 +255,11 @@ def LoadGrammer():
         "_sizeof",
         r"(keyword=sizeof)"
     )
+    # NOTE(Noah): This grammer does get the right-to-left associativity down, despite me not thinking about it.
+    # Good thing we followed that tutorial long ago.
     grammer.defs["factor"] = GrammerDefinition(
         "factor",
-        r"[(object)((_sizeof)\([(_symbol)(type)]\))([(op,!)(op,-)(op,&)(op,*)(op,~)(\((type)\))](factor))]"
+        r"[(object)((_sizeof)\([(_symbol)(type)]\))([(op,!)(op,-)(op,&)(op,*)(op,~)(\((type)\))](factor))(\((expression)\))]"
     )
     # NOTE(Noah): I really don't know if these initializer lists should have like, more than just literals?
     # But for now this is okay!
@@ -266,6 +272,8 @@ def LoadGrammer():
     # Maybe might need to change the grammer later but this is the simplest thing.
     grammer.defs["object"] = GrammerDefinition(
         "object",
-        r"[((_symbol)[(op,++)(op,--)])([(function_call)(_symbol)](op,.)(object))(function_call)(_symbol)(literal)(\((expression)\))]"
+        beta=r"[(function_call)(_symbol)(literal)]",
+        alpha=r"[(op,++)(op,--)((op,[)(expression)(op,]))((op,.)(object))]",
+        type="left-recursive"
     )
     return grammer

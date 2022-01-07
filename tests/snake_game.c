@@ -30,7 +30,7 @@ void input_on()
 
     ppl::terminal attachedTerm = ppl::get_attached_term();
     ppl::terminal_attr attr = attachedTerm.get_attr();
-    attr.local_modes &;//= ~( ICANON | ECHO );
+    attr.local_modes &= ~( ICANON | ECHO );
     attr.special_characters[VTIME] = 0;
     attr.special_characters[VMIN] = 1;
     attachedTerm.set_attr(attr);
