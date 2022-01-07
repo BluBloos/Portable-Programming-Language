@@ -207,7 +207,7 @@ void draw() {
 void move_snake() {
     int _x = snake[0].x;
     int _y = snake[0].y;
-    int last_x, last_y;
+    int last_x; int last_y;
 
     // changing the head coordinates
     switch (DIRECTION) {
@@ -308,8 +308,8 @@ int main () {
             generate_food_symbol();
 
             snake_body snake_piece;
-            snake_peace.y = snake[len(snake)-1].y;
-            snake_peace.x = snake[len(snake)-1].x;
+            snake_piece.y = snake[len(snake)-1].y;
+            snake_piece.x = snake[len(snake)-1].x;
 
             snake.append(snake_piece);
 
