@@ -45,34 +45,67 @@ class Logger {
     }
 };
 
+class ConstMemoryArena {
+    public:
+    ConstMemoryArena(unsigned int bytes) {
+        _base = malloc(bytes);
+        dataPtr = (char *)_base;
+        totalDataBytes = bytes;
+    }
+    ~ConstMemoryArena() {
+        free(_base);
+    }
+    void *_base;
+    char *dataPtr;
+    unsigned int totalDataBytes;
+    // TODO(Noah): Check for unsafe allocs.
+    char *StringAlloc(std::string str) {
+        unsigned int stringSize = str.size() * (sizeof(char) + 1); // Includes null-terminator.
+        char *result = (char *)memcpy(dataPtr, str.c_str(), stringSize );
+        dataPtr += stringSize;
+        return result;
+    }
+};
 
 // Program globals.
 Logger LOGGER;
+ConstMemoryArena MEMORY_ARENA;
 
 // Compiler parameters.
 enum target_platform PLATFORM = POSIX;
 bool VERBOSE = false;
 
 enum token_type {
-
+    TOKEN_UNDEFINED,
+    TOKEN_QUOTE,
+    TOKEN_DECIMAL_LITERAL,
+    TOKEN_CHARACTER_LITERAL
 };
 
-struct token {
-    enum token_type tokenType;
-    union value // 64 bit.
+class Token {
+    public:
+    Token() : type(TOKEN_UNDEFINED), line(0), str(NULL) {}
+    Token(enum token_type type, std::string str, unsigned int line) 
+        : type(type), line(line) {
+        this->str = MEMORY_ARENA.StringAlloc(str);
+    }
+    Token(enum token_type type, char c, unsigned int line) : type(type), c(c), line(line) {}
+    enum token_type type;
+    union // 64 bit.
     {
         char *str;
-        uint64 u64;
+        uint64 num;
+        char c;
     };
     uint32 line; // TODO(Noah): Add support for programs with more than 4 billion lines.
 };
 
 class TokenContainer {
     public:
-    std::vector<struct token> tokens;
+    std::vector<Token> tokens;
     void Print() {
         for (int i = 0; i < tokens.size(); i++) {
-            struct token tok = tokens[i];
+            //struct token tok = tokens[i];
             /*switch(tok.tokenType) {
                  
             }*/
@@ -115,8 +148,26 @@ class RawFileReader {
     char operator[](unsigned int index) {
         // Do something intelligent.
     }
-
 };
+
+bool QueryForSymbolToken(Token &token, std::string cToken, unsigned int currentLine) {
+    return false;
+}
+
+// NOTE(Noah): When moving to seperate file, add static modifier to make a global variable but local to file.
+std::string currentToken = "";
+std::string cleanToken = "";
+void CurrentTokenReset() {
+    currentToken = "";
+    cleanToken = "";
+}
+void CurrentTokenAddChar(char c) {
+    currentToken += c;
+    // TODO(Noah): Add other whitespace characters.
+    if (c != ' ' && c != '\n') {
+        cleanToken += c;
+    }
+}
 
 /* 
 NOTE(Noah):
@@ -138,8 +189,6 @@ bool LexAndPreparse(
     // raw += ' '
 
     RawFileReader raw = RawFileReader(inFile);
-    
-    //std::string currentToken = ""; 
     enum lexer_state state = LEXER_NORMAL;
     unsigned int currentLine = 1;
 
@@ -178,30 +227,34 @@ bool LexAndPreparse(
         if (state == LEXER_COMMENT) {
             if (character == '\n' || character == EOF) {
                 state = LEXER_NORMAL;
-                // currentToken = ""
+                CurrentTokenReset();
             }
             continue;
         } else if (state == LEXER_MULTILINE_COMMENT) {
             if (character == '*' && raw[n+1] == '/') {
                 state = LEXER_NORMAL;
-                // currentToken = ""
+                CurrentTokenReset();
                 n += 1;
             }
             continue;
         }
         else if (state == LEXER_QUOTE) {
             if (character == '"' && raw[n-1] != '\\') {
-                //# end condition to exit quote.
+                // # end condition to exit quote.
                 state = LEXER_NORMAL;
-                //tokens.append(Token("QUOTE", currentToken[:-1], currentLine))
-                //currentToken = ""
+                tokenContainer.tokens.push_back(Token(TOKEN_QUOTE, currentToken, currentLine));
+                CurrentTokenReset();
             }
+            // Check for escape sequenced characters (plus special characters).
+            // TODO(Noah): More special characters to implement here.
             else if (character == '\\' && raw[n-1] != '\\') {
-                //# the escape character is here.
-                //# but we must ensure that we pass forward all \n 's.
                 if (raw[n+1] != 'n') {
-                    //currentToken = currentToken[:-1] # remove escape character.
+                    CurrentTokenAddChar('\\');
+                    CurrentTokenAddChar('n');
+                    n += 1;
                 }
+            } else { // do to else, \\ is nulled out when used as escape character. i.e. does not appear in final string.
+                CurrentTokenAddChar(character);
             }
             continue;
         }
@@ -212,9 +265,10 @@ bool LexAndPreparse(
             //# check for single line comments.
             if (character == '/' && raw[n+1] == '/'){
                 state = LEXER_COMMENT;
-                //token = QueryForSymbolToken(cleanToken, currentLine)
-                //if (token):
-                //    tokens.append(token)
+                Token token;
+                if (QueryForSymbolToken(token, cleanToken, currentLine)) {
+                    tokenContainer.tokens.push_back(token);
+                }
                 n += 1; //# skip over both '/' characters.
                 continue;
             }
@@ -222,9 +276,10 @@ bool LexAndPreparse(
             //# check for multi-line comments.
             if (character == '/' && raw[n+1] == '*') {
                 state = LEXER_MULTILINE_COMMENT;
-                //token = QueryForSymbolToken(cleanToken, currentLine)
-                //if (token):
-                //    tokens.append(token)
+                Token token;
+                if (QueryForSymbolToken(token, cleanToken, currentLine)) {
+                    tokenContainer.tokens.push_back(token);
+                }
                 n += 1; //# skip over '*', because then we could recognize /*/ as valid.
                 continue;
             }
@@ -232,33 +287,32 @@ bool LexAndPreparse(
             // Check for beginning of quotes
             if (character == '"') 
             {
-                //# Condition for entering the quote state.
                 state = LEXER_QUOTE;
-                //token = QueryForSymbolToken(cleanToken, currentLine)
-                //if (token):
-                //    tokens.append(token)
-                //currentToken = ""
+                Token token;
+                if (QueryForSymbolToken(token, cleanToken, currentLine)) {
+                    tokenContainer.tokens.push_back(token);
+                }
+                CurrentTokenReset();
             }
 
             // Check for character literals.
             if (raw[n] == '\'' && raw[n+2] == '\'') {
-                //# Found a character literal.
                 char c_val = raw[n+1];
-                //tokens.append(Token("C_LITERAL", c_val, currentLine))
-                //currentToken = "" # reset that shit 
-                n += 2; //# skip past both character literal and "'"
+                tokenContainer.tokens.push_back(Token(TOKEN_CHARACTER_LITERAL, c_val, currentLine));
+                CurrentTokenReset();
+                n += 2;
                 continue;
             }
 
-            // Check for decimal literals.
-            /* 
-            else if raw[n] == "." and IsNumber(cleanToken[:-1]):
-                # What we have is a number then a dot. 
-                # Simply skip over the . so that it doesn't get caught as an
-                # operator. 
-                n += 1
-                continue
-            */
+            // Check for decimal literals. 
+            if (raw[n] == '.' && IsNumber(cleanToken) ) {
+                //# What we have is a number then a dot. 
+                //# Simply skip over the . so that it doesn't get caught as an
+                //# operator. 
+                n += 1;
+                continue;
+            }
+            
 
             // Check for compound operator.
             /*result = IsCompoundOp(raw, n, currentLine)
