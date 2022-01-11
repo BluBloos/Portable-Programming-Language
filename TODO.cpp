@@ -1,4 +1,4 @@
-'''
+/*
 # TODO(Noah):
 - No need for forward decl of functions.
 - add the alloc keyword as an expression (kind of like var assignment/func decl).
@@ -180,3 +180,4 @@ TODO: List of things I like that we should implement.
     - put vectors and matrices in the language.
         - kind of like numpy. Make it good for that type of shit.
 '''
+*/
