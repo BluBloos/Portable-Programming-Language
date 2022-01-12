@@ -1,3 +1,16 @@
+/*
+
+If we are thinking about how the lexer works. There are various search patterns.
+    - search through a string, where each thing in string is a potential character.
+        - matching a character as part of a character set.
+    - search through a list of strings for a match.
+        - matching a string as part of a string set.
+
+*/
+
+// TODO:
+    // Implement RawFileRead [] operator overload.
+
 char * TYPES[] = {
     "float", "double", "int", "char", "short", "string", "bool", "void"
 };
@@ -83,9 +96,7 @@ class TokenContainer {
     }
 };
 
-bool QueryForSymbolToken(Token &token, std::string cToken, unsigned int currentLine) {
-    return false;
-}
+
 
 bool IsCompoundOp(
     Token &tok, 
@@ -125,14 +136,21 @@ bool IsKeyword(
     return isKeyword;
 }
 
+// Globals local to lexer.cpp
+INTERNAL std::string currentToken = "";
+INTERNAL std::string cleanToken = "";
+INTERNAL unsigned int currentLine = 0;
+
+bool QueryForSymbolToken(Token &token) {
+    return false;
+}
+
 // take current character, the current token but clean.
 // also takes a set of test characters.
-void QueryForToken(
-    char character, 
-    std::string cleanToken, 
+void QueryForCharToken(
+    char character,  
     char *test, 
     enum token_type tokType, 
-    unsigned int cLine,
     Token &tok,
     Token &symbolTok
 ) {
@@ -142,14 +160,10 @@ void QueryForToken(
             charInTest = true;
     }
     if (charInTest) {
-        QueryForSymbolToken(symbolTok, cleanToken, cLine);
-        tok = Token(tokType, character, cLine);
+        QueryForSymbolToken(symbolTok);
+        tok = Token(tokType, character, currentLine);
     }
 }
-
-// Globals local to lexer.cpp
-static std::string currentToken = "";
-static std::string cleanToken = "";
 
 void CurrentTokenReset() {
     currentToken = "";
@@ -191,12 +205,42 @@ bool IsNumber(std::string potNum) {
     return true;
 }
 
-struct search_pattern {
-    token_type tokType;
-    char *pattern;
+enum search_pattern_type {
+    SEARCH_P_CHAR,
+    SEARCH_P_STRING,
+    SEARCH_P_STRING_LOOKAHEAD
 };
 
-search_pattern sPatterns[3];
+struct search_pattern {
+    enum search_pattern_type sType;
+    token_type tokType;
+    unsigned int patternLen;
+    union {
+        char *char_pattern; // patternLen is undefined.
+        char **string_pattern; // patternLen is strings in string_pattern.
+    };
+};
+
+struct search_pattern sPatterns[3];
+
+struct search_pattern CreateSearchPattern( enum search_pattern_type sType, enum token_type tokType, char *pattern) {
+    struct search_pattern sPattern;
+    sPattern.sType = sType;
+    sPattern.tokType = tokType;
+    sPattern.patternLen = 0;
+    sPattern.char_pattern = pattern;
+    return sPattern;
+}
+
+struct search_pattern CreateSearchPattern( enum search_pattern_type sType, enum token_type tokType, 
+char **arr, unsigned int arrSize) {
+    struct search_pattern sPattern;
+    sPattern.sType = sType;
+    sPattern.tokType = tokType;
+    sPattern.patternLen = arrSize;
+    sPattern.string_pattern = arr;
+    return sPattern;
+}
 
 /* 
 NOTE(Noah):
@@ -212,22 +256,19 @@ bool LexAndPreparse(
     TokenContainer &tokenContainer, 
     PreparseContext &preparseContext
 ) 
-{
-
+{    
     // # for the sake of parsing a raw input of ' '
     // # append onto raw.
     // raw += ' '
-
+    
     RawFileReader raw = RawFileReader(inFile);
     enum lexer_state state = LEXER_NORMAL;
-    unsigned int currentLine = 1;
 
-    sPatterns[0].tokType = TOKEN_OP;
-    sPatterns[0].pattern = OPS;
-    sPatterns[1].tokType = TOKEN_ENDL;
-    sPatterns[1].pattern = ";";
-    sPatterns[2].tokType = TOKEN_PART;
-    sPatterns[2].pattern = "{}(),:";
+    sPatterns[0] = CreateSearchPattern(
+        SEARCH_P_STRING_LOOKAHEAD, TOKEN_OP, COMPOUND_OPS, sizeof(COMPOUND_OPS) / sizeof(char*));
+    sPatterns[1] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_OP, OPS);
+    sPatterns[2] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_ENDL, ";");
+    sPatterns[3] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_PART, "{}(),:");
 
     // Go through each character one-by-one
     int n = -1;
@@ -238,33 +279,26 @@ bool LexAndPreparse(
         character = raw[n];
         bool foundToken = false;
         
-        // # check for newline characters.
+        // check for newline characters.
         if (character == '\n') {
             currentLine += 1;
-            // NOTE(Noah): We cannot skip here because comments exit on newline.
+            // NOTE(Noah): We cannot 'continue;' here because comments exit on newline.
             // Also, newlines are used to find the end of SYMBOLS.  
         }
 
-        //# if in a comment or multiline comment state, we simply just skip over the current character.
-        //# we also wnat to be checking for comment and multi-line comment end states.
-        //# TODO(Noah): Implement nested multi-line comments.
         if (state == LEXER_COMMENT) {
-            if (character == '\n' || character == EOF) {
+            if (character == '\n' || character == EOF) // end condition check
                 state = LEXER_NORMAL;
-                CurrentTokenReset();
-            }
             continue;
         } else if (state == LEXER_MULTILINE_COMMENT) {
-            if (character == '*' && raw[n+1] == '/') {
+            if (character == '*' && raw[n+1] == '/') { // end condition check
                 state = LEXER_NORMAL;
-                CurrentTokenReset();
                 n += 1;
             }
             continue;
         }
         else if (state == LEXER_QUOTE) {
-            if (character == '"' && raw[n-1] != '\\') {
-                // # end condition to exit quote.
+            if (character == '"' && raw[n-1] != '\\') { // end condition check.
                 state = LEXER_NORMAL;
                 tokenContainer.Append(Token(TOKEN_QUOTE, currentToken, currentLine));
                 CurrentTokenReset();
@@ -277,7 +311,7 @@ bool LexAndPreparse(
                     CurrentTokenAddChar('n');
                     n += 1;
                 }
-            } else { // do to else, \\ is nulled out when used as escape character. i.e. does not appear in final string.
+            } else { // due to else, \\ is nulled out when used as escape character. i.e. does not appear in final string.
                 CurrentTokenAddChar(character);
             }
             continue;
@@ -290,10 +324,11 @@ bool LexAndPreparse(
             if (character == '/' && raw[n+1] == '/'){
                 state = LEXER_COMMENT;
                 Token token;
-                if (QueryForSymbolToken(token, cleanToken, currentLine)) {
+                if (QueryForSymbolToken(token)) {
                     tokenContainer.Append(token);
                 }
-                n += 1; //# skip over both '/' characters.
+                CurrentTokenReset();
+                n += 1;
                 continue;
             }
             
@@ -301,10 +336,11 @@ bool LexAndPreparse(
             if (character == '/' && raw[n+1] == '*') {
                 state = LEXER_MULTILINE_COMMENT;
                 Token token;
-                if (QueryForSymbolToken(token, cleanToken, currentLine)) {
+                if (QueryForSymbolToken(token)) {
                     tokenContainer.Append(token);
                 }
-                n += 1; //# skip over '*', because then we could recognize /*/ as valid.
+                CurrentTokenReset();
+                n += 1;
                 continue;
             }
 
@@ -317,6 +353,7 @@ bool LexAndPreparse(
                     tokenContainer.Append(token);
                 }
                 CurrentTokenReset();
+                continue;
             }
 
             // Check for character literals.
@@ -329,58 +366,12 @@ bool LexAndPreparse(
             }
 
             // TODO/NOTE(Noah): Should we not lex, for example, 100. ? (because right now we do).
-            // Check for decimal literals. 
+            // consume '.' in decimal literals to avoid being parsed as a TOKEN_PART. 
             if (raw[n] == '.' && IsNumber(cleanToken) ) {
                 CurrentTokenAddChar('.');
                 continue;
             }
 
-            // Check for any compound operators.
-            Token tok;
-            if (IsCompoundOp(tok, raw, n, currentLine)) {
-                Token token;
-                if (QueryForSymbolToken(token, cleanToken, currentLine)) {
-                    tokenContainer.Append(token);
-                }
-                // NOTE(Noah): We must do a continue here because there are some single character
-                    // ops that are a substring of some compound ops.
-                tokenContainer.Append(tok);
-                CurrentTokenReset();
-                n += 1; // NOTE(Noah): All compound ops are of len 2.
-                continue;
-            }
-
-            for (int i = 0; i < 3; i++) {
-                struct search_pattern sPattern = sPatterns[i];
-                Token tok;
-                Token symbolTok;
-                QueryForToken(
-                    character, 
-                    cleanToken, 
-                    sPattern.pattern, 
-                    sPattern.tokType, 
-                    currentLine,
-                    tok, 
-                    symbolTok
-                );
-                if (symbolTok.type != TOKEN_UNDEFINED)
-                    tokenContainer.Append(symbolTok);
-                if (tok.type != TOKEN_UNDEFINED) {
-                    tokenContainer.Append(tok);
-                    foundToken = true;
-                }
-            }
-
-            // Check for division statements
-            if (character == '/' && raw[n+1] != '/') {
-                Token token;
-                if (QueryForSymbolToken(token, cleanToken, currentLine)) {
-                    tokenContainer.Append(token);
-                }
-                tokenContainer.Append(Token(TOKEN_OP, "/", currentLine));
-                foundToken = true;
-            }
-            
             // Check for preprocessor statements
             // TODO(Noah): Process on the spot.
             {
@@ -399,8 +390,71 @@ bool LexAndPreparse(
                     // n += 1 + length
                     // continue
                 }
-            } 
-            
+            }
+
+            // Check for division statements
+            if (character == '/' && raw[n+1] != '/') {
+                Token token;
+                if (QueryForSymbolToken(token, cleanToken, currentLine)) {
+                    tokenContainer.Append(token);
+                }
+                tokenContainer.Append(Token(TOKEN_OP, "/", currentLine));
+                CurrentTokenReset();
+                continue;
+            }
+
+            // Check for any compound operators.
+            /*Token tok;
+            if (IsCompoundOp(tok, raw, n, currentLine)) {
+                Token token;
+                if (QueryForSymbolToken(token, cleanToken, currentLine)) {
+                    tokenContainer.Append(token);
+                }
+                // NOTE(Noah): We must do a continue here because there are some single character
+                    // ops that are a substring of some compound ops.
+                tokenContainer.Append(tok);
+                CurrentTokenReset();
+                n += 1; // NOTE(Noah): All compound ops are of len 2.
+                continue;
+            }*/
+
+            // Go through all search patterns.
+            for (int i = 0; i < 3; i++) {
+                struct search_pattern sPattern = sPatterns[i];
+                Token tok;
+                Token symbolTok;
+                unsigned int skipAmount = 0;
+                switch(sPattern.sType) {
+                    case SEARCH_P_CHAR:
+                    QueryForCharToken(
+                        character, 
+                        sPattern.pattern, 
+                        sPattern.tokType, 
+                        tok, 
+                        symbolTok
+                    );
+                    break;
+                    case SEARCH_P_STRING:
+                    /*QueryForStringToken(
+                        cleanToken + std::string(character),
+
+
+
+                    );*/
+                    break;
+                    case SEARCH_P_STRING_LOOKAHEAD:
+                    break;
+                }
+                if (symbolTok.type != TOKEN_UNDEFINED)
+                    tokenContainer.Append(symbolTok);
+                if (tok.type != TOKEN_UNDEFINED) {
+                    tokenContainer.Append(tok);
+                    n += skipAmount;
+                    foundToken = true;
+                    break;
+                }
+                
+            }
 
             // Recognize keywords
             // TODO(Noah): If I were to say int0, I would still recognize the int and 0 seperate
