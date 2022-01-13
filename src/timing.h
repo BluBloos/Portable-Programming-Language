@@ -7,9 +7,9 @@ class Timer {
     }
     ~Timer() {
         clock_t end = clock();
-        double cycles = (double)(end - begin);
-        double ms = cycles / CLOCKS_PER_SEC * 1000.0f;
-        LOGGER.Log("%s took %.2f cyles and %.2f ms", msg, cycles, ms);
+        double clocks = (double)(end - begin);
+        double ms = clocks / CLOCKS_PER_SEC * 1000.0f;
+        LOGGER.Log("%s took %.2f ms", msg, clocks, ms);
     }
 
 };

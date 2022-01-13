@@ -83,6 +83,7 @@ enum token_type {
     TOKEN_CHARACTER_LITERAL,
     TOKEN_ENDL,
     TOKEN_OP,
+    TOKEN_COP, // compouned op.
     TOKEN_PART,
     TOKEN_KEYWORD,
     TOKEN_PDIRECTIVE, // preprocessor directives.
@@ -102,6 +103,12 @@ class Token {
     Token(enum token_type type, unsigned int line) : type(type), line(line), num(0) {}
     Token(enum token_type type, double dnum, unsigned int line) : type(type), dnum(dnum), line(line) {}
     Token(enum token_type type, unsigned int num, unsigned int line) : type(type), num(num), line(line) {}
+    Token(const Token &tok) : type(tok.type), line(tok.line) {
+        num = tok.num; // Should work for all union members...?
+    }
+    ~Token() {
+        // Do nothing.
+    }
     enum token_type type;
     union // 64 bit.
     {
@@ -121,10 +128,45 @@ class TokenContainer {
     }
     void Print() {
         for (int i = 0; i < tokens.size(); i++) {
-            //struct token tok = tokens[i];
-            /*switch(tok.tokenType) {
-                 
-            }*/
+            Token &tok = tokens[i];
+            switch(tok.type) {
+                case TOKEN_UNDEFINED:
+                LOGGER.Min("TOKEN_UNDEFINED");
+                break;
+                case TOKEN_QUOTE:
+                LOGGER.Min("TOKEN_QUOTE: %s", tok.str);
+                break;
+                case TOKEN_INTEGER_LITERAL:
+                LOGGER.Min("TOKEN_INTEGER_LITERAL: %d", tok.num);
+                break;
+                case TOKEN_DECIMAL_LITERAL:
+                LOGGER.Min("TOKEN_DECIMAL_LITERAL: %f", tok.dnum);
+                break;
+                case TOKEN_CHARACTER_LITERAL:
+                LOGGER.Min("TOKEN_CHARACTER_LITERAL: %c", tok.c);
+                break;
+                case TOKEN_ENDL:
+                LOGGER.Min("TOKEN_ENDL");
+                break;
+                case TOKEN_OP:
+                LOGGER.Min("TOKEN_OP: %c", tok.c);
+                break;
+                case TOKEN_COP:
+                LOGGER.Min("TOKEN_COP: %s", tok.str);
+                break;
+                case TOKEN_PART:
+                LOGGER.Min("TOKEN_PART: %c", tok.c);
+                break;
+                case TOKEN_KEYWORD:
+                LOGGER.Min("TOKEN_KEYWORD: %s", tok.str);
+                break;
+                case TOKEN_PDIRECTIVE:
+                LOGGER.Min("TOKEN_PDIRECTIVE: %s", tok.str);
+                break;
+                case TOKEN_SYMBOL:
+                LOGGER.Min("TOKEN_SYMBOL: %s", tok.str);
+                break;
+            }
         }
     }
 };
@@ -191,7 +233,7 @@ bool TokenFromLatent(Token &token) {
 
 // Looks ahead to check for any matches with any of the strings.
 void TokenFromLookaheadString(
-    RawFileReader raw,
+    RawFileReader &raw,
     unsigned int n,
     char **strPattern,
     unsigned int patternLen,
@@ -311,7 +353,7 @@ bool LexAndPreparse(
     enum lexer_state state = LEXER_NORMAL;
 
     sPatterns[0] = CreateSearchPattern(
-        SEARCH_P_STRING, TOKEN_OP, COMPOUND_OPS, sizeof(COMPOUND_OPS) / sizeof(char*));
+        SEARCH_P_STRING, TOKEN_COP, COMPOUND_OPS, sizeof(COMPOUND_OPS) / sizeof(char*));
     sPatterns[1] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_OP, OPS);
     sPatterns[2] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_ENDL, ";");
     sPatterns[3] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_PART, "{}(),:");
