@@ -2,6 +2,6 @@ mkdir bin
 
 pushd bin
 
-g++ ../src/ppl.cpp -I ../src/
+g++ -g ../src/ppl.cpp -I ../src/ -o ppl.exe
 
 popd
