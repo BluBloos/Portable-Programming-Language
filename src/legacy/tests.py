@@ -42,8 +42,8 @@ def SingleTestAST(grammer, dir, fileName, logger):
 
 # TESTING CHOICE.
 # TODO(Noah): Test grammers here because we got the good old maximum recursion depth :(
-TEST = "integration"
-SINGLE_UNIT = "_switch2.c"
+TEST = "preparser_single"
+SINGLE_UNIT = "1.c"
 
 if __name__ == "__main__":
     timer = timing.Timer()

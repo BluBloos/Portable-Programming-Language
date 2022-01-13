@@ -25,16 +25,17 @@ def LexAndPreparse(inFile, logger, verbose):
         for token in tokens.tokens:
             logger.Log(str(token))
     # compute cwd from inFile.
-    cwd = os.path.dirname(inFile)
-    pContext = preparser.Run(cwd, tokens, verbose, logger) # Directly modifies the tokens object.
-    if verbose:
-        logger.Log("Printing pContext")
-        logger.Log("libs:"+",".join(pContext.libs))
-        logger.Log("targets:"+",".join(pContext.targets))
-        logger.Log("Printing tokens, post parser")
-        for token in tokens.tokens:
-            logger.Log(str(token))
+    #cwd = os.path.dirname(inFile)
+    #pContext = preparser.Run(cwd, tokens, verbose, logger) # Directly modifies the tokens object.
+    #if verbose:
+    #    logger.Log("Printing pContext")
+    #    logger.Log("libs:"+",".join(pContext.libs))
+    #    logger.Log("targets:"+",".join(pContext.targets))
+    #    logger.Log("Printing tokens, post parser")
+    #    for token in tokens.tokens:
+    #        logger.Log(str(token))
     
+    pContext = False
     return (pContext, tokens)
 
 def Run(inFile, outFile, platform, logger, verbose):

@@ -129,6 +129,7 @@ class TokenContainer {
     void Print() {
         for (int i = 0; i < tokens.size(); i++) {
             Token &tok = tokens[i];
+            printf("%d, ", tok.line);
             switch(tok.type) {
                 case TOKEN_UNDEFINED:
                 LOGGER.Min("TOKEN_UNDEFINED");
@@ -174,7 +175,7 @@ class TokenContainer {
 // Globals local to lexer.cpp
 std::string *currentToken;
 std::string *cleanToken;
-unsigned int currentLine = 0;
+unsigned int currentLine = 1;
 
 bool IsNumber(std::string potNum, bool &decimalFlag) {
     if (potNum == "") 
@@ -232,7 +233,7 @@ bool TokenFromLatent(Token &token) {
 }
 
 // Looks ahead to check for any matches with any of the strings.
-void TokenFromLookaheadString(
+unsigned int TokenFromLookaheadString(
     RawFileReader &raw,
     unsigned int n,
     char **strPattern,
@@ -244,15 +245,19 @@ void TokenFromLookaheadString(
     for (int i = 0; i < patternLen; i++) {
         char *mString = strPattern[i];
         int k = n;
+        int j = 0;
         char *pStr;
-        for( pStr = mString; (raw[k] == *pStr && *pStr != 0); pStr++ );
+        for( pStr = mString; (raw[k++] == *pStr && *pStr != 0); pStr++ ) {
+            j++;
+        }
         if (*pStr == 0) {
             // Means we made it through entire string and matched.
             TokenFromLatent(symbolTok);
             tok = Token(tokType, mString, currentLine);
-            return;
+            return j;
         }
     }
+    return 0;
 }
 
 // take current character, the current token but clean.
@@ -304,7 +309,7 @@ struct search_pattern {
     };
 };
 
-struct search_pattern sPatterns[6];
+struct search_pattern sPatterns[7];
 
 struct search_pattern CreateSearchPattern( enum search_pattern_type sType, enum token_type tokType, char *pattern) {
     struct search_pattern sPattern;
@@ -361,6 +366,9 @@ bool LexAndPreparse(
         SEARCH_P_STRING, TOKEN_KEYWORD, KEYWORDS, sizeof(KEYWORDS) / sizeof(char*));
     sPatterns[5] = CreateSearchPattern(
         SEARCH_P_STRING, TOKEN_PDIRECTIVE, P_DIRECTIVES, sizeof(P_DIRECTIVES) / sizeof(char *)
+    );
+    sPatterns[6] = CreateSearchPattern(
+        SEARCH_P_STRING, TOKEN_KEYWORD, TYPES, sizeof(TYPES) / sizeof(char *)
     );
 
     // Go through each character one-by-one
@@ -506,7 +514,7 @@ bool LexAndPreparse(
                     );
                     break;
                     case SEARCH_P_STRING:
-                    TokenFromLookaheadString(
+                    skipAmount = TokenFromLookaheadString(
                         raw,
                         n,
                         sPattern.string_pattern,
@@ -514,7 +522,8 @@ bool LexAndPreparse(
                         sPattern.tokType,
                         tok,
                         symbolTok
-                    );
+                    ) - 1;
+
                     break;
                 }
                 if (symbolTok.type != TOKEN_UNDEFINED)

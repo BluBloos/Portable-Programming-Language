@@ -18,7 +18,7 @@ class ConstMemoryArena {
     }
     // TODO(Noah): Check for unsafe allocs.
     char *StdStringAlloc(std::string str) {
-        unsigned int stringSize = str.size() * (sizeof(char) + 1); // Includes null-terminator.
+        unsigned int stringSize = (str.size() + 1) * (sizeof(char)); // Includes null-terminator.
         return (char *)_Alloc((void *)str.c_str(), stringSize);
     }
     char *StringAlloc(char *str) {
@@ -26,7 +26,7 @@ class ConstMemoryArena {
         for (char *pStr = str; *pStr != 0; pStr++) {
             stringSize++;
         }
-        stringSize *= sizeof((char) + 1); // Includes null-terminator.
+        stringSize = (stringSize + 1) * sizeof(char); // Includes null-terminator.
         return (char *)_Alloc(str, stringSize);
     }
 };
