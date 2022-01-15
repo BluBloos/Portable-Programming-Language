@@ -4,8 +4,9 @@
 #include <stdio.h> 
 #include <string>
 #include <vector>
-#include <time.h>
+// #include <time.h>
 #include <stdarg.h>
+//#include <x86intrin.h>
 /* PROJECT DEPENDENCIES */
 
 /* PROGRAM GLOBALS */
@@ -28,7 +29,7 @@ bool VERBOSE = true;
 // ppl.exe "inFile" -o "outFile" -t "TARGET" [options]
 int main(int argc, char **argv)
 {
-    Timer timer = Timer("ppl.exe");
+    //Timer timer = Timer("ppl.exe");
 
     const char *userPlatform;
     const char *inFilePath; 
@@ -98,4 +99,6 @@ int main(int argc, char **argv)
         */
 
     }
+
+    //timer.TimerEnd();
 }
