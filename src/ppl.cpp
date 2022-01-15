@@ -29,7 +29,7 @@ bool VERBOSE = true;
 // ppl.exe "inFile" -o "outFile" -t "TARGET" [options]
 int main(int argc, char **argv)
 {
-    //Timer timer = Timer("ppl.exe");
+    // Timer timer = Timer("ppl.exe");
 
     const char *userPlatform;
     const char *inFilePath; 

@@ -4,8 +4,6 @@
 // NOTE(Noah): Apparently everything good about language design has already been done...
 // So what if we made PPL flexible? -> metaprogramming?
 
-
-
 // NOTE(Noah): Currently considering range based for-loops.
     // because there are common patterns where I want to change the index as it iterates.
 
@@ -17,11 +15,29 @@
 
 /* TODO
 
-- Read the Rust langauge specification to learn how they make memory safe.
+First Class Priority Tasks:
 
+    - Port Compiler codebase to C/C++.
+        - Change PART in lexer to PUNCTUATION.
+
+    - Is the language in a usable state? Look at C89 spec and your own projects.
+    - The answer to this question is a "feel" thing.
+        http://port70.net/~nsz/c/c89/c89-draft.html#2.
+        - Verify that names of functions are legal (cannot begin with $ for example)
+        - Add all desired variable types and sizes Ex) 
+            - char (a unicode coidepoint). 
+            - uint64 (unsigned 64 bit integer).
+            - float (32 bit floating point).
+            - double (64 bit floating point).
+        - Add bitshift operators. Ex) >> and <<.
+        - Ensure all postfix and prefix are there Ex) ++X or X++
+        - Add -> for dereffing pointers.
+
+    - Port C backend to ANSIC
+    - Add LLVM IR as backend
+
+- Read the Rust langauge specification to learn how they make memory safe.
 - Package management
-- Port C baclend to ANSIC
-- Add LLVM IR as backend
 
 - add the alloc keyword as an expression (kind of like var assignment/func decl).
 - add the free keyword as a statement.
@@ -50,4 +66,35 @@ Check out the things below,
 - Check out what vectorizin is.
 - Look into quantization (making ops smaller size)?
 - What is a GPR?
+*/
+
+/* CONDENSED/TRIMMED C89 SPEC
+
+When working with a translation unit:
+- tokenizing the file
+- execute preprocessor directives, expand macros
+- escape sequences in string literals and character literals are converted
+
+keywords:
+auto, double, int, struct, break, else, long, switch, case, enum, register, typedef
+char, extern, return, union
+const, float, short, unsigned
+continue, for, signed, void
+default, goto, sizeof, volatile
+do, if, static, while
+
+identifiers (like a function name or variable name):
+_ a b c d e f g h i j k l m
+n o p q r s t u v w x y z
+A B C D E F G H I J K L M
+N O P Q R S T U V W X Y Z
+0123456789
+    - first character cannot be a digit
+
+types:
+    - Types in C89 are ODD. I do not care... will implement my own.
+
+suffixes for literals
+    - I do not give a shit about these. I think they are obnoxious. None of these please.
+
 */
