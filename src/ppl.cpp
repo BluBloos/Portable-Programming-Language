@@ -1,35 +1,11 @@
 // NOTE(Noah): This is the full toolchain. The thing that is meant to be run on the command line.
-
-/* PROJECT DEPENDENCIES */
-#include <stdio.h> 
-#include <string>
-#include <vector>
-// #include <time.h>
-#include <stdarg.h>
-//#include <x86intrin.h>
-/* PROJECT DEPENDENCIES */
-
-/* PROGRAM GLOBALS */
 #include <ppl.h>
-#include <logger.h>
-#include <mem.h>
-Logger LOGGER;
-ConstMemoryArena MEMORY_ARENA(1024 * 1024 * 60); // 60 MB.
-// Compiler parameters.
-enum target_platform PLATFORM = POSIX;
-bool VERBOSE = true;
-/* PROGRAM GLOBALS */
-
-/* OTHER COMPILATION UNITS */
-#include <lexer.h>
-#include <timing.h>
-/* OTHER COMPILATION UNITS */
 
 // USAGE 
 // ppl.exe "inFile" -o "outFile" -t "TARGET" [options]
 int main(int argc, char **argv)
 {
-    // Timer timer = Timer("ppl.exe");
+    Timer timer = Timer("ppl.exe");
 
     const char *userPlatform;
     const char *inFilePath; 
@@ -72,8 +48,13 @@ int main(int argc, char **argv)
         if (!LexAndPreparse(inFile, tokensContainer, preparseContext)) {
             // NOTE(Noah): exit program and silently fail. 
             // All error messages are handled by whom that throws err.
+            
+            fclose(inFile); // TODO(Noah): Add some sort of file manager object.
             return 0; 
         }
+
+        fclose(inFile);
+
         if (VERBOSE) {
             tokensContainer.Print();
         }
@@ -100,5 +81,6 @@ int main(int argc, char **argv)
 
     }
 
-    //timer.TimerEnd();
+    timer.TimerEnd();
+    
 }

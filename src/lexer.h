@@ -59,6 +59,7 @@ class RawFileReader {
     }
     ~RawFileReader() {
         // NOTE(Noah): I do think destructors and OOP are a nice way for me to do memory management :)
+        
         free(internalBuffer);
     }
     char operator[](int index) {
