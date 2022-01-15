@@ -35,7 +35,13 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bin/ppl",
-            "args": [],
+            "args": [
+                "${workspaceFolder}/tests/preparse/1.c",
+                "-o",
+                "outFile",
+                "-t",
+                "MAC_OS"
+            ],
             "stopAtEntry": true,
             "cwd": "${workspaceFolder}",
             "environment": [],
