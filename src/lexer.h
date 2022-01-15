@@ -280,6 +280,28 @@ void TokenFromChar(
     }
 }
 
+// given str will match a token from the pattern list.
+void TokenFromString(
+    std::string str,
+    char **strPattern,
+    unsigned int patternLen,
+    enum token_type tokType,
+    Token &tok,
+    Token &symbolTok
+) {
+    for (int i = 0; i < patternLen; i++) {
+        char *mString = strPattern[i];
+        char *pStr;
+        int k = 0;
+        for( pStr = mString; (*pStr != 0 && str[k] == *pStr); (pStr++, k++) );
+        if (*pStr == 0) {
+            // Means we made it through entire string and matched.
+            // TokenFromLatent(symbolTok);
+            tok = Token(tokType, mString, currentLine);
+        }
+    }
+}
+
 void CurrentTokenReset() {
     *currentToken = "";
     *cleanToken = "";
@@ -296,7 +318,8 @@ void CurrentTokenAddChar(char c) {
 // Everything is lookahead (lookahead beginning at the current character).
 enum search_pattern_type {
     SEARCH_P_CHAR,
-    SEARCH_P_STRING
+    SEARCH_P_STRING,
+    SEARCH_P_CURRENT_STRING
 };
 
 struct search_pattern {
@@ -363,12 +386,12 @@ bool LexAndPreparse(
     sPatterns[2] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_ENDL, ";");
     sPatterns[3] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_PART, "{}(),:");
     sPatterns[4] = CreateSearchPattern(
-        SEARCH_P_STRING, TOKEN_KEYWORD, KEYWORDS, sizeof(KEYWORDS) / sizeof(char*));
+        SEARCH_P_CURRENT_STRING, TOKEN_KEYWORD, KEYWORDS, sizeof(KEYWORDS) / sizeof(char*));
     sPatterns[5] = CreateSearchPattern(
         SEARCH_P_STRING, TOKEN_PDIRECTIVE, P_DIRECTIVES, sizeof(P_DIRECTIVES) / sizeof(char *)
     );
     sPatterns[6] = CreateSearchPattern(
-        SEARCH_P_STRING, TOKEN_KEYWORD, TYPES, sizeof(TYPES) / sizeof(char *)
+        SEARCH_P_CURRENT_STRING, TOKEN_KEYWORD, TYPES, sizeof(TYPES) / sizeof(char *)
     );
 
     // Go through each character one-by-one
@@ -523,7 +546,16 @@ bool LexAndPreparse(
                         tok,
                         symbolTok
                     ) - 1;
-
+                    break;
+                    case SEARCH_P_CURRENT_STRING:
+                    TokenFromString(
+                        *cleanToken + character,
+                        sPattern.string_pattern,
+                        sPattern.patternLen,
+                        sPattern.tokType,
+                        tok,
+                        symbolTok
+                    );
                     break;
                 }
                 if (symbolTok.type != TOKEN_UNDEFINED)
