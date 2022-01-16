@@ -50,26 +50,26 @@ def SingleTestAST(grammer, dir, fileName, logger):
 #include <ppl.h>
 
 enum ppl_test {
-    PTEST_PREPARSER_SINGLE = 0,
+    // everything is a single test (because we invoke tests.exe many times with different parameters).
+    PTEST_PREPARSER = 0,
     PTEST_INTEGRATION,
     PTEST_REGEX_GEN,
-    PTEST_REGEX_GEN_SINGLE,
     PTEST_GRAMMER,
-    PTEST_GRAMMER_SINGLE,
-    PTEST_PREPARSER,
     PTEST_COUNT, // comes after all tests
     PTEST_ALL // comes after count
 };
 
 // global variables
-enum ppl_test TEST = PTEST_PREPARSER_SINGLE;
-char* TEST_UNIT = "1.c";
+// enum ppl_test TEST = PTEST_PREPARSER_SINGLE;
+// char* TEST_UNIT = "1.c";
 
+// usage tests.exe testType fileName
 int main(int argc, char **argv) {
     
     Timer timer = Timer("tests.exe");
     int errors = 0;
 
+    /*
     std::vector<enum ppl_test> _tests;
     _tests.push_back(TEST);
 
@@ -77,88 +77,64 @@ int main(int argc, char **argv) {
         _tests(PTEST_COUNT);
         for (int i = 0; i < PTEST_COUNT; i++)
             _tests[i] = i;
-    }
+    }*/
 
-    for (int i = 0; i < _tests.size(); i++) {
-        enum ppl_test test = _tests[i];
+    if (argc > 2) {
+
+        enum ppl_test test;
+        char *rtest = argv[1];
+
+        // I dunno, first thought is to do an if-statement switch type thing.
+        // but fuck, we can actually do a switch on the first character.
+        switch(*rtest) {
+            case 'p': case 'P':
+            test = PTEST_PREPARSER;
+            break;
+            case 'i': case 'I':
+            test = PTEST_INTEGRATION;
+            break;
+            case 'r': case 'R':
+            test = PTEST_REGEX_GEN;
+            break;
+            case 'g': case 'G':
+            test = PTEST_GRAMMER;
+            break;
+        }
+
+        char *inFilePath = argv[2];
+        
         switch(test) {
             case PTEST_INTEGRATION:
-            {
-                /*# Check for file to run through ppl toolchain
-                # TODO(Noah): Add target platform testing for this.
-                try:
-                    dir = "tests/"
-                    for fileName in os.listdir(dir):
-                        path = dir + fileName
-                        if isfile(path) and path.endswith(".c"):
-                            result = SingleIntegrationTest(path, logger, verbose)
-                            if not result:
-                                errors += 1
-                except IOError as e:
-                    errors += 1
-                    logger.Error(str(e))
-                */
-            }
             break;
             case PTEST_REGEX_GEN:
-            {
-                /*# REGEX TREE GENERATION UNIT TEST
-                grammer = g.LoadGrammer()
-                for key in grammer.defs.keys():
-                    regex = grammer.defs[key].regExp
-                    # TODO(Noah): What if we are unable to print a regex tree?
-                    regexTree = g.CreateRegexTree(grammer, regex)
-                    logger.Success("Printing REGEX tree for r\"{}\"".format(regex))
-                    regexTree.Print(0, logger)
-                # REGEX TREE GENERATION UNIT TEST
-                */
-            }
-            break;
-            case PTEST_REGEX_GEN_SINGLE:
-            {
-                /*try:
-                    grammer = g.LoadGrammer()
-                    regex = grammer.defs[SINGLE_UNIT].regExp
-                    regexTree = g.CreateRegexTree(grammer, regex)
-                    logger.Success("Printing REGEX tree for r\"{}\"".format(regex))
-                    regexTree.Print(0, logger)
-                except:
-                    logger.Error("Unable to generate REGEX tree for r\"{}\"".format(regex))
-                    errors += 1
-                */
-            }
             break;
             case PTEST_GRAMMER:
-            {
-                /*
-                grammer = g.LoadGrammer()
-                try:
-                    dir = "tests/grammer"
-                    for fileName in os.listdir(dir):
-                        result = SingleTestAST(grammer, dir, fileName, logger)
-                        if not result: errors += 1
-                except IOError as e:
-                    logger.Error(str(e))
-                    errors += 1
-                */
-            }
-            break;
-            case PTEST_GRAMMER_SINGLE:
-            {
-
-            }
             break;
             case PTEST_PREPARSER:
             {
-
-            }
-            break;
-            case PTEST_PREPARSER_SINGLE:
-            {
-                
+                FILE *inFile = fopen(inFilePath, "r");
+                if (inFile == NULL) {
+                    LOGGER.Error("inFile of '%s' does not exist", inFilePath);
+                    errors += 1;
+                } else {
+                    TokenContainer tokensContainer;
+                    PreparseContext preparseContext;
+                    if (LexAndPreparse(inFile, tokensContainer, preparseContext)) {
+                        if (VERBOSE) {
+                            tokensContainer.Print();
+                        }
+                    } else {
+                        LOGGER.Error("LexAndPreparse failed.");
+                        errors += 1;
+                    }
+                }
+                fclose(inFile);
             }
             break;
         }
+    } else {
+        LOGGER.Error("tests.exe expects at least 2 parameters, but got none.");
+        errors += 1;
     }
 
     if (errors > 0)
