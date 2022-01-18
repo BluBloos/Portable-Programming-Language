@@ -6,6 +6,7 @@
 int main(int argc, char **argv)
 {
     Timer timer = Timer("ppl.exe");
+    LOGGER.InitFileLogging("w");
 
     const char *userPlatform;
     const char *inFilePath; 

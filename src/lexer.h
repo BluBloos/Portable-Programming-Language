@@ -433,7 +433,7 @@ bool LexAndPreparse(
             // Check for escape sequenced characters (plus special characters).
             // TODO(Noah): More special characters to implement here.
             else if (character == '\\' && raw[n-1] != '\\') {
-                if (raw[n+1] != 'n') {
+                if (raw[n+1] == 'n') {
                     CurrentTokenAddChar('\\');
                     CurrentTokenAddChar('n');
                     n += 1;

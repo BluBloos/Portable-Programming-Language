@@ -54,7 +54,7 @@ if __name__ == "__main__":
     #verbose = False
 
     errors = 0
-
+    os.system("rm log.txt")
     _tests = [TEST]
     if TEST == "all":
         _tests = ["integration", "regex_gen", "grammers", "preparser"]
