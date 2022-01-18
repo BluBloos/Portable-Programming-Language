@@ -7,12 +7,14 @@
 // #include <time.h>
 #include <stdarg.h>
 //#include <x86intrin.h>
+#include <std/utf8.c>
 /* PROJECT DEPENDENCIES */
 
 typedef unsigned long long uint64;
 typedef unsigned int uint32;
 #define INTERNAL static
 #define PERSISTENT static
+#define Assert(b) (b) ? (void)0 : ( LOGGER.Error("Assertion failure!"), abort()) 
 
 enum target_platform {
     MAC_OS,

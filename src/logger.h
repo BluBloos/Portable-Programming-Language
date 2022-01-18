@@ -1,4 +1,3 @@
-// TODO(Noah): Modularize this class by adding a helper method that prints something THEN does a printf.
 class Logger {
     public:
     FILE *logFile;

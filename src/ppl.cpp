@@ -50,7 +50,9 @@ int main(int argc, char **argv)
             // NOTE(Noah): exit program and silently fail. 
             // All error messages are handled by whom that throws err.
             
-            fclose(inFile); // TODO(Noah): Add some sort of file manager object.
+            // TODO(Noah): Add some sort of file manager object because then we won't
+            // have to write fclose twice.
+            fclose(inFile); 
             return 0; 
         }
 
