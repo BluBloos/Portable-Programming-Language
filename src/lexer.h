@@ -512,8 +512,8 @@ bool LexAndPreparse(
                 continue;
             }
 
-            // We want to check for symbols if we have hit a space character or newline character (some whitespace).
-            if (character == ' ' || character == '\n') {
+            // We want to check for symbols if we have hit whitespace.
+            if (character == ' ' || character == '\n' || character == EOF) {
                 unsigned int realLine = (character == '\n') ? currentLine - 1  : currentLine;
                 Token token;
                 if (TokenFromLatent(token)) {

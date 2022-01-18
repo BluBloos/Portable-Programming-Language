@@ -18,11 +18,9 @@
 First Class Priority Tasks:
 
     - Port Compiler codebase to C/C++.
-        - parsing compound_ops misses the last 8 char (I reckon because there is no whitespace after)
         - 3.c parses as a symbol. Should this be the case?
         - \n go through as just n. 
         - bad.c parses, returning no tokens. Is this valid?
-        - any / are just not getting parsed. (for example in #inlude <ppl/console>)
         - The parser understands that files may be in utf8.
             - Leads to any utf8 char literals being parsed as symbols.  
 
