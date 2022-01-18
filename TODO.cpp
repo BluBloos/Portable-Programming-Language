@@ -18,7 +18,6 @@
 First Class Priority Tasks:
 
     - Port Compiler codebase to C/C++.
-        - 3.c parses as a symbol. Should this be the case?
         - bad.c parses, returning no tokens. Is this valid?
         - The parser understands that files may be in utf8.
             - Leads to any utf8 char literals being parsed as symbols.  

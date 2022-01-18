@@ -492,11 +492,11 @@ bool LexAndPreparse(
                 continue;
             }
 
-            // NOTE(Noah): Should we not lex, for example, 100. ? (because right now we do).
-                // Upon further inspection we do not...? i.e. IsNumber returns false for this input.
+            
             // consume '.' in decimal literals to avoid being parsed as a TOKEN_PART. 
+            // must ensure that what comes before the decimal is a number AND what comes after is also a number.
             bool _df;
-            if (raw[n] == '.' && IsNumber(*cleanToken, _df) ) {
+            if (raw[n] == '.' && IsNumber(std::string(1, raw[n+1]), _df) && IsNumber(*cleanToken, _df) ) {
                 CurrentTokenAddChar('.');
                 continue;
             }
