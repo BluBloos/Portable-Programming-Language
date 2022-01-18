@@ -101,7 +101,7 @@ class Token {
         this->str = MEMORY_ARENA.StdStringAlloc(str);
     }
     Token(enum token_type type, char *str, unsigned int line ) : type(type), line(line) {
-        this->str= MEMORY_ARENA.StringAlloc(str);
+        this->str = MEMORY_ARENA.StringAlloc(str);
     }
     Token(enum token_type type, char c, unsigned int line) : type(type), c(c), line(line) {}
     Token(enum token_type type, unsigned int line) : type(type), line(line), num(0) {}
@@ -507,7 +507,7 @@ bool LexAndPreparse(
                 if (TokenFromLatent(token)) {
                     tokenContainer.Append(token);
                 }
-                tokenContainer.Append(Token(TOKEN_OP, "/", currentLine));
+                tokenContainer.Append(Token(TOKEN_OP, '/', currentLine));
                 CurrentTokenReset();
                 continue;
             }
