@@ -91,6 +91,9 @@ enum token_type {
     TOKEN_SYMBOL
 };
 
+// NOTE(Noah): We make tokens a class because they manage memory.
+// But also, we never dealloc that memory anyways, because it's controlled by the memory
+// arena which does an automatic free.
 class Token {
     public:
     Token() : type(TOKEN_UNDEFINED), line(0), str(NULL) {}
@@ -130,43 +133,43 @@ class TokenContainer {
     void Print() {
         for (int i = 0; i < tokens.size(); i++) {
             Token &tok = tokens[i];
-            printf("%d, ", tok.line);
+            LOGGER.Min("%d, ", tok.line);
             switch(tok.type) {
                 case TOKEN_UNDEFINED:
-                LOGGER.Min("TOKEN_UNDEFINED");
+                LOGGER.Min("TOKEN_UNDEFINED\n");
                 break;
                 case TOKEN_QUOTE:
-                LOGGER.Min("TOKEN_QUOTE: %s", tok.str);
+                LOGGER.Min("TOKEN_QUOTE: %s\n", tok.str);
                 break;
                 case TOKEN_INTEGER_LITERAL:
-                LOGGER.Min("TOKEN_INTEGER_LITERAL: %d", tok.num);
+                LOGGER.Min("TOKEN_INTEGER_LITERAL: %d\n", tok.num);
                 break;
                 case TOKEN_DECIMAL_LITERAL:
-                LOGGER.Min("TOKEN_DECIMAL_LITERAL: %f", tok.dnum);
+                LOGGER.Min("TOKEN_DECIMAL_LITERAL: %f\n", tok.dnum);
                 break;
                 case TOKEN_CHARACTER_LITERAL:
-                LOGGER.Min("TOKEN_CHARACTER_LITERAL: %c", tok.c);
+                LOGGER.Min("TOKEN_CHARACTER_LITERAL: %c\n", tok.c);
                 break;
                 case TOKEN_ENDL:
-                LOGGER.Min("TOKEN_ENDL");
+                LOGGER.Min("TOKEN_ENDL\n");
                 break;
                 case TOKEN_OP:
-                LOGGER.Min("TOKEN_OP: %c", tok.c);
+                LOGGER.Min("TOKEN_OP: %c\n", tok.c);
                 break;
                 case TOKEN_COP:
-                LOGGER.Min("TOKEN_COP: %s", tok.str);
+                LOGGER.Min("TOKEN_COP: %s\n", tok.str);
                 break;
                 case TOKEN_PART:
-                LOGGER.Min("TOKEN_PART: %c", tok.c);
+                LOGGER.Min("TOKEN_PART: %c\n", tok.c);
                 break;
                 case TOKEN_KEYWORD:
-                LOGGER.Min("TOKEN_KEYWORD: %s", tok.str);
+                LOGGER.Min("TOKEN_KEYWORD: %s\n", tok.str);
                 break;
                 case TOKEN_PDIRECTIVE:
-                LOGGER.Min("TOKEN_PDIRECTIVE: %s", tok.str);
+                LOGGER.Min("TOKEN_PDIRECTIVE: %s\n", tok.str);
                 break;
                 case TOKEN_SYMBOL:
-                LOGGER.Min("TOKEN_SYMBOL: %s", tok.str);
+                LOGGER.Min("TOKEN_SYMBOL: %s\n", tok.str);
                 break;
             }
         }

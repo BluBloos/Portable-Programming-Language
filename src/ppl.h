@@ -29,7 +29,7 @@ Logger LOGGER;
 ConstMemoryArena MEMORY_ARENA(1024 * 1024 * 60); // 60 MB.
 // Compiler parameters.
 enum target_platform PLATFORM = POSIX;
-bool VERBOSE = false;
+bool VERBOSE = true;
 /* PROGRAM GLOBALS */
 
 /* OTHER COMPILATION UNITS */

@@ -1,16 +1,18 @@
 # File exists to run the tests in /tests
-import compiler
-import logger as l
-import grammer as g
-import lexer
-import syntax
-import timing
+
+#import compiler
+#import logger as l
+#import grammer as g
+#import lexer
+#import syntax
+#import timing
 import os
 from os.path import isfile, join
-import sys
-import ppl
-import preparser
+#import sys
+#import ppl
+#import preparser
 
+'''
 def SingleIntegrationTest(filePath, logger, verbose):
     outPath = filePath.replace(".c", "")
     return ppl.Run(filePath, outPath, "MAC_OS", logger, verbose)
@@ -39,16 +41,17 @@ def SingleTestAST(grammer, dir, fileName, logger):
 
         logger.Error("Unable to generate ast for {}".format(fileName))
         return False
+'''
 
 # TESTING CHOICE.
 # TODO(Noah): Test grammers here because we got the good old maximum recursion depth :(
-TEST = "preparser_single"
-SINGLE_UNIT = "snake_game.c"
+TEST = "preparser"
+SINGLE_UNIT = "1.c"
 
 if __name__ == "__main__":
-    timer = timing.Timer()
-    logger = l.Logger()
-    verbose = False
+    #timer = timing.Timer()
+    #logger = l.Logger()
+    #verbose = False
 
     errors = 0
 
@@ -58,7 +61,7 @@ if __name__ == "__main__":
 
     for test in _tests:
 
-        if test == "integration":
+        '''if test == "integration":
             # Check for file to run through ppl toolchain
             # TODO(Noah): Add target platform testing for this.
             try:
@@ -116,7 +119,6 @@ if __name__ == "__main__":
             except IOError as e:
                 logger.Error(str(e))
                 errors += 1
-
         elif test == "preparser":
             try:
                 dir = "tests/preparse"
@@ -127,19 +129,23 @@ if __name__ == "__main__":
             except IOError as e:
                 logger.Error(str(e))
                 errors += 1
+        '''
+        if test == "preparser_single":
+            dir = "tests/preparse"
+            #print("Testing preparser for {}".format(SINGLE_UNIT))
+            inFilePath = join(dir, SINGLE_UNIT)
+            os.system('bin/tests {} {}'.format("PREPARSER", inFilePath))
+        elif test == "preparser":
+            dir = "tests/preparse"
+            for fileName in os.listdir(dir):
+                #print("Testing preparser for {}".format(fileName))
+                inFilePath = join(dir, fileName)
+                os.system('bin/tests {} {}'.format("PREPARSER", inFilePath))
 
-        elif test == "preparser_single":
-            try:
-                dir = "tests/preparse"
-                logger.Success("Testing preparser for {}".format(SINGLE_UNIT))
-                inFile = join(dir, SINGLE_UNIT)
-                pContext, tokens = ppl.LexAndPreparse(inFile, logger, True)  
-            except IOError as e:
-                logger.Error(str(e))
-                errors += 1
 
-    timer.TimerEnd("tests.py", logger)
+    '''timer.TimerEnd("tests.py", logger)
     if errors > 0:
         logger.Error("Completed with {} error(s)".format(errors))
     else:
         logger.Success("Completed with 0  errors.")
+    '''

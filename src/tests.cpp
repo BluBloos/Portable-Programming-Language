@@ -67,6 +67,9 @@ enum ppl_test {
 int main(int argc, char **argv) {
     
     Timer timer = Timer("tests.exe");
+    
+    LOGGER.InitFileLogging("a");
+
     int errors = 0;
 
     /*
@@ -113,6 +116,7 @@ int main(int argc, char **argv) {
             case PTEST_PREPARSER:
             {
                 FILE *inFile = fopen(inFilePath, "r");
+                LOGGER.Log("Testing %s", inFilePath);
                 if (inFile == NULL) {
                     LOGGER.Error("inFile of '%s' does not exist", inFilePath);
                     errors += 1;
