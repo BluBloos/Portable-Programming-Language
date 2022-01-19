@@ -34,14 +34,12 @@ dependent on. That's it. Every package is namespaced.
     - global variables are initialized in an orderless manner and deinit in orderless manner.
     - but this happens at the start of the program and then they all are destructed at the end of the program.
 
-First Class Priority Tasks:
+Roadmap:
 
     - Port Compiler codebase to C/C++.
-        - The lexer understands that files may be in utf8.
-            - Leads to any utf8 char literals being parsed as symbols.
-        - Add a preparser that does nothing but implementing a package system (port preparser.py).
         - Port grammer.py and tree.py and add appropriate tests in tests.cpp
         - Port syntax.py for AST tree generation and add appropriate tests in tests.cpp
+        - Add a preparser that does nothing but implementing a package system (port preparser.py).
         - Port codegen.py and linker.py to complete the port to C
             - While we are doing this, ensure the C backend is actually a C backend, not a C++ backend.
             - But this begs the question, which version of C? C89? C99? Modern C?
@@ -87,7 +85,59 @@ First Class Priority Tasks:
             - Single character printing of unicode code points.
 
     - Add LLVM IR as backend
-        - Compile as an object file, then link with the standard library.
+        - In the meantime, ignore the standard library.
+
+    - Put in debugging symbols so that the binary can be stepped through while also
+    viewing the source code at the same time.
+
+    - Right now, the standard library for PPL is a layer on top of the standard C library.
+        - This is not a portable solution.
+        - As such, this is how the standard library is going to work.
+            - It has a different version for every target architecture.
+            - We make as little platforms specific parts of the library, making the standard library
+            modular.
+
+    - Go ahead and write some targets!
+        - Implement a rock-solid target for POSIX compliant systems.
+        - Write in a Web target.
+        - Write in an IOS target.
+        - Write an Anroid target.
+        - Write in a Windows Console target.
+        Desktop GUI/Game targets
+            - Write in a Windows GUI target
+                - Need to think about different graphics APIs 
+            - Write in a macOS GUI target (Metal).
+
+    - Once we write a web target.
+        - Build a PPL website so that people can learn how to download and use the project
+        for themselves.
+        - Make sure to add analytics to the website.
+
+    - Make PPL easy to download and use for different host architectures.
+        - POSIX System (macOS, any flavour of Linux, etc)
+        - Windows
+
+    - Implement inline assembly
+        - THEN Write a quick and dirty x86 assembly output so that we can build oeprating systems with PPL.
+            - Good thing about this is that there will be no need to implement a standard library. 
+        - Then port Falcon-OS to be compiled via PPL.
+            - And ensure this process is EASY -> so maybe I have to think about Virtual Box/Qemu!
+
+    - Add some features to the standard library.
+        - Such as Wifi/Bluetooth protocols.
+        - Multithreading.
+        
+    - AirDeploy
+
+    - Optimize AST -> LLVM IR
+        - We want to write an optimizer for our language so that we learn
+        how to write fast assembly representations of human readable source
+        code.     
+    
+    - Add support for Hot Reloading
+
+    - Add support for Hot Debugging
+
 
 Other Tasks (Can be done anytime):
 - add the alloc keyword as an expression (kind of like var assignment/func decl).
