@@ -103,6 +103,7 @@ Roadmap:
         - Write in an IOS target.
         - Write an Anroid target.
         - Write in a Windows Console target.
+        - QR codes :P
         Desktop GUI/Game targets
             - Write in a Windows GUI target
                 - Need to think about different graphics APIs 
