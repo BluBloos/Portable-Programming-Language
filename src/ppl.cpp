@@ -38,6 +38,8 @@ int main(int argc, char **argv)
 
     if (paramsValid) {
         
+        LoadGrammer();
+
         FILE *inFile = fopen(inFilePath, "r");
         if (inFile == NULL) {
             LOGGER.Error("inFile of '%s' does not exist", inFilePath);

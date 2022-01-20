@@ -60,10 +60,14 @@ Roadmap:
         - 0b01010101 (binary literals)
         - 0xFF (Hexadecimal literals)
         - 1.0e9 (scientific notation)
+        - default values in structs.
+        - default parameters in functions OVER function overloading (that's a design choice).
+            -> Reason being is explicitness.
         - struct literal
-        v = Vector3{1, 4, 9}
+            v = Vector3{1, 4, 9}
         - Add all desired variable types and sizes Ex) 
             - dynamic arrays
+                - negative indices work (Python got this right).
             - maps
             - string (a utf8 string).
             - char (a unicode coidepoint). 

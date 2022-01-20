@@ -1,3 +1,5 @@
+#ifndef TIMER_H
+#define TIMER_H
 class Timer {
     public:
     clock_t begin;
@@ -19,3 +21,4 @@ class Timer {
         TimerEnd();
     }
 };
+#endif

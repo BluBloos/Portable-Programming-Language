@@ -1,3 +1,5 @@
+#ifndef LEXER_H
+#define LEXER_H
 typedef unsigned int UNICODE_CPOINT;
 #define CP_EOF 0
 
@@ -697,3 +699,4 @@ bool LexAndPreparse(
 
     return true;
 }
+#endif LEXER_H

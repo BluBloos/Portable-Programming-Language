@@ -8,6 +8,7 @@
 #include <stdarg.h>
 //#include <x86intrin.h>
 #include <std/utf8.c>
+#include <unordered_map>
 /* PROJECT DEPENDENCIES */
 
 typedef unsigned long long uint64;
@@ -34,8 +35,34 @@ enum target_platform PLATFORM = POSIX;
 bool VERBOSE = true;
 /* PROGRAM GLOBALS */
 
+/* SILLY THINGS */
+char __silly_buff[256];
+char *SillyStringFmt(char *fmt, ...) {
+    va_list args;
+    va_start (args, fmt);
+    vsprintf(__silly_buff, fmt, args);
+    va_end (args);
+    return __silly_buff;
+}
+
+// Checking if a starts with b, returns with appropriate boolean value.
+bool SillyStringStartsWith(const char* a, const char* b) {
+    char *pStrA = (char *)a;
+    char *pStrB = (char *)b;
+    for ( ; *pStrA != 0 && *pStrB != 0 ; (pStrA++, pStrB++) ) {
+        if (*pStrA != *pStrB)
+            break;
+    }
+    return (*pStrB == 0);
+}
+/* SILLY THINGS */
+
 /* OTHER COMPILATION UNITS */
 #include <lexer.h>
 #include <timing.h>
+#include <grammer.h>
+#include <tree.h>
 /* OTHER COMPILATION UNITS */
+
+
 
