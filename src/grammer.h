@@ -42,14 +42,18 @@ class Grammer {
             DeallocTree(gd.regexTree);
         }
     }
-    std::unordered_map<const char *, struct grammer_definition> defs;
+    std::unordered_map<std::string, struct grammer_definition> defs;
     bool DefExists(const char *defName) {
         // TODO(Noah): Implement.
-        return defs.find(defName) != defs.end();
+        return defs.count(defName);
     }
     // NOTE(Noah): AddDef doesn't check to ensure that the defName you supplied already exists.
     // It assumes this responsibility to the caller.
     void AddDef(const char *defName, struct grammer_definition gd) {
+        defs[defName] = gd;
+    }
+    void AddDef(const char *defName) {
+        struct grammer_definition gd = {};
         defs[defName] = gd;
     }
     // TODO(Noah): Implement this.
@@ -157,186 +161,213 @@ struct grammer_definition CreateGrammerDefinition(
     return gd;
 }
 
-// Loads the grammer into the global grammer object.
-void LoadGrammer() {
-    GRAMMER.AddDef("program", CreateGrammerDefinition(
+/*
+So basically, the issue here is that for each Grammer.AddDef call, we contruct the RegexTree.
+but in doing so, we require to know what type of grammer definitions already exist.
+*/
+
+char *_grammerTable[][2] = {
+    {   
         "program",
         "[(function)((var_decl);)(struct_decl)]*"
-    ));
+    },
+    {   
+        "struct_decl",
+        "(keyword=struct)(symbol)\\{((var_decl);)*\\};"
+    },
+    {
+        "lv",
+        "(type)(symbol)"
+    },
+    {
+        "function",
+        "(type)(symbol)\\(((lv)(,(lv))*)?\\)[;(statement)]"
+    },
+    {
+        "_symbol",
+        "[((symbol)::(symbol))(symbol)]"
+    },
+    { 
+        "_const",
+        "(keyword=const)"
+    },
+    {
+        "_dynamic",
+        "(keyword=dynamic)"
+    },
+    {
+        "type",
+        "[([((op,[)[(_dynamic)(literal)]?(op,]))(op,->)(_const)](type))(_symbol)(keyword)]"
+    },
+    {
+        "block",
+        "\\{(statement)*\\}"
+    },
+    {
+        "_break",
+        "(keyword=break)"
+    },
+    {
+        "_continue",
+        "(keyword=continue)"
+    },
+    {
+        "_fallthrough",
+        "(keyword=fallthrough)"
+    },
+    {
+        "_return",
+        "(keyword=return)(expression)"
+    },
+    {
+        "statement",
+        "[;([(_return)(var_decl)(expression)(_break)(_continue)(_fallthrough)];)(block)(_if)(_for)(_while)(_switch)]"
+    },
+    { 
+        // TODO(Noah): I would certainly like to remove this grammer definition.
+        "statement_noend",
+        "[(var_decl)(expression)(_return)(_break)(_continue)(block)(_if)(_for)(_while)(_switch)]"
+    },
+    {
+        "var_decl",
+        "(lv)(=[(initializer_list)(expression)])?"
+    },
+    {
+        "_if",
+        "(keyword=if)\\((expression)\\)(statement)((keyword=else)(statement))?"
+    },
+    {
+        // NOTE(Noah): Noticing that this allows for having for-loops as the end condition
+        // of a higher-level for-loop. I guess that is not so bad LOL.
+        // Of course, we can ensure the validity of the tree after it is made.
+        // TODO(Noah): Maybe not allow silly things like this.
+        "_for",
+        "(keyword=for)\\((statement)(expression);(statement_noend)\\)(statement)"
+    },
+    {
+        "_while",
+        "(keyword=while)\\((expression)\\)(statement)"
+    },
+    {
+        "_switch_default",
+        "(keyword=case):(statement)*"
+    },
+    {
+        //NOTE(Noah): Switch statement grammer makes it such that default case MUST come last.
+        // Is this intended?
+        "_switch",
+        "(keyword=switch)\\((expression)\\)\\{((keyword=case)(expression):(statement)*)*(_switch_default)?\\}"
+    },
+    {
+        "expression",
+        "[(assignment_exp)(conditional_exp)]"
+    },
+    {
+        "assignment_exp",
+        "(factor)[(op,=)(op,+=)(op,-=)(op,*=)(op,/=)(op,%=)(op,&=)(op,|=)](expression)"
+    },
+    {
+        "conditional_exp",
+        "(logical_or_exp)\?(expression):(expression)"
+    },
+    {
+        "logical_or_exp",
+        "(logical_and_exp)[(op,||)(logical_and_exp)]+"
+    },
+    {
+        "logical_and_exp",
+        "(bitwise_or_exp)(op,&&)(bitwise_or_exp)"
+    },
+    {
+        "bitwise_or_exp",
+        "(bitwise_and_exp)(op,|)(bitwise_and_exp)"
+    },
+    {
+        "bitwise_and_exp",
+        "(equality_exp)(op,&)(equality_exp)"
+    },
+    {
+        "equality_exp",
+        "(relational_exp)[(op,==)(op,!=)](relational_exp)"
+    },
+    {
+        "relational_exp",
+        "(additive_exp)[(op,>=)(op,<=)(op,<)(op,>)](additive_exp)"
+    },
+    {
+        "additive_exp",
+        "(term)([(op,+)(op,-)](term))+"
+    },
+    {
+        "term",
+        "(factor)([(op,*)(op,/)(op,%)](factor))+"
+    },
+    {
+        "function_call",
+        "(_symbol)\\(((expression)(,(expression))*)?\\)"
+    },
+    {
+        "_sizeof",
+        "(keyword=sizeof)"
+    },
+    {
+        // TODO(Noah): Maybe look at this grammer in particular. This is QUITE long.
+        "factor",
+        "[(object)((_sizeof)\\([(_symbol)(type)]\\))([(op,!)(op,-)(op,&)(op,*)(op,~)(\\((type)\\))](factor))(\\((expression)\\))]"
+    },
+    {
+        "initializer_list",
+        "\\[((literal)(,(literal))*)?\\]"
+    }
+};
+
+char  *_grammerTable_LR[][3] = {
+    {
+        "object",
+        "[(function_call)(_symbol)(literal)]", // beta
+        "[(op,++)(op,--)((op,[)(expression)(op,]))((op,.)(object))]" // alpha
+    }
+};
+
+// Loads the grammer into the global grammer object.
+void LoadGrammer() {
+
+    unsigned int grammerCount = sizeof(_grammerTable) / (2 * sizeof(char *));
+    unsigned int grammerCountLR = sizeof(_grammerTable_LR) / (3 * sizeof(char *));
+
+    // lube the tree
+    // NOTE(Noah): ensures that when creating regex trees, the grammer is "well defined".
+    {
+        for ( int i = 0; i < grammerCount; i++) {
+            GRAMMER.AddDef(_grammerTable[i][0]);
+        }
+
+        for (int i = 0; i < grammerCountLR; i++) {
+            GRAMMER.AddDef(_grammerTable_LR[i][0]);
+        }
+    }
+
+    // define grammers with Regex Trees pre-generated.
+    {
+        for (int i = 0; i < grammerCount; i++) {
+            GRAMMER.AddDef(_grammerTable[i][0], CreateGrammerDefinition(
+                _grammerTable[i][0],
+                _grammerTable[i][1]
+            ));
+        }
+        
+        // left-recursive grammers
+        for (int i = 0; i < grammerCountLR; i++) {
+            GRAMMER.AddDef(_grammerTable_LR[i][0], CreateGrammerDefinition(
+                _grammerTable_LR[i][0],
+                _grammerTable_LR[i][1],
+                _grammerTable_LR[i][2]
+            ));
+        }
+    }
+ 
     if (VERBOSE) {
         GRAMMER.Print();
     }
-}
-
-/*
-def LoadGrammer():
-    grammer = Grammer()
-    grammer.defs["program"] = GrammerDefinition(
-        "program",
-        r"[(function)((var_decl);)(struct_decl)]*"
-    )
-    grammer.defs["struct_decl"] = GrammerDefinition(
-        "struct_decl",
-        r"(keyword=struct)(symbol)\{((var_decl);)*\};"
-    )
-    grammer.defs["lv"] = GrammerDefinition(
-        "lv",
-        r"(type)(symbol)"
-    )
-    grammer.defs["function"]=GrammerDefinition(
-        "function",
-        r"(type)(symbol)\(((lv)(,(lv))*)?\)[;(statement)]"
-    )
-    grammer.defs["_symbol"] = GrammerDefinition(
-        "_symbol",
-        r"[((symbol)::(symbol))(symbol)]"
-    )
-    grammer.defs["_const"] = GrammerDefinition(
-        "_const",
-        r"(keyword=const)"
-    )
-    grammer.defs["_dynamic"] = GrammerDefinition(
-        "_dynamic",
-        r"(keyword=dynamic)"
-    )
-    grammer.defs["type"] = GrammerDefinition(
-        "type",
-        r"[([((op,[)[(_dynamic)(literal)]?(op,]))(op,->)(_const)](type))(_symbol)(keyword)]"
-    )
-    grammer.defs["block"]=GrammerDefinition(
-        "block",
-        r"\{(statement)*\}"
-    )
-    grammer.defs["_break"]=GrammerDefinition(
-        "_break",
-        r"(keyword=break)"
-    )
-    grammer.defs["_continue"]=GrammerDefinition(
-        "_continue",
-        r"(keyword=continue)"
-    )
-    grammer.defs["_fallthrough"]=GrammerDefinition(
-        "_fallthrough",
-        r"(keyword=fallthrough)"
-    )
-    grammer.defs["statement"]=GrammerDefinition(
-        "statement",
-        r"[;([(_return)(var_decl)(expression)(_break)(_continue)(_fallthrough)];)(block)(_if)(_for)(_while)(_switch)]"
-    )
-    grammer.defs["_return"] = GrammerDefinition(
-        "_return",
-        r"(keyword=return)(expression)"
-    )
-    # NOTE(Noah): Right now, the only place we allow the use of initializer lists is to init a variable.
-    # It is likely that we will extend this in the future.
-    grammer.defs["var_decl"] = GrammerDefinition(
-        "var_decl",
-        r"(lv)(=[(initializer_list)(expression)])?"
-    )
-    grammer.defs["_if"] = GrammerDefinition(
-        "_if",
-        r"(keyword=if)\((expression)\)(statement)((keyword=else)(statement))?"
-    )
-    grammer.defs["statement_noend"] = GrammerDefinition(
-        "statement_noend",
-        r"[(var_decl)(expression)(_return)(_break)(_continue)(block)(_if)(_for)(_while)(_switch)]"
-    )
-    # NOTE(Noah): Noticing that this allows for having for-loops as the end condition
-    # of a higher-level for-loop. I guess that is not so bad LOL.
-    # Of course, we can ensure the validity of the tree after it is made.
-    # TODO(Noah): Maybe not allow silly things like this.    
-    grammer.defs["_for"] = GrammerDefinition(
-        "_for",
-        r"(keyword=for)\((statement)(expression);(statement_noend)\)(statement)"
-    )
-    grammer.defs["_while"] = GrammerDefinition(
-        "_while",
-        r"(keyword=while)\((expression)\)(statement)"
-    )
-    '''
-    NOTE(Noah): Switch statement grammer makes it such that default case MUST come last.
-    '''
-    grammer.defs["_switch_default"] = GrammerDefinition(
-        "_switch_default",
-        r"(keyword=case):(statement)*"
-    )
-    grammer.defs["_switch"] = GrammerDefinition(
-        "_switch",
-        r"(keyword=switch)\((expression)\)\{((keyword=case)(expression):(statement)*)*(_switch_default)?\}"
-    )
-    grammer.defs["expression"] = GrammerDefinition(
-        "expression",
-        r"[(assignment_exp)(conditional_exp)]"
-    )
-    grammer.defs["assignment_exp"] = GrammerDefinition(
-        "assignment_exp",
-        r"(factor)[(op,=)(op,+=)(op,-=)(op,*=)(op,/=)(op,%=)(op,&=)(op,|=)](expression)"
-    )
-    grammer.defs["conditional_exp"] = GrammerDefinition(
-        "conditional_exp",
-        r"(logical_or_exp)\?(expression):(expression)"
-    )
-    grammer.defs["logical_or_exp"] = GrammerDefinition(
-        "logical_or_exp",
-        r"(logical_and_exp)[(op,||)(logical_and_exp)]+"
-    )
-    grammer.defs["logical_and_exp"] = GrammerDefinition(
-        "logical_and_exp",
-        r"(bitwise_or_exp)(op,&&)(bitwise_or_exp)"
-    )
-    grammer.defs["bitwise_or_exp"] = GrammerDefinition(
-        "bitwise_or_exp",
-        r"(bitwise_and_exp)(op,|)(bitwise_and_exp)"
-    )
-    grammer.defs["bitwise_and_exp"] = GrammerDefinition(
-        "bitwise_and_exp",
-        r"(equality_exp)(op,&)(equality_exp)"
-    )
-    grammer.defs["equality_exp"] = GrammerDefinition(
-        "equality_exp",
-        r"(relational_exp)[(op,==)(op,!=)](relational_exp)"
-    )
-    grammer.defs["relational_exp"] = GrammerDefinition(
-        "relational_exp",
-        r"(additive_exp)[(op,>=)(op,<=)(op,<)(op,>)](additive_exp)"
-    )
-    grammer.defs["additive_exp"] = GrammerDefinition(
-        "additive_exp",
-        r"(term)([(op,+)(op,-)](term))+"
-    )
-    grammer.defs["term"] = GrammerDefinition(
-        "term",
-        r"(factor)([(op,*)(op,/)(op,%)](factor))+"
-    )
-    grammer.defs["function_call"] = GrammerDefinition(
-        "function_call",
-        r"(_symbol)\(((expression)(,(expression))*)?\)"
-    )
-    grammer.defs["_sizeof"] = GrammerDefinition(
-        "_sizeof",
-        r"(keyword=sizeof)"
-    )
-    # NOTE(Noah): This grammer does get the right-to-left associativity down, despite me not thinking about it.
-    # Good thing we followed that tutorial long ago.
-    grammer.defs["factor"] = GrammerDefinition(
-        "factor",
-        r"[(object)((_sizeof)\([(_symbol)(type)]\))([(op,!)(op,-)(op,&)(op,*)(op,~)(\((type)\))](factor))(\((expression)\))]"
-    )
-    # NOTE(Noah): I really don't know if these initializer lists should have like, more than just literals?
-    # But for now this is okay!
-    grammer.defs["initializer_list"] = GrammerDefinition(
-        "initializer_list",
-        r"\[((literal)(,(literal))*)?\]"
-    )
-    # TODO(Noah): Prob take out \((expression)\) and put in the factor. Would make the resulting AST simpler.
-    # NOTE(Noah): Right now just making ++ and -- postfix ops act on a _symbol. Makes the most semantics sense.
-    # Maybe might need to change the grammer later but this is the simplest thing.
-    grammer.defs["object"] = GrammerDefinition(
-        "object",
-        beta=r"[(function_call)(_symbol)(literal)]",
-        alpha=r"[(op,++)(op,--)((op,[)(expression)(op,]))((op,.)(object))]",
-        type="left-recursive"
-    )
-    return grammer
-*/
+}   
 #endif GRAMMER_H

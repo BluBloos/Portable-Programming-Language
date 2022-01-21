@@ -37,8 +37,8 @@ dependent on. That's it. Every package is namespaced.
 Roadmap:
 
     - Port Compiler codebase to C/C++.
-        - Port grammer.py and tree.py and add appropriate tests in tests.cpp
         - Port syntax.py for AST tree generation and add appropriate tests in tests.cpp
+            - this is a parse grammer test.
         - Add a preparser that does nothing but implementing a package system (port preparser.py).
         - Port codegen.py and linker.py to complete the port to C
             - While we are doing this, ensure the C backend is actually a C backend, not a C++ backend.
@@ -49,6 +49,8 @@ Roadmap:
                 - Because we can expect compilers to support this.
             - AND because the C backend is going to become irrelevant (likely) as soon as we implement the LLVM
             IR backend.
+            - linker.py is to be ported not to C but to a batch script that takes the compiler output (C backend) then runs additional
+            tooling to get it down to the executable.
 
     - Is the language in a usable state, and are we satisfied with the language?
         - Look at the C89 spec and your own projects to answer this question.
@@ -70,6 +72,11 @@ Roadmap:
                 - negative indices work (Python got this right).
             - maps
             - string (a utf8 string).
+                - you can add strings together.
+                - you can concat characters to strings.
+                - you can check if two strings are equal.
+                - you can index into strings.
+                - string literals.
             - char (a unicode coidepoint). 
             - uint64 (unsigned 64 bit integer).
             - float (32 bit floating point).
@@ -93,6 +100,9 @@ Roadmap:
 
     - Put in debugging symbols so that the binary can be stepped through while also
     viewing the source code at the same time.
+        - these symbols are placed in object files, which have a symbol table.
+        - I actually do not have any idea how this might look, and will only know until I dive into the weeds
+        of the LLVM compiler project...can't wait! :')
 
     - Right now, the standard library for PPL is a layer on top of the standard C library.
         - This is not a portable solution.
@@ -134,10 +144,13 @@ Roadmap:
         
     - AirDeploy
 
-    - Optimize AST -> LLVM IR
-        - We want to write an optimizer for our language so that we learn
-        how to write fast assembly representations of human readable source
-        code.     
+    - OKAY. So the LLVM IR is yet a stepping stone.
+        - Problem: Was going to do optimization before LLVM IR step. but seems LLVM IR optimizes even after this when going down to machine
+        code.
+        - For the purpose of learning, and potentially doing it better, we will try to "beat LLVM IR -> machine code optimization".
+        - Or maybe see that we can create an optimized LLVM IR ourselves, such that the LLVM IR has "no work" to do when it does its own
+        optimization step.
+            - Because this way I can reap the benefits of portability that the LLVM IR offers.     
     
     - Add support for Hot Reloading
 

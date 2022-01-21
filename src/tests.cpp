@@ -110,8 +110,14 @@ int main(int argc, char **argv) {
             case PTEST_INTEGRATION:
             break;
             case PTEST_REGEX_GEN:
+            {
+                LoadGrammer();
+            }
             break;
             case PTEST_GRAMMER:
+            {
+                
+            }
             break;
             case PTEST_PREPARSER:
             {
