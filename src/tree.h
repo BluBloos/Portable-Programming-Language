@@ -1,18 +1,34 @@
 #ifndef TREE_H
 #define TREE_H
+
+// TODO(Noah): I feel like there is something we can do here. 
+// All of this is pass thru for some tokens right to tree metadata. 
+// like, TOKEN_QUOTE -> TREE_AST_STRING_LITERAL
+    // there is basically nothing special that happens here.
 enum tree_type {
     TREE_ROOT = 0,
     TREE_REGEX_STR,
     TREE_REGEX_ANY,
     TREE_REGEX_GROUP,
-    TREE_REGEX_CHAR
+    TREE_REGEX_CHAR,
+    TREE_REGEX_KEYWORD,
+    TREE_AST_GNODE,
+    TREE_AST_CLITERAL,
+    TREE_AST_INT_LITERAL,
+    TREE_AST_DECIMAL_LITERAL,
+    TREE_AST_STRING_LITERAL,
+    TREE_AST_SYMBOL,
+    TREE_AST_OP,
+    TREE_AST_KEYWORD
 };
 
 struct tree_metadata {
     char regex_mod;
     union { // kind of like the data storage for tree.
-        char c;
+        UNICODE_CPOINT c;
         char *str;
+        uint64 num;
+        double dnum;
     };
 };
 
@@ -51,15 +67,33 @@ struct tree_node CreateTree(enum tree_type type) {
     return tn;
 }
 
-struct tree_node CreateTree(enum tree_type type, char c) {
+
+
+struct tree_node CreateTree(enum tree_type type, UNICODE_CPOINT c) {
     struct tree_node tn = CreateTree(type);
     tn.metadata.c = c;
     return tn;
 }
 
+struct tree_node CreateTree(enum tree_type type, char c) {
+    return CreateTree(type, (UNICODE_CPOINT)c);
+}
+
 struct tree_node CreateTree(enum tree_type type, const char *str) {
     struct tree_node tn = CreateTree(type);
     tn.metadata.str = MEMORY_ARENA.StringAlloc((char *)str);
+    return tn;
+}
+
+struct tree_node CreateTree(enum tree_type type, uint64 num) {
+    struct tree_node tn = CreateTree(type);
+    tn.metadata.num = num;
+    return tn;
+}
+
+struct tree_node CreateTree(enum tree_type type, double dnum) {
+    struct tree_node tn = CreateTree(type);
+    tn.metadata.dnum = dnum;
     return tn;
 }
 
@@ -110,7 +144,7 @@ void PrintTree(struct tree_node &tn, unsigned int indentation) {
     switch(tn.type) {
         case TREE_REGEX_STR:
         Assert(tn.metadata.str != NULL);
-        LOGGER.Min("%s%s", sillyBuff, tn.metadata.str);
+        LOGGER.Min("%sSTR:%s", sillyBuff, tn.metadata.str);
         break;
         case TREE_REGEX_ANY:
         LOGGER.Min("%sAny", sillyBuff);
@@ -119,8 +153,44 @@ void PrintTree(struct tree_node &tn, unsigned int indentation) {
         LOGGER.Min("%sGroup", sillyBuff);
         break;
         case TREE_REGEX_CHAR:
-        LOGGER.Min("%s%c", sillyBuff, tn.metadata.c);
+        LOGGER.Min("%sCHAR:%c", sillyBuff, tn.metadata.c);
         break;
+        case TREE_REGEX_KEYWORD:
+        Assert(tn.metadata.str != NULL);
+        LOGGER.Min("%sKEYWORD:%s", sillyBuff, tn.metadata.str);
+        break;
+
+
+        case TREE_AST_GNODE:
+        Assert(tn.metadata.str != NULL);
+        LOGGER.Min("%sGNODE:%s", sillyBuff, tn.metadata.str);
+        break;
+        case TREE_AST_CLITERAL:
+        LOGGER.Min("%sCLITERAL:%c", sillyBuff, tn.metadata.c);
+        break;
+        case TREE_AST_INT_LITERAL:
+        LOGGER.Min("%sINT_LITERAL:%d", sillyBuff, tn.metadata.num);
+        break;
+        case TREE_AST_DECIMAL_LITERAL:
+        LOGGER.Min("%sDECIMAL_LITERAL:%f", sillyBuff, tn.metadata.dnum);
+        break;
+        case TREE_AST_STRING_LITERAL:
+        Assert(tn.metadata.str != NULL);
+        LOGGER.Min("%sSTRING_LITERAL:%s", sillyBuff, tn.metadata.str);
+        break;
+        case TREE_AST_SYMBOL:
+        Assert(tn.metadata.str != NULL);
+        LOGGER.Min("%sSYMBOL:%s", sillyBuff, tn.metadata.str);
+        break;
+        case TREE_AST_OP:
+        Assert(tn.metadata.str != NULL);
+        LOGGER.Min("%sOP:%s", sillyBuff, tn.metadata.str);
+        break;
+        case TREE_AST_KEYWORD:
+        Assert(tn.metadata.str != NULL);
+        LOGGER.Min("%sKEYWORD:%s", sillyBuff, tn.metadata.str);
+        break;
+
     }
 
     if (tn.metadata.regex_mod > 0) {

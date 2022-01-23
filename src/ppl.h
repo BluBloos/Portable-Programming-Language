@@ -62,6 +62,7 @@ bool SillyStringStartsWith(const char* a, const char* b) {
 #include <timing.h>
 #include <grammer.h>
 #include <tree.h>
+#include <syntax.h>
 /* OTHER COMPILATION UNITS */
 
 

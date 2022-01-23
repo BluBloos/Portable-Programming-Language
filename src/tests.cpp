@@ -80,7 +80,8 @@ int main(int argc, char **argv) {
         _tests(PTEST_COUNT);
         for (int i = 0; i < PTEST_COUNT; i++)
             _tests[i] = i;
-    }*/
+    }
+    */
 
     if (argc > 2) {
 
@@ -116,13 +117,71 @@ int main(int argc, char **argv) {
             break;
             case PTEST_GRAMMER:
             {
+                LoadGrammer();
+
+                FILE *inFile = fopen(inFilePath, "r");
+                LOGGER.Log("Testing grammer for: %s", inFilePath);
+                if (inFile == NULL) {
+                    LOGGER.Error("inFile of '%s' does not exist", inFilePath);
+                    errors += 1;
+                } else {
+                    TokenContainer tokensContainer;
+                    PreparseContext preparseContext;
+                    if (LexAndPreparse(inFile, tokensContainer, preparseContext)) {
+                        if (VERBOSE) {
+                            tokensContainer.Print();
+                        }
+
+                        // Now we try to parse for the grammer object.
+                        // we know which specific grammer definition via the name of
+                        // the inFile that was given.
+
+                        char grammerDefName[256] = {};
+                        
+                        // NOTE(Noah): Alright, so we got some truly dumbo code here :)
+                        char *onePastLastSlash; 
+                        for (char *pStr = inFilePath; *pStr != 0; pStr++ ) {
+                            if (*pStr == '/') {
+                                onePastLastSlash = pStr;
+                            }
+                        }
+                        onePastLastSlash++; // get it to one past the last slash.
+                        
+                        memcpy( grammerDefName, onePastLastSlash, strlen(onePastLastSlash) - 3 );
+                        LOGGER.Log("grammerDefName: %s", grammerDefName);
+
+                        struct tree_node tree;
+                        
+                        bool r = ParseTokensWithGrammer(
+                            tokensContainer, 
+                            GRAMMER.GetDef(grammerDefName),
+                            tree);
+                        
+                        //bool r = false;
+
+                        if (r) {
+                            PrintTree(tree, 0);
+
+                            DeallocTree(tree);
+                        }
+                        else {
+                            LOGGER.Error("ParseTokensWithGrammer failed.");
+                            errors += 1;
+                        } 
+
+                    } else {
+                        LOGGER.Error("LexAndPreparse failed.");
+                        errors += 1;
+                    }
+                }
+                fclose(inFile);
                 
             }
             break;
             case PTEST_PREPARSER:
             {
                 FILE *inFile = fopen(inFilePath, "r");
-                LOGGER.Log("Testing %s", inFilePath);
+                LOGGER.Log("Testing parser for: %s", inFilePath);
                 if (inFile == NULL) {
                     LOGGER.Error("inFile of '%s' does not exist", inFilePath);
                     errors += 1;

@@ -9,7 +9,8 @@ char * TYPES[] = {
 
 char *KEYWORDS[] = {
     "struct", "continue", "break", "if", "while", "for", 
-    "else", "return", "const", "sizeof", "fallthrough"
+    "else", "return", "const", "sizeof", "fallthrough", "switch", 
+    "case", "default"
 };
 
 char *P_DIRECTIVES[] = {
@@ -199,6 +200,7 @@ class TokenContainer {
         tokens = (struct token *)malloc(containerSize * sizeof(struct token));
         Assert(tokens != NULL);
         tokenCount = 0;
+        _checkpoint = 0;
     }
     ~TokenContainer() {
         if (tokens != NULL) {
@@ -208,6 +210,35 @@ class TokenContainer {
     struct token* tokens;
     unsigned int tokenCount;
     unsigned int containerSize; // in token count.
+    // NOTE(Noah): What if I have many many tokens??? 
+    unsigned int _checkpoint;
+    unsigned int GetSavepoint() { return _checkpoint; }
+    void ResetSavepoint(unsigned int check) { 
+        _checkpoint = check;
+    }
+    struct token Next() {
+        if (_checkpoint < tokenCount) {
+            return tokens[_checkpoint++];
+        }
+        else {
+            LOGGER.Error("No more tokens");
+            return Token(); // Returns a TOKEN_UNDEFINED.
+        }
+    }
+    struct token QueryNext() {
+        if (_checkpoint < tokenCount)
+            return tokens[_checkpoint];
+        else
+            return Token();
+    }
+    struct token QueryDistance(unsigned int distance) {
+        unsigned int i = _checkpoint + distance;
+        if (i < tokenCount) {
+            return tokens[i];
+        } else {
+            return Token();
+        }
+    }
     void Append(struct token tok) {
         if (tokenCount < containerSize) {
             //tokens[tokenCount++] = tok; // invokes copy constructor.

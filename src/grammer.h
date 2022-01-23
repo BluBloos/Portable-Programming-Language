@@ -56,6 +56,10 @@ class Grammer {
         struct grammer_definition gd = {};
         defs[defName] = gd;
     }
+    // NOTE(Noah): Does no checking.
+    struct grammer_definition GetDef(const char *defName) {
+        return defs[defName];
+    }
     // TODO(Noah): Implement this.
     void Print() {
         for (auto kv : defs) {
@@ -101,11 +105,11 @@ struct tree_node CreateRegexTree(Grammer &grammer, const char *regex) {
                 TreeAdoptTree(lastTree, tn);
                 n += 1 + newStr.size(); // skip over () block
             } else if (SillyStringStartsWith(newStr.c_str(), "keyword=")) {
-                struct tree_node tn = CreateTree(TREE_REGEX_STR, (newStr.c_str()+8) );
+                struct tree_node tn = CreateTree(TREE_REGEX_KEYWORD, (newStr.c_str()+8) );
                 TreeAdoptTree(lastTree, tn);
                 n += 1 + newStr.size(); // skip over () block
             } else if (SillyStringStartsWith(newStr.c_str(), "op,")) {
-                struct tree_node tn = CreateTree(TREE_REGEX_STR, (newStr.c_str()+3) );
+                struct tree_node tn = CreateTree(TREE_REGEX_STR, SillyStringFmt("op%s", newStr.c_str()+3));
                 TreeAdoptTree(lastTree, tn);
                 n += 1 + newStr.size(); // skip over () block
             } else {
@@ -268,39 +272,39 @@ char *_grammerTable[][2] = {
     },
     {
         "conditional_exp",
-        "(logical_or_exp)\?(expression):(expression)"
+        "(logical_or_exp)(\\?(expression):(expression))?"
     },
     {
         "logical_or_exp",
-        "(logical_and_exp)[(op,||)(logical_and_exp)]+"
+        "(logical_and_exp)((op,||)(logical_and_exp))*"
     },
     {
         "logical_and_exp",
-        "(bitwise_or_exp)(op,&&)(bitwise_or_exp)"
+        "(bitwise_or_exp)((op,&&)(bitwise_or_exp))*"
     },
     {
         "bitwise_or_exp",
-        "(bitwise_and_exp)(op,|)(bitwise_and_exp)"
+        "(bitwise_and_exp)((op,|)(bitwise_and_exp))*"
     },
     {
         "bitwise_and_exp",
-        "(equality_exp)(op,&)(equality_exp)"
+        "(equality_exp)((op,&)(equality_exp))*"
     },
     {
         "equality_exp",
-        "(relational_exp)[(op,==)(op,!=)](relational_exp)"
+        "(relational_exp)([(op,==)(op,!=)](relational_exp))*"
     },
     {
         "relational_exp",
-        "(additive_exp)[(op,>=)(op,<=)(op,<)(op,>)](additive_exp)"
+        "(additive_exp)([(op,>=)(op,<=)(op,<)(op,>)](additive_exp))*"
     },
     {
         "additive_exp",
-        "(term)([(op,+)(op,-)](term))+"
+        "(term)([(op,+)(op,-)](term))*"
     },
     {
         "term",
-        "(factor)([(op,*)(op,/)(op,%)](factor))+"
+        "(factor)([(op,*)(op,/)(op,%)](factor))*"
     },
     {
         "function_call",
