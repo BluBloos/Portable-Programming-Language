@@ -9,6 +9,7 @@
 //#include <x86intrin.h>
 #include <std/utf8.c>
 #include <unordered_map>
+#include <dirent.h>
 /* PROJECT DEPENDENCIES */
 
 typedef unsigned long long uint64;

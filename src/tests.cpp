@@ -56,19 +56,24 @@ enum ppl_test {
     PTEST_REGEX_GEN,
     PTEST_GRAMMER,
     PTEST_COUNT, // comes after all tests
-    PTEST_ALL // comes after count
+    PTEST_ALL, // comes after count
+    PTEST_PREPARSER_ALL,
+    PTEST_GRAMMER_ALL
 };
 
 // global variables
 // enum ppl_test TEST = PTEST_PREPARSER_SINGLE;
 // char* TEST_UNIT = "1.c";
 
+void ptest_Preparser(char *inFilePath, int &errors);
+void ptest_Grammer(char *inFilePath, int&errors);
+
 // usage tests.exe testType fileName
 int main(int argc, char **argv) {
     
     Timer timer = Timer("tests.exe");
     
-    LOGGER.InitFileLogging("a");
+    LOGGER.InitFileLogging("w");
 
     int errors = 0;
 
@@ -93,6 +98,9 @@ int main(int argc, char **argv) {
         switch(*rtest) {
             case 'p': case 'P':
             test = PTEST_PREPARSER;
+            //LOGGER.Min("rtest=%s", rtest);
+            if (SillyStringStartsWith(rtest, "PREPARSER_ALL"))
+                test = PTEST_PREPARSER_ALL;
             break;
             case 'i': case 'I':
             test = PTEST_INTEGRATION;
@@ -102,6 +110,8 @@ int main(int argc, char **argv) {
             break;
             case 'g': case 'G':
             test = PTEST_GRAMMER;
+            if (SillyStringStartsWith(rtest, "GRAMMER_ALL"))
+                test = PTEST_GRAMMER_ALL;
             break;
         }
 
@@ -118,88 +128,54 @@ int main(int argc, char **argv) {
             case PTEST_GRAMMER:
             {
                 LoadGrammer();
-
-                FILE *inFile = fopen(inFilePath, "r");
-                LOGGER.Log("Testing grammer for: %s", inFilePath);
-                if (inFile == NULL) {
-                    LOGGER.Error("inFile of '%s' does not exist", inFilePath);
-                    errors += 1;
-                } else {
-                    TokenContainer tokensContainer;
-                    PreparseContext preparseContext;
-                    if (LexAndPreparse(inFile, tokensContainer, preparseContext)) {
-                        if (VERBOSE) {
-                            tokensContainer.Print();
+                ptest_Grammer(inFilePath, errors);
+            }
+            break;
+            case PTEST_GRAMMER_ALL:
+            {
+                // TODO(Noah): Abstract this stuff. This sort of directory read all files thing
+                // it's common between many different tests that I might want to do.
+                LoadGrammer();
+                DIR *dir;
+                struct dirent *ent;
+                char *dirName = "tests/grammer";
+                if ((dir = opendir (dirName)) != NULL) {
+                    /* print all the files and directories within directory */
+                    while ((ent = readdir (dir)) != NULL) {
+                        if (ent->d_name[0] != '.') {
+                            ptest_Grammer( SillyStringFmt("%s/%s", dirName, ent->d_name), errors);
                         }
-
-                        // Now we try to parse for the grammer object.
-                        // we know which specific grammer definition via the name of
-                        // the inFile that was given.
-
-                        char grammerDefName[256] = {};
-                        
-                        // NOTE(Noah): Alright, so we got some truly dumbo code here :)
-                        char *onePastLastSlash; 
-                        for (char *pStr = inFilePath; *pStr != 0; pStr++ ) {
-                            if (*pStr == '/') {
-                                onePastLastSlash = pStr;
-                            }
-                        }
-                        onePastLastSlash++; // get it to one past the last slash.
-                        
-                        memcpy( grammerDefName, onePastLastSlash, strlen(onePastLastSlash) - 3 );
-                        LOGGER.Log("grammerDefName: %s", grammerDefName);
-
-                        struct tree_node tree;
-                        
-                        bool r = ParseTokensWithGrammer(
-                            tokensContainer, 
-                            GRAMMER.GetDef(grammerDefName),
-                            tree);
-                        
-                        //bool r = false;
-
-                        if (r) {
-                            PrintTree(tree, 0);
-
-                            DeallocTree(tree);
-                        }
-                        else {
-                            LOGGER.Error("ParseTokensWithGrammer failed.");
-                            errors += 1;
-                        } 
-
-                    } else {
-                        LOGGER.Error("LexAndPreparse failed.");
-                        errors += 1;
                     }
+                    closedir (dir);
+                } else {
+                    LOGGER.Error("Unable to open %s", dirName);
+                    errors += 1;
                 }
-                fclose(inFile);
-                
             }
             break;
             case PTEST_PREPARSER:
             {
-                FILE *inFile = fopen(inFilePath, "r");
-                LOGGER.Log("Testing parser for: %s", inFilePath);
-                if (inFile == NULL) {
-                    LOGGER.Error("inFile of '%s' does not exist", inFilePath);
-                    errors += 1;
-                } else {
-                    TokenContainer tokensContainer;
-                    PreparseContext preparseContext;
-                    if (LexAndPreparse(inFile, tokensContainer, preparseContext)) {
-                        if (VERBOSE) {
-                            tokensContainer.Print();
-                        }
-                    } else {
-                        LOGGER.Error("LexAndPreparse failed.");
-                        errors += 1;
-                    }
-                }
-                fclose(inFile);
+                ptest_Preparser(inFilePath, errors);
             }
             break;
+            case PTEST_PREPARSER_ALL:
+            {
+                DIR *dir;
+                struct dirent *ent;
+                char *dirName = "tests/preparse";
+                if ((dir = opendir (dirName)) != NULL) {
+                    /* print all the files and directories within directory */
+                    while ((ent = readdir (dir)) != NULL) {
+                        if (ent->d_name[0] != '.') {
+                            ptest_Preparser( SillyStringFmt("%s/%s", dirName, ent->d_name), errors);
+                        }
+                    }
+                    closedir (dir);
+                } else {
+                    LOGGER.Error("Unable to open %s", dirName);
+                    errors += 1;
+                }
+            }
         }
     } else {
         LOGGER.Error("tests.exe expects at least 2 parameters, but got none.");
@@ -210,4 +186,83 @@ int main(int argc, char **argv) {
         LOGGER.Error("Completed with %d error(s)", errors);
     else
         LOGGER.Success("Completed with 0 errors.");
+}
+
+void ptest_Grammer(char *inFilePath, int&errors) {
+    FILE *inFile = fopen(inFilePath, "r");
+    LOGGER.Log("Testing grammer for: %s", inFilePath);
+    if (inFile == NULL) {
+        LOGGER.Error("inFile of '%s' does not exist", inFilePath);
+        errors += 1;
+    } else {
+        TokenContainer tokensContainer;
+        PreparseContext preparseContext;
+        if (LexAndPreparse(inFile, tokensContainer, preparseContext)) {
+            if (VERBOSE) {
+                tokensContainer.Print();
+            }
+
+            // Now we try to parse for the grammer object.
+            // we know which specific grammer definition via the name of
+            // the inFile that was given.
+
+            char grammerDefName[256] = {};
+            
+            // NOTE(Noah): Alright, so we got some truly dumbo code here :)
+            char *onePastLastSlash; 
+            for (char *pStr = inFilePath; *pStr != 0; pStr++ ) {
+                if (*pStr == '/') {
+                    onePastLastSlash = pStr;
+                }
+            }
+            onePastLastSlash++; // get it to one past the last slash.
+            
+            memcpy( grammerDefName, onePastLastSlash, strlen(onePastLastSlash) - 3 );
+            //LOGGER.Log("grammerDefName: %s", grammerDefName);
+
+            struct tree_node tree = {};
+            
+            bool r = ParseTokensWithGrammer(
+                tokensContainer, 
+                GRAMMER.GetDef(grammerDefName),
+                tree);
+            
+            //bool r = false;
+
+            if (r) {
+                PrintTree(tree, 0);
+                DeallocTree(tree);
+            }
+            else {
+                LOGGER.Error("ParseTokensWithGrammer failed.");
+                errors += 1;
+            } 
+
+        } else {
+            LOGGER.Error("LexAndPreparse failed.");
+            errors += 1;
+        }
+    }
+    fclose(inFile);
+}
+
+void ptest_Preparser(char *inFilePath, int &errors) {
+    FILE *inFile = fopen(inFilePath, "r");
+    LOGGER.Log("Testing parser for: %s", inFilePath);
+    if (inFile == NULL) {
+        LOGGER.Error("inFile of '%s' does not exist", inFilePath);
+        errors += 1;
+    } else {
+        TokenContainer tokensContainer;
+        PreparseContext preparseContext;
+        if (LexAndPreparse(inFile, tokensContainer, preparseContext)) {
+            if (VERBOSE) {
+                tokensContainer.Print();
+            }
+        } else {
+            LOGGER.Error("LexAndPreparse failed.");
+            errors += 1;
+        }
+    }
+    fclose(inFile);
 }
