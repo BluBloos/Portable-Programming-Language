@@ -9,8 +9,10 @@ class Logger {
     FILE *logFile;
     const char *logFileName = "log.txt";
     void InitFileLogging(char *mode) {
-        if (logFile == NULL)
-            logFile = fopen(logFileName, mode);
+        if (logFile != NULL) {
+            fclose(logFile);
+        }
+        logFile = fopen(logFileName, mode);
     }
     ~Logger() {
         if (logFile != NULL)
