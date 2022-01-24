@@ -80,6 +80,25 @@ int CallSystem(const char *buffer) {
 	return system(buffer);
 }
 
+void CheckErrors(int errors) {
+    if (errors > 0)
+        LOGGER.Error("Completed with %d error(s)", errors);
+    else
+        LOGGER.Success("Completed with 0 errors.");
+}
+
+char *GetInFile() {
+    printf("please enter inFile: ");
+    char *inFile = NULL;
+    size_t pos = 0;
+    printf(ColorHighlight);
+    getline(&inFile, &pos, stdin);
+    printf(ColorNormal);
+    fflush(stdout);
+    RemoveEndline(inFile);
+    return inFile;
+}
+
 void DoCommand(const char *l) {
 
     /* 
@@ -106,31 +125,86 @@ void DoCommand(const char *l) {
         CallSystem("g++ -std=c++11 -g src/ppl.cpp -I src/ -o bin/ppl -Wno-writable-strings");
 
 	} else if (0  == strcmp(l, "p") || 0 ==strcmp(l, "preparser")) {
-        printf("please enter inFile: ");
-        char *inFile = NULL;
-		size_t pos = 0;
-		printf(ColorHighlight);
-		getline(&inFile, &pos, stdin);
-		printf(ColorNormal);
-		fflush(stdout);
-        RemoveEndline(inFile);
+        
+        char *inFile = GetInFile();
         char *inFilePath = SillyStringFmt("tests/preparse/%s", inFile);
         Timer timer = Timer("preparser");
         LOGGER.InitFileLogging("w");
         int errors = 0;
         ptest_Preparser(inFilePath, errors);
+        CheckErrors(errors);
         timer.TimerEnd();
+
     } else if (0 == strcmp(l, "pall") || 0 == strcmp(l, "preparser_all")) {
         
+        Timer timer = Timer("preparser_all");
+        LOGGER.InitFileLogging("w");
+        int errors = 0;
+        DIR *dir;
+        struct dirent *ent;
+        char *dirName = "tests/preparse";
+        if ((dir = opendir (dirName)) != NULL) {
+            /* print all the files and directories within directory */
+            while ((ent = readdir (dir)) != NULL) {
+                if (ent->d_name[0] != '.') {
+                    ptest_Preparser( SillyStringFmt("%s/%s", dirName, ent->d_name), errors);
+                }
+            }
+            closedir (dir);
+        } else {
+            LOGGER.Error("Unable to open %s", dirName);
+            errors += 1;
+        }
+        CheckErrors(errors);
+        timer.TimerEnd();
+
     } else if (0 == strcmp(l, "re") || 0 == strcmp(l, "regex_gen")) {
-        //
-        printf("re\n");
+        
+        Timer timer = Timer("regex_gen");
+        LOGGER.InitFileLogging("w");
+        int errors = 0;
+        LoadGrammer();
+        CheckErrors(errors);
+        timer.TimerEnd();
+
     } else if (0 == strcmp(l, "g") || 0 == strcmp(l, "grammer")) {
-        //
-        printf("g\n");
+        
+        char *inFile = GetInFile();
+        Timer timer = Timer("grammer");
+        LOGGER.InitFileLogging("w");
+        int errors = 0;
+        LoadGrammer();
+        char *inFilePath = SillyStringFmt("tests/grammer/%s", inFile);
+        ptest_Grammer(inFilePath, errors);
+        CheckErrors(errors);
+        timer.TimerEnd();
+
     } else if (0 == strcmp(l, "gall") || 0 == strcmp(l, "grammer_all")) {
-        //
-        printf("gall\n");
+        
+        Timer timer = Timer("grammer_all");
+        LOGGER.InitFileLogging("w");
+        int errors = 0;
+        // TODO(Noah): Abstract this stuff. This sort of directory read all files thing
+        // it's common between many different tests that I might want to do.
+        LoadGrammer();
+        DIR *dir;
+        struct dirent *ent;
+        char *dirName = "tests/grammer";
+        if ((dir = opendir (dirName)) != NULL) {
+            /* print all the files and directories within directory */
+            while ((ent = readdir (dir)) != NULL) {
+                if (ent->d_name[0] != '.') {
+                    ptest_Grammer( SillyStringFmt("%s/%s", dirName, ent->d_name), errors);
+                }
+            }
+            closedir (dir);
+        } else {
+            LOGGER.Error("Unable to open %s", dirName);
+            errors += 1;
+        }
+        CheckErrors(errors);
+        timer.TimerEnd();
+
     } else if (0 == strcmp(l, "exit")) {
         exit(0);
     } else if (0 == strcmp(l, "h") || 0 == strcmp(l, "help")) {
