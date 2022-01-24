@@ -13,23 +13,14 @@
 #include <ppl/random>
 #include <ppl/time>
 
+ppl::terminal attachedTerm;
+
 void input_on()
 {
-    /*struct termios newTerminalSettings;
-
-    tcgetattr( STDIN_FILENO, &terminalSettings );
-
-    newTerminalSettings = terminalSettings;
-
-    newTerminalSettings.c_lflag &= ~( ICANON | ECHO );
-    newTerminalSettings.c_cc[VTIME] = 0;
-    newTerminalSettings.c_cc[VMIN] = 1;
-
-    tcsetattr( STDIN_FILENO, TCSANOW, &newTerminalSettings );
-    */
-
-    ppl::terminal attachedTerm = ppl::get_attached_term();
+    attachedTerm = ppl::get_attached_term();
     ppl::terminal_attr attr = attachedTerm.get_attr();
+    // NOTE(Noah): Shit like ths, ICANON is underlying platform stuff and shouldn't really exist
+    // at this level. But I frankly don't care at this point in time.
     attr.local_modes &= ~( ICANON | ECHO );
     attr.special_characters[VTIME] = 0;
     attr.special_characters[VMIN] = 1;
@@ -39,8 +30,7 @@ void input_on()
 void input_off()
 {
     //tcsetattr(STDIN_FILENO, TCSANOW, &terminalSettings);
-    ppl::terminal attachedTerm = ppl::get_attached_term();
-    attachedTerm.set_default_attr();
+    attachedTerm.reset_attr();
 }
 // INPUT.CPP
 
@@ -65,7 +55,7 @@ const int MAP_HEIGHT = 15;
 const char SNAKE_BODY = '*';
 
 // array of the available characters for food
-const []char FOOD_SYMBOLS = {'%', '$', '&', '@', '+'};
+const []char FOOD_SYMBOLS = ['%', '$', '&', '@', '+'];
 
 // current coordinates of food
 int FOOD_X = 0;
@@ -80,9 +70,9 @@ struct snake_body {
     int y;
 };
 
-// array of cells of the snake's body
-//vector<snake_body> snake;
-[dynamic]snake_body snake; 
+// Array of cells of the snake's body
+// vector<snake_body> snake;
+[dynamic]snake_body snake;
 
 // creates the primary snake
 void init_snake() {
@@ -162,7 +152,8 @@ void generate_food_coord() {
 
 // generates a new food character
 void generate_food_symbol() {
-    FOOD_SYMBOL_NUM = ppl::rand() % sizeof(FOOD_SYMBOLS);
+    //FOOD_SYMBOL_NUM = ppl::rand() % sizeof(FOOD_SYMBOLS);
+    FOOD_SYMBOL_NUM = ppl::rand() % 5;
 }
 
 // prints score 
@@ -179,21 +170,16 @@ void draw() {
         for (int j = 0; j <= MAP_WIDTH; j++) {
 
             if (is_map_border(j, i)) {
-                ppl::print('#');
-                ppl::flush();
+                ppl::print("#");
 
             } else if (is_snake_body(j, i)) {
                 ppl::print("%c", SNAKE_BODY);
-                ppl::flush();
 
             } else if (is_food(j, i)) {
                 ppl::print("%c", FOOD_SYMBOLS[FOOD_SYMBOL_NUM]);
-                ppl::flush();
 
             } else {
-                ppl::print("%c", ' ');
-                ppl::flush();
-                //cout << ' ' << flush;
+                ppl::print(" ");
             }
         }
 
@@ -207,15 +193,15 @@ void draw() {
 void move_snake() {
     int _x = snake[0].x;
     int _y = snake[0].y;
-    int last_x, last_y;
+    int last_x; int last_y;
 
     // changing the head coordinates
     switch (DIRECTION) {
-        case DIRECTION_DOWN: snake[0].y++; break;
-        case DIRECTION_LEFT: snake[0].x--; break;
-        case DIRECTION_UP:   snake[0].y--; break;
-        case DIRECTION_RIGHT: snake[0].x++; break;
-        case: break; // NOTE(Noah): Same as default:
+        case DIRECTION_DOWN: snake[0].y++; 
+        case DIRECTION_LEFT: snake[0].x--; 
+        case DIRECTION_UP:   snake[0].y--; 
+        case DIRECTION_RIGHT: snake[0].x++; 
+        case:
     }
 
     // each next cell gets coordinates of the previous cell
@@ -240,64 +226,39 @@ void exit() {
 
 int main () {
     
-    //fd_set rfds; // File descriptor set?
-
-    /*
-    The <sys/time.h> header defines the timeval structure that includes at least the following members:
-        time_t         tv_sec      seconds
-        suseconds_t    tv_usec     microseconds
-    */
-    //timeval timeout;
-
-    //timeout.tv_sec = 0;
-    //timeout.tv_usec = 0;
-
     input_on();
-
     generate_food_coord();
     generate_food_symbol();
     init_snake();
 
     while (true) {
 
-        // FD_ZERO(&fdset)  
-        // Initializes the file descriptor set fdset to have zero bits for all file descriptors.
-        //FD_ZERO(&rfds);
-
-        // FD_SET(fd, &fdset)  
-        // Sets the bit for the file descriptor fd in the file descriptor set fdset.
-        //FD_SET(STDIN_FILENO, &rfds);
-
-        // NOTE(Pavel): there is some data in the thread
-        // https://man7.org/linux/man-pages/man2/select.2.html
-        // FD_ISSET(fd, &fdset)
-        // Returns a non-zero value if the bit for the file descriptor 
-        // fd is set in the file descriptor set pointed to by fdset, and 0 otherwise.      
-        if (ppl::block_until_fready(ppl::STDIN, 0)) {
-            
-            // https://linux.die.net/man/3/getchar
+        if (ppl::wait_until_fready(ppl::STDIN)) {
             switch (ppl::getchar()) {
-
-                case 100:
-                case 68: if (DIRECTION != DIRECTION_LEFT)  DIRECTION = DIRECTION_RIGHT; break;
-
-                case 83:
-                case 115: if (DIRECTION != DIRECTION_UP)    DIRECTION = DIRECTION_DOWN; break;
-
-                case 65:
-                case 97: if (DIRECTION != DIRECTION_RIGHT) DIRECTION = DIRECTION_LEFT; break;
-
-                case 119:
-                case 87: if (DIRECTION != DIRECTION_DOWN)  DIRECTION = DIRECTION_UP; break;
-
-                case 27: 
-                exit(); 
+            
+                case 'D': 
+                    fallthrough;
+                case 'd': if (DIRECTION != DIRECTION_LEFT)  DIRECTION = DIRECTION_RIGHT;
+                
+                case 'S': 
+                    fallthrough;
+                case 's': if (DIRECTION != DIRECTION_UP)    DIRECTION = DIRECTION_DOWN;
+                
+                case 'A': 
+                    fallthrough;
+                case 'a': if (DIRECTION != DIRECTION_RIGHT) DIRECTION = DIRECTION_LEFT;
+                
+                case 'W': 
+                    fallthrough;
+                case 'w': if (DIRECTION != DIRECTION_DOWN)  DIRECTION = DIRECTION_UP;
+                
+                case 27: // ESC key
+                exit();
                 return 0;
-
                 case:
-                break;
             }
         }
+
 
         move_snake();
 
@@ -308,8 +269,8 @@ int main () {
             generate_food_symbol();
 
             snake_body snake_piece;
-            snake_peace.y = snake[len(snake)-1].y;
-            snake_peace.x = snake[len(snake)-1].x;
+            snake_piece.y = snake[len(snake)-1].y;
+            snake_piece.x = snake[len(snake)-1].x;
 
             snake.append(snake_piece);
 
@@ -324,8 +285,7 @@ int main () {
 
         draw();
 
-        // usleep(100000);
-        ppl::sleep(100000);
+        ppl::sleep(100);
     }
 
     input_off();

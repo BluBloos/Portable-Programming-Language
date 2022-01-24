@@ -1,0 +1,268 @@
+/*
+// File exists to run the tests in /tests
+import compiler
+import logger as l
+import grammer as g
+import lexer
+import syntax
+import timing
+import os
+from os.path import isfile, join
+import sys
+import ppl
+import preparser
+*/
+
+/*
+def SingleIntegrationTest(filePath, logger, verbose):
+    outPath = filePath.replace(".c", "")
+    return ppl.Run(filePath, outPath, "MAC_OS", logger, verbose)
+*/
+
+/*
+def SingleTestAST(grammer, dir, fileName, logger):
+    filePath = join(dir, fileName)
+    grammerDefName = fileName[:-3]
+    file = open(filePath, "r")
+    raw = file.read()
+    #TODO(Noah): What happens if the file read fails?
+    file.close()
+    tokens = lexer.Run(raw)
+    logger.Log("Generating AST for {}".format(filePath))
+    ast, err = syntax.ParseTokensWithGrammer(tokens, grammer, grammer.defs[grammerDefName], logger)
+    if ast and tokens.QueryNext().type == "EOL":
+        logger.Success("Printing AST for {}".format(filePath))
+        ast.Print(0, logger)
+        return True
+    else:
+
+        if len(err) > 0:
+            tokenIndex = max(error.token_index for error in err)
+            for error in err:
+                if error.token_index == tokenIndex:
+                    logger.Error(str(error))
+
+        logger.Error("Unable to generate ast for {}".format(fileName))
+        return False
+*/
+
+// Standard for any compilation unit of this project.
+#include <ppl.h>
+
+enum ppl_test {
+    // everything is a single test (because we invoke tests.exe many times with different parameters).
+    PTEST_PREPARSER = 0,
+    PTEST_INTEGRATION,
+    PTEST_REGEX_GEN,
+    PTEST_GRAMMER,
+    PTEST_COUNT, // comes after all tests
+    PTEST_ALL, // comes after count
+    PTEST_PREPARSER_ALL,
+    PTEST_GRAMMER_ALL
+};
+
+// global variables
+// enum ppl_test TEST = PTEST_PREPARSER_SINGLE;
+// char* TEST_UNIT = "1.c";
+
+void ptest_Preparser(char *inFilePath, int &errors);
+void ptest_Grammer(char *inFilePath, int&errors);
+
+// usage tests.exe testType fileName
+int main(int argc, char **argv) {
+    
+    Timer timer = Timer("tests.exe");
+    
+    LOGGER.InitFileLogging("w");
+
+    int errors = 0;
+
+    /*
+    std::vector<enum ppl_test> _tests;
+    _tests.push_back(TEST);
+
+    if (TEST == PTEST_ALL) {
+        _tests(PTEST_COUNT);
+        for (int i = 0; i < PTEST_COUNT; i++)
+            _tests[i] = i;
+    }
+    */
+
+    if (argc > 2) {
+
+        enum ppl_test test;
+        char *rtest = argv[1];
+
+        // I dunno, first thought is to do an if-statement switch type thing.
+        // but fuck, we can actually do a switch on the first character.
+        switch(*rtest) {
+            case 'p': case 'P':
+            test = PTEST_PREPARSER;
+            //LOGGER.Min("rtest=%s", rtest);
+            if (SillyStringStartsWith(rtest, "PREPARSER_ALL"))
+                test = PTEST_PREPARSER_ALL;
+            break;
+            case 'i': case 'I':
+            test = PTEST_INTEGRATION;
+            break;
+            case 'r': case 'R':
+            test = PTEST_REGEX_GEN;
+            break;
+            case 'g': case 'G':
+            test = PTEST_GRAMMER;
+            if (SillyStringStartsWith(rtest, "GRAMMER_ALL"))
+                test = PTEST_GRAMMER_ALL;
+            break;
+        }
+
+        char *inFilePath = argv[2];
+        
+        switch(test) {
+            case PTEST_INTEGRATION:
+            break;
+            case PTEST_REGEX_GEN:
+            {
+                LoadGrammer();
+            }
+            break;
+            case PTEST_GRAMMER:
+            {
+                LoadGrammer();
+                ptest_Grammer(inFilePath, errors);
+            }
+            break;
+            case PTEST_GRAMMER_ALL:
+            {
+                // TODO(Noah): Abstract this stuff. This sort of directory read all files thing
+                // it's common between many different tests that I might want to do.
+                LoadGrammer();
+                DIR *dir;
+                struct dirent *ent;
+                char *dirName = "tests/grammer";
+                if ((dir = opendir (dirName)) != NULL) {
+                    /* print all the files and directories within directory */
+                    while ((ent = readdir (dir)) != NULL) {
+                        if (ent->d_name[0] != '.') {
+                            ptest_Grammer( SillyStringFmt("%s/%s", dirName, ent->d_name), errors);
+                        }
+                    }
+                    closedir (dir);
+                } else {
+                    LOGGER.Error("Unable to open %s", dirName);
+                    errors += 1;
+                }
+            }
+            break;
+            case PTEST_PREPARSER:
+            {
+                ptest_Preparser(inFilePath, errors);
+            }
+            break;
+            case PTEST_PREPARSER_ALL:
+            {
+                DIR *dir;
+                struct dirent *ent;
+                char *dirName = "tests/preparse";
+                if ((dir = opendir (dirName)) != NULL) {
+                    /* print all the files and directories within directory */
+                    while ((ent = readdir (dir)) != NULL) {
+                        if (ent->d_name[0] != '.') {
+                            ptest_Preparser( SillyStringFmt("%s/%s", dirName, ent->d_name), errors);
+                        }
+                    }
+                    closedir (dir);
+                } else {
+                    LOGGER.Error("Unable to open %s", dirName);
+                    errors += 1;
+                }
+            }
+        }
+    } else {
+        LOGGER.Error("tests.exe expects at least 2 parameters, but got none.");
+        errors += 1;
+    }
+
+    if (errors > 0)
+        LOGGER.Error("Completed with %d error(s)", errors);
+    else
+        LOGGER.Success("Completed with 0 errors.");
+}
+
+void ptest_Grammer(char *inFilePath, int&errors) {
+    FILE *inFile = fopen(inFilePath, "r");
+    LOGGER.Log("Testing grammer for: %s", inFilePath);
+    if (inFile == NULL) {
+        LOGGER.Error("inFile of '%s' does not exist", inFilePath);
+        errors += 1;
+    } else {
+        TokenContainer tokensContainer;
+        PreparseContext preparseContext;
+        if (LexAndPreparse(inFile, tokensContainer, preparseContext)) {
+            if (VERBOSE) {
+                tokensContainer.Print();
+            }
+
+            // Now we try to parse for the grammer object.
+            // we know which specific grammer definition via the name of
+            // the inFile that was given.
+
+            char grammerDefName[256] = {};
+            
+            // NOTE(Noah): Alright, so we got some truly dumbo code here :)
+            char *onePastLastSlash; 
+            for (char *pStr = inFilePath; *pStr != 0; pStr++ ) {
+                if (*pStr == '/') {
+                    onePastLastSlash = pStr;
+                }
+            }
+            onePastLastSlash++; // get it to one past the last slash.
+            
+            memcpy( grammerDefName, onePastLastSlash, strlen(onePastLastSlash) - 3 );
+            //LOGGER.Log("grammerDefName: %s", grammerDefName);
+
+            struct tree_node tree = {};
+            
+            bool r = ParseTokensWithGrammer(
+                tokensContainer, 
+                GRAMMER.GetDef(grammerDefName),
+                tree);
+            
+            //bool r = false;
+
+            if (r) {
+                PrintTree(tree, 0);
+                DeallocTree(tree);
+            }
+            else {
+                LOGGER.Error("ParseTokensWithGrammer failed.");
+                errors += 1;
+            } 
+
+        } else {
+            LOGGER.Error("LexAndPreparse failed.");
+            errors += 1;
+        }
+    }
+    fclose(inFile);
+}
+
+void ptest_Preparser(char *inFilePath, int &errors) {
+    FILE *inFile = fopen(inFilePath, "r");
+    LOGGER.Log("Testing parser for: %s", inFilePath);
+    if (inFile == NULL) {
+        LOGGER.Error("inFile of '%s' does not exist", inFilePath);
+        errors += 1;
+    } else {
+        TokenContainer tokensContainer;
+        PreparseContext preparseContext;
+        if (LexAndPreparse(inFile, tokensContainer, preparseContext)) {
+            if (VERBOSE) {
+                tokensContainer.Print();
+            }
+        } else {
+            LOGGER.Error("LexAndPreparse failed.");
+            errors += 1;
+        }
+    }
+    fclose(inFile);
+}

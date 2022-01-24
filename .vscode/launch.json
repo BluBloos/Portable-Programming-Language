@@ -5,24 +5,37 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "C++ Debug",
+            "name": "MacOS - PPL",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/bin/out",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${fileDirname}",
+            "program": "${workspaceFolder}/bin/ppl",
+            "args": [
+                "${workspaceFolder}/tests/preparse/1.c",
+                "-o",
+                "outFile",
+                "-t",
+                "MAC_OS"
+            ],
+            "stopAtEntry": true,
+            "cwd": "${workspaceFolder}",
             "environment": [],
-            "externalConsole": false,
+            "externalConsole": true,
             "MIMode": "lldb"
         },
         {
-            "name": "Python",
-            "type": "python",
+            "name": "MacOS - TESTS",
+            "type": "cppdbg",
             "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal",
-            "args": ["tests/console.c", "-o", "bin/out", "-t", "MAC_OS"]
+            "program": "${workspaceFolder}/bin/tests",
+            "args": [
+                "GRAMMER",
+                "${workspaceFolder}/tests/grammer/_switch1.c",
+            ],
+            "stopAtEntry": true,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "lldb"
         }
     ]
 }
