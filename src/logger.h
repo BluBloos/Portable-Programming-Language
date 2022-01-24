@@ -29,9 +29,9 @@ class Logger {
         }
         va_list _args;
         va_copy(_args, args);
-        printf(prefix);
+        printf("%s", prefix);
         if (logFile != NULL)
-            fprintf(logFile, prefix);
+            fprintf(logFile, "%s", prefix);
         //va_list args;
         //va_start (args, fmt);
         vprintf(fmt, args);

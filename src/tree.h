@@ -191,6 +191,10 @@ void PrintTree(struct tree_node &tn, unsigned int indentation) {
         LOGGER.Min("%sKEYWORD:%s", sillyBuff, tn.metadata.str);
         break;
 
+        // TODO(Noah): Implement missing switch cases.
+        default:
+        break;
+
     }
 
     if (tn.metadata.regex_mod > 0) {
@@ -207,4 +211,4 @@ void PrintTree(struct tree_node &tn, unsigned int indentation) {
 
 }
 
-#endif TREE_H
+#endif

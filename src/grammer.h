@@ -374,4 +374,4 @@ void LoadGrammer() {
         GRAMMER.Print();
     }
 }   
-#endif GRAMMER_H
+#endif

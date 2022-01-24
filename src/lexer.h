@@ -38,7 +38,7 @@ class RawFileReader {
     public:
     int lastChar; // What was last returned by fgetc.
     FILE *internalFile;
-    unsigned int fileByteCount;
+    int fileByteCount;
     UNICODE_CPOINT *internalBuffer;
     unsigned int internalBufferSize;
     unsigned int buffCharCount;
@@ -730,4 +730,4 @@ bool LexAndPreparse(
 
     return true;
 }
-#endif LEXER_H
+#endif
