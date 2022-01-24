@@ -126,6 +126,7 @@ void DoCommand(const char *l) {
 
 	} else if (0  == strcmp(l, "p") || 0 ==strcmp(l, "preparser")) {
         
+        printf("NOTE: cwd is set to tests/preparse/\n");
         char *inFile = GetInFile();
         char *inFilePath = SillyStringFmt("tests/preparse/%s", inFile);
         Timer timer = Timer("preparser");
@@ -169,6 +170,7 @@ void DoCommand(const char *l) {
 
     } else if (0 == strcmp(l, "g") || 0 == strcmp(l, "grammer")) {
         
+        printf("NOTE: cwd is set to tests/grammer/\n");
         char *inFile = GetInFile();
         Timer timer = Timer("grammer");
         LOGGER.InitFileLogging("w");
