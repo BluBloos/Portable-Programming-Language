@@ -15,7 +15,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
-#include <malloc.h>
+//#include <malloc.h>
 #include "utf8.h"
 
 static const uint32 offsetsFromUTF8[6] = {
