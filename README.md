@@ -18,7 +18,8 @@ The only dependency as of right now is a C++ compiler.
 
 The project has been tested on the following compilers:
 - Clang on macOS x86_64
-- MinGW on Windows
+- MinGW-W64 on Windows 
+  - Version 8.1.0, target of i686-win32-dwarf-rev0
 
 No guarentees for a working build on other systems! Windows support is still "rough around the edges".
 
