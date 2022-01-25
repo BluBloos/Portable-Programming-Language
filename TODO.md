@@ -1,7 +1,12 @@
 ## ROADMAP
 
 ### Port Compiler codebase to C/C++
-- Add continuous integration via Github Actions for build tests on Linux and Windows.
+- Add continuous integration via Github Actions to repo.
+  - We can run .sh files directly in a workflow. See <a href="https://docs.github.com/en/actions/learn-github-actions/essential-features-of-github-actions#adding-scripts-to-your-workflow">here</a>
+  - Start with a linter.
+    - This can be done via clang-format. It is a command line tool that you can run on a single file or set of files to verify / auto-format code to a specified file. It includes standard styles from Google, LLVM, etc. But also allows you to completely customize the style.
+    - We can write another utility file as a wrapper around clang-format to compare the diff of auto-formatted version and old-version. Because from my testing, there are no useful error messages.
+  - Then add in build tests on Linux and Windows.
 - Add the LLVM project as a submodule, add in build.c compiling from source for needed LLVM toolchain. Cache the build so it only has to be done like once (because I imagine the LLVM project is a b*tch to compile).
   - Test by handwriting a small "Hello, World!" program.
 - In small steps, building up from fundamental grammer components (bottom-up), add codegen to LLVM IR.
