@@ -18,10 +18,6 @@ The only dependency as of right now is a C++ compiler.
 
 NOTE: The project has not been tested on any other compilers aside from clang on macOS x86_64. No guarentees for a working build on other systems!
 
-The project uses an interactive build system. Simply run the build.sh script to get started. 
-
-```
-./build.sh
-```
+The project uses an interactive build system. Simply run either build.sh or build.bat (based on host platform) to get started. 
 
 If you are using Visual Studio Code https://code.visualstudio.com/, just run Shift+Command+B (on macOS) and Shift+Control+B (on Windows).
