@@ -10,7 +10,7 @@ The offical repo for the portable programming language. Built with ❤️
 
 This project/language is still heavy in development.
 
-Currently porting from a Python-based codebase to a C/C++ codebase. Working on codegen to LLVM IR.
+Currently porting from a Python-based codebase to a C/C++ codebase. Working on codegen to LLVM IR. See <a href="/TODO.md">TODO.md</a> for more details.
 
 ## Building
 
