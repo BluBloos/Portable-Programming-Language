@@ -1,5 +1,13 @@
 // Common include for all files.
 
+#if defined(_WIN32)
+    #define PLATFORM_WINDOWS
+#elif defined(__APPLE__)
+    #define PLATFORM_MAC
+#else
+    #define PLATFORM_UNIX
+#endif
+
 /* PROJECT DEPENDENCIES */
 #include <stdio.h> 
 #include <string>
@@ -10,6 +18,9 @@
 #include <std/utf8.c>
 #include <unordered_map>
 #include <dirent.h>
+#ifdef PLATFORM_WINDOWS
+    #include <Windows.h>
+#endif
 /* PROJECT DEPENDENCIES */
 
 typedef unsigned long long uint64;
@@ -60,7 +71,11 @@ bool SillyStringStartsWith(const char* a, const char* b) {
 
 /* OTHER COMPILATION UNITS */
 #include <lexer.h>
-#include <timing.h>
+#ifdef PLATFORM_WINDOWS
+    #include <win32_timing.h>
+#else
+    #include <timing.h>
+#endif
 #include <grammer.h>
 #include <tree.h>
 #include <syntax.h>

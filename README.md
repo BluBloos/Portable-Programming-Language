@@ -14,12 +14,14 @@ Currently porting from a Python-based codebase to a C/C++ codebase. Working on c
 
 ## Building
 
-The only dependency as of right now is a C++ compiler. The source is not portable C, so it likely only works on UNIX/POSIX systems. Note also that the project has not been tested on any other compilers aside from clang on macOS x86_64. No guarentees for a working build on other systems!
+The only dependency as of right now is a C++ compiler. 
 
-The project uses an interactive build system. Simply run build.sh to get started. 
+The project has been tested on the following compilers:
+- Clang on macOS x86_64
+- MinGW on Windows
 
-```
-build.sh
-```
+No guarentees for a working build on other systems! Windows support is still "rough around the edges".
 
-If you are using Visual Studio Code https://code.visualstudio.com/, just run Shift+Command+B to run the build task.
+The project uses an interactive build system. Simply run build.sh (or build.bat on Windows) to get started. 
+
+If you are using Visual Studio Code https://code.visualstudio.com/, just run Shift+Command+B (macOS) or Shift+Control+B (Windows) to run the build task.

@@ -26,22 +26,37 @@
 
 /* ------- TESTS.CPP ------- */
 // Standard for any compilation unit of this project.
-#include <ppl.h>
-enum ppl_test {
-    // everything is a single test (because we invoke tests.exe many times with different parameters).
-    PTEST_PREPARSER = 0,
-    PTEST_INTEGRATION,
-    PTEST_REGEX_GEN,
-    PTEST_GRAMMER,
-    PTEST_COUNT, // comes after all tests
-    PTEST_ALL, // comes after count
-    PTEST_PREPARSER_ALL,
-    PTEST_GRAMMER_ALL
-};
-
+// NOTE(Noah): ppl.h on Windows is the parallel platforms library....I HATE EVERYTHING.
+#include <ppl_core.h>
 void ptest_Preparser(char *inFilePath, int &errors);
 void ptest_Grammer(char *inFilePath, int&errors);
 /* ------- TESTS.CPP ------- */
+
+#ifdef PLATFORM_WINDOWS
+    // TODO(Noah): Make faster and less "dumb". 
+    void getline(char **l, size_t *n, FILE *streamIn) {
+
+        size_t nVal = 0;    
+        std::string str = "";
+
+        char c = fgetc(streamIn);    
+        while (c != EOF) {
+            str += c;
+            if (c == '\n') {
+                break;
+            }    
+            c = fgetc(streamIn);
+        }
+
+        if (*l == NULL) {
+            // Allocate a buffer to store the line.
+            unsigned int memSize = (str.size() + 1) * sizeof(char);
+            *l = (char *)malloc(memSize);
+            memcpy(*l, str.c_str(), memSize); // this will include the null-terminator.
+        }
+
+    }
+#endif
 
 void PrintHelp();
 void DoCommand(const char *l);
@@ -73,6 +88,7 @@ int main(int argc, char **argv) {
 		fflush(stdout);
         RemoveEndline(l);
         DoCommand(l);
+        free(l); // a call to getline, if given l=NULL, will alloc a buffer. So we must free it.
 	}
 
 }
@@ -131,7 +147,7 @@ void DoCommand(const char *l) {
 
 	if (0 == strcmp(l, "b") || 0 == strcmp(l, "build")) {
         
-        CallSystem("g++ -std=c++11 -g src/ppl.cpp -I src/ -o bin/ppl -Wno-writable-strings");
+        CallSystem("g++ -std=c++11 -g src/ppl.cpp -I src/ -o bin/ppl -Wno-writable-strings -Wno-write-strings");
         printf("PPL compiler built to bin/ppl\n");
         printf("Usage: ppl <inFile> -o <outFile> -t <TARGET> [options]\n");
 
