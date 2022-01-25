@@ -15,7 +15,6 @@
 // #include <time.h>
 #include <stdarg.h>
 //#include <x86intrin.h>
-#include <std/utf8.c>
 #include <unordered_map>
 #include <dirent.h>
 #ifdef PLATFORM_WINDOWS
@@ -38,6 +37,7 @@ enum target_platform {
 };
 
 /* PROGRAM GLOBALS */
+#include <utf8.h>
 #include <logger.h>
 #include <mem.h>
 Logger LOGGER;
