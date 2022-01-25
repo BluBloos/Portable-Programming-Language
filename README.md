@@ -6,16 +6,22 @@
 
 The offical repo for the portable programming language. Built with ❤️
 
-## How to Use
+## Foreword
 
-Still heavy in development - I am not expecting this project to work on other development matchines. 
-- Only tested on macOS. 
-- Testing requires Python and the Clang compiler.
+This project/language is still heavy in development. 
 
-There are two files of importance:
-- src/ppl.py
-- src/tests.py
+Currently porting from a Python-based codebase to a C/C++ codebase. Working on codegen to LLVM IR.
 
-Running tests.py will run the appropriate tests according to the TEST variable in the script. ppl.py will run the full compiler suite according to the IN_FILE variable in the script. 
+## Building
 
-These scripts can be run by leveraging https://code.visualstudio.com/ Visual Studio Code. Simply use the Python configuration to run the current file. Alternatively, one can manually set the working directory to the base repo when running the Python scripts.
+The only dependency as of right now is a C++ compiler.
+
+NOTE: The project has not been tested on any other compilers aside from clang on macOS x86_64. No guarentees for a working build on other systems!
+
+The project uses an interactive build system. Simply run the build.sh script to get started. 
+
+```
+./build.sh
+```
+
+If you are using Visual Studio Code https://code.visualstudio.com/, just run Shift+Command+B (on macOS) and Shift+Control+B (on Windows).

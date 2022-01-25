@@ -523,6 +523,7 @@ bool LexAndPreparse(
     // Generate globals
     std::string cToken = ""; currentToken = &cToken;
     std::string clToken = ""; cleanToken = &clToken;
+    currentLine = 1;
 
     // # for the sake of parsing a raw input of ' '
     // # append onto raw.

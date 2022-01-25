@@ -38,10 +38,12 @@ enum ppl_test {
     PTEST_PREPARSER_ALL,
     PTEST_GRAMMER_ALL
 };
+
 void ptest_Preparser(char *inFilePath, int &errors);
 void ptest_Grammer(char *inFilePath, int&errors);
 /* ------- TESTS.CPP ------- */
 
+void PrintHelp();
 void DoCommand(const char *l);
 void RemoveEndline(char* l) {
     for (char *pStr = l; *pStr != 0; pStr++) {
@@ -59,8 +61,7 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-    printf("Enter 'help' to get a list of commands.\n");
-
+    PrintHelp();
     
     while (1) {
 		char *l = NULL;
@@ -99,6 +100,17 @@ char *GetInFile() {
     return inFile;
 }
 
+void PrintHelp() {
+    printf(ColorHighlight "\n=== Common Commands ===\n" ColorNormal);
+    printf("build           (b)                 - Build.\n");
+    printf("preparser       (p)                 - Test preparser on single unit.\n");
+    printf("preparser_all   (pall)              - Test preparser on all units in tests/preparse/.\n");
+    printf("regex_gen       (re)                - Test LoadGrammer() for building custom regex trees.\n");
+    printf("grammer         (g)                 - Test AST generation for a single GNODE on a single unit.\n");
+    printf("grammer_all     (gall)              - Test AST generation for all units in tests/grammer/.\n");
+    printf("exit                                - Exit the build system.\n");
+}
+
 void DoCommand(const char *l) {
 
     /* 
@@ -118,11 +130,10 @@ void DoCommand(const char *l) {
     }
 
 	if (0 == strcmp(l, "b") || 0 == strcmp(l, "build")) {
-        //pushd bin
-        //g++ -g ../src/ppl.cpp -I ../src/ -o ppl
-        //g++ -g ../src/tests.cpp -I  ../src/ -o tests
-        //popd
+        
         CallSystem("g++ -std=c++11 -g src/ppl.cpp -I src/ -o bin/ppl -Wno-writable-strings");
+        printf("PPL compiler built to bin/ppl\n");
+        printf("Usage: ppl <inFile> -o <outFile> -t <TARGET> [options]\n");
 
 	} else if (0  == strcmp(l, "p") || 0 ==strcmp(l, "preparser")) {
         
@@ -210,14 +221,7 @@ void DoCommand(const char *l) {
     } else if (0 == strcmp(l, "exit")) {
         exit(0);
     } else if (0 == strcmp(l, "h") || 0 == strcmp(l, "help")) {
-        printf(ColorHighlight "\n=== Common Commands ===\n" ColorNormal);
-		printf("build           (b)                 - Build.\n");
-		printf("preparser       (p)                 - Test preparser on single unit.\n");
-		printf("preparser_all   (pall)              - Test preparser on all units in tests/preparse/.\n");
-		printf("regex_gen       (re)                - Test LoadGrammer() for building custom regex trees.\n");
-		printf("grammer         (g)                 - Test AST generation for a single GNODE on a single unit.\n");
-        printf("grammer_all     (gall)              - Test AST generation for all units in tests/grammer/.\n");
-		printf("exit                                - Exit the build system.\n");
+        PrintHelp();
     } else {
         printf("Unrecognised command '%s'. Enter 'help' to get a list of commands.\n", l);
     }
