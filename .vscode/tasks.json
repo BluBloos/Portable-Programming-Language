@@ -4,20 +4,15 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Build Windows OS",
-            "type": "shell",
-            "command": "./build.bat",
-            "problemMatcher": []
-        },
-        {
-            "label": "Build macOS",
+            "label": "build",
             "type": "shell",
             "command": "./build.sh",
-            "problemMatcher": [],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
+            "windows": { "command": "./build.bat" },
+            "group": "build",
+            "presentation": {
+                "reveal": "always" 
+            },
+            "problemMatcher": []
         }
     ]
 }
