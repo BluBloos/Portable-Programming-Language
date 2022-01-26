@@ -69,6 +69,15 @@ bool SillyStringStartsWith(const char* a, const char* b) {
     }
     return (*pStrB == 0);
 }
+
+bool SillyStringCharIn(const char *a, char c) {
+    for (char *pStr = (char *)a; *pStr != 0; pStr++) {
+        if (*pStr == c)
+            return true;
+    }
+    return false;
+}
+
 /* SILLY THINGS */
 
 /* OTHER COMPILATION UNITS */

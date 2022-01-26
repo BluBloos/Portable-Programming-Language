@@ -15,7 +15,7 @@
 /* ------- TESTS.CPP ------- */
 // Standard for any compilation unit of this project.
 // NOTE(Noah): ppl.h on Windows is the parallel platforms library....I HATE EVERYTHING.
-#include <ppl_core.h>
+#include <util.h>
 void ptest_Preparser(char *inFilePath, int &errors);
 void ptest_Grammer(char *inFilePath, int&errors);
 /* ------- TESTS.CPP ------- */
@@ -84,13 +84,6 @@ int main(int argc, char **argv) {
 
 int CallSystem(const char *buffer) {
 	return system(buffer);
-}
-
-void CheckErrors(int errors) {
-    if (errors > 0)
-        LOGGER.Error("Completed with %d error(s)", errors);
-    else
-        LOGGER.Success("Completed with 0 errors.");
 }
 
 char *GetInFile() {
