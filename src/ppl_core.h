@@ -9,10 +9,12 @@
 #endif
 
 /* PROJECT DEPENDENCIES */
-#include <stdio.h> 
+#include <stdio.h>
+#include <stdlib.h>
 #include <string>
 #include <vector>
 // #include <time.h>
+#include <unistd.h>
 #include <stdarg.h>
 //#include <x86intrin.h>
 #include <unordered_map>

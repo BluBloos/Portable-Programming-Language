@@ -5,18 +5,6 @@
     NOTE: Many things I copy-and-pasted! :)
 */
 
-// PREVIOUS SCRIPT.
-//pushd bin
-//g++ -g ../src/ppl.cpp -I ../src/ -o ppl
-//g++ -g ../src/tests.cpp -I  ../src/ -o tests
-//popd
-
-// TODO(Noah): Deprecate tests.cpp by including them as direct commands in the interactive build system.
-
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-
 #define ColorError "\033[0;33m"
 #define ColorHighlight "\033[0;36m"
 #define ColorNormal "\033[0m"
@@ -33,7 +21,8 @@ void ptest_Grammer(char *inFilePath, int&errors);
 /* ------- TESTS.CPP ------- */
 
 #ifdef PLATFORM_WINDOWS
-    // TODO(Noah): Make faster and less "dumb". 
+    // TODO(Noah): Make faster and less "dumb". Make compliant with the behaviour of getline so that in the
+    // future, when someone who is not me tries to call getline, it works as expected.
     void getline(char **l, size_t *n, FILE *streamIn) {
 
         size_t nVal = 0;    

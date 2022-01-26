@@ -1,6 +1,5 @@
 #ifndef UTF8_H
 #define UTF8_H
-#include <stdarg.h>
 
 #if !defined(uint32)
    typedef unsigned int uint32; 
@@ -82,6 +81,8 @@ int u8_printf(char *fmt, ...);
   by Jeff Bezanson
   placed in the public domain Fall 2005
 
+  Adapted by Noah Cabral, Winter 2022.
+
   This code is designed to provide the utilities you need to manipulate
   UTF-8 as an internal string encoding. These functions do not perform the
   error checking normally needed when handling UTF-8 data, so if you happen
@@ -90,11 +91,6 @@ int u8_printf(char *fmt, ...);
   with these routines reserved for higher performance on data known to be
   valid.
 */
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdarg.h>
-//#include <malloc.h>
 
 static const uint32 offsetsFromUTF8[6] = {
     0x00000000UL, 0x00003080UL, 0x000E2080UL,
