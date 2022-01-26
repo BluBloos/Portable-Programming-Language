@@ -23,10 +23,6 @@ Now support we are doing the web target.
 // via this file.
 // this is where all the magic of PPL happens :)
 
-// TODO(Noah): Something that I just thought about is the following:
-// If we are compiling for bare-metal, is it not fair to assume that the dynamic array
-// feature is not even feasible?
-
 class SpecialFilehandle {
 public:
     FILE *handle;
@@ -74,13 +70,6 @@ void RunCodegen(struct tree_node ast, char *outFile, enum target_platform target
     GenerateProgram(ast, sFileHandle);
 }
 
-// TODO(Noah): Maybe, since I notice that I write the grammer definition prior to each
-// of this grammer generation routines, I could write code that takes the grammer definition,
-// and it takes the AST rules, then it GENERATES the corresponding C code that is needed.
-    // Then I create a "hook" architecture for "linking" in different backend "ideas".
-// ???????/ would be very interesting
-    // And the "linking" step might be doable with a dynamic library loaded at runtime?
-
 void GenerateFunction(struct tree_node ast, SpecialFilehandle &sFile);
 void GenerateVarDecl(struct tree_node ast, SpecialFilehandle &sFile);
 void GenerateStructDecl(struct tree_node ast, SpecialFilehandle &sFile);
@@ -91,20 +80,17 @@ void GenerateProgram(struct tree_node ast, SpecialFilehandle &sFile) {
         struct tree_node gnode = ast.children[i];
         switch(gnode.metadata.str[0]) {
             case "f": // function
-
             // TODO(Noah): As I write this, I wonder if this is even
             // a "sensible" way to program this.
-
-            // for 1: will this type of high-level traversal through the AST be
-            // "good enough" to produce the underlying LLVM IR?
-
-            // for 2: what happens when I want to introduce my package management system
+            // 1: will this type of high-level traversal through the AST be
+            //     "good enough" to produce the underlying LLVM IR?
+            // 2: what happens when I want to introduce my package management system
             // or that I want to get away with having function_decl at the top scope
             // of the program be orderless.
-                // at the top of the file, generate function_decl's for all symbols.
-                    // this works if we do ASM anyways, because functions are just labels.
-                // this "top of file" step can even be done during AST generation.
-                    // i.e., we notice a function, and create a "context" alongside the AST.
+            //     at the top of the file, generate function_decl's for all symbols.
+            //     this works if we do ASM anyways, because functions are just labels.
+            //     this "top of file" step can even be done during AST generation.
+            //     i.e., we notice a function, and create a "context" alongside the AST.
             GenerateFunction(gnode, sFile);
             break;
             case "v": // var_decl

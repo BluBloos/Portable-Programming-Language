@@ -73,6 +73,7 @@ Next Steps:
   - Windows Console
   - QR codes :P
   - Bare metal
+    - Is the dynamic array feature even possible in this environment?
   - Desktop GUI
     - Windows (DirectX)
     - macOS (Metal)

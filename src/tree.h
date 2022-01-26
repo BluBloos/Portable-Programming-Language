@@ -4,7 +4,7 @@
 // TODO(Noah): I feel like there is something we can do here. 
 // All of this is pass thru for some tokens right to tree metadata. 
 // like, TOKEN_QUOTE -> TREE_AST_STRING_LITERAL
-    // there is basically nothing special that happens here.
+// there is basically nothing special that happens here.
 enum tree_type {
     TREE_ROOT = 0,
     TREE_REGEX_STR,
@@ -119,7 +119,9 @@ void TreeAdoptTree(struct tree_node &tn, struct tree_node child) {
     memcpy(&tn.children[tn.childrenCount++], &child, sizeof(struct tree_node)); 
 }
 
-// TODO(Noah): test this function
+// TODO(Noah): Test this function. We wrote it and observed our program
+// working. But it only seems to be working. Maybe there is some wacky things going
+// on.
 void DeallocTree(struct tree_node &tn) {
     if (tn.children == NULL) {
         return;
@@ -190,7 +192,6 @@ void PrintTree(struct tree_node &tn, unsigned int indentation) {
         Assert(tn.metadata.str != NULL);
         LOGGER.Min("%sKEYWORD:%s", sillyBuff, tn.metadata.str);
         break;
-
         // TODO(Noah): Implement missing switch cases.
         default:
         break;

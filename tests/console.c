@@ -24,10 +24,6 @@ int main() {
     // Store a single unicode character and print it.
     // in this instance char is a uint32. A single code point. 
     char unicodePoint = '🤮';
-    
-    // TODO(Noah): Implement the printing of unicode code points via %c and ppl::print.
-    // todo this, it would seem the best way would be to implement our own printf as 
-    // opposed to relying on the standard C library printf....
 
     //ppl::print("Printing a single character: %lc\n", unicodePoint);
     // triple character print test

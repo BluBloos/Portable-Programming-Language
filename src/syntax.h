@@ -2,16 +2,14 @@
 // What if, to make the codegen part of things easier, we went ahead and added 'labels' to components
 // or children of grammer objects???
 // if I parse an if-statement,
-    // I might have component A (the expression)
-    // and component B (the body of the if statement)
+//     I might have component A (the expression)
+//     and component B (the body of the if statement)
 // and maybe I can change the syntax of the if-statment all that I please (on the grammer end of things)
 // but the AST that pops out is annotated, to make finding A and B easy. Let's call this
 // "linking" with A and B. 
 
 // TODO(Noah): Really need to check if there might be some memory-leaks going on here....
-// I am doing some FuNkY things will the trees and so forth...
-
-// TODO: Right now issue is recursion infinite for statement3 grammer parsing.
+// I am doing some FuNkY things with the trees and so forth...
 
 struct ast_error {
     char *msg;
@@ -70,7 +68,6 @@ bool ParseTokensWithRegexTree(
             // buffered_errors = []
         }
 
-        // TODO(Noah): Should this child be a reference value?
         struct tree_node &child = regexTree.children[k];
         char modifier = child.metadata.regex_mod; // mod = 0 is a NULL modifier.
         enum tree_type childType = child.type;
@@ -155,11 +152,7 @@ bool ParseTokensWithRegexTree(
                         //buffered_errors += (_buffered_errors)
                         break; // didn't find grammer object we wanted.
                     }
-                }
-
-                // TODO(Noah): Factor literal and symbol into one thing because they basically do 
-                // the same thing...
-                else if ( SillyStringStartsWith(child_data, "literal") ) {
+                } else if ( SillyStringStartsWith(child_data, "literal") ) {
                     struct token tok = tokens.QueryNext(); // # the whole LR k+1 idea :)
                     bool didMatch = true;
                     switch(tok.type) {
@@ -258,15 +251,6 @@ bool ParseTokensWithRegexTree(
                         break;
                     }
                     re_matched += 1;
-                } else {
-                    // TODO(Noah): I think in our previous code we had some wierd things going on
-                    // where the keyword= part of the regex was passed into a part of our code
-                    // that was intended to parse just characters, but then happended to also parse
-                    // like, full-blown strings, for example.
-                        // and it just happened that the token.value of a keword equals that string sequence.
-                        // and so really, we had this algorithm that was quite diverse and would handle many different
-                        // token types. It was almost surpassing the fact it was a token and just looking at the 
-                        // raw, segemented sequence of characters in the source file.
                 }
             }
 
@@ -296,7 +280,6 @@ bool ParseTokensWithRegexTree(
             break;
         }
             
-        // TODO(Noah): An alterior method than this is to just always query if under an Any block...    
         if (any_flag) {
             // presuming we have not yet succeeded, and we are inside an Any block
             // this means we are trying the next child.
@@ -360,8 +343,6 @@ bool ParseTokensWithGrammer(
     // NOTE(Noah): I know this is going to work and do what I want it to do, but 
     // I would say that there MUST be a better way to do this...
     // Namely I do not like len(trees) == 1...
-
-    // TODO(Noah): Change from len(trees) here, this is Python.
     
     /*
     if ( fail_flag && len(trees) == 1 ) {

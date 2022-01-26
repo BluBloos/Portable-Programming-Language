@@ -452,7 +452,7 @@ void CurrentTokenAddChar(UNICODE_CPOINT c) {
     char utf8Buff[5];
     u8_toutf8(utf8Buff, 5, &c, 1); 
     currentToken->append(utf8Buff);
-    // TODO(Noah): Add other whitespace characters.
+    // TODO(Noah): Do other whitspace characters exist?
     if (c != ' ' && c != '\n') {
         cleanToken->append(utf8Buff);
     }
@@ -579,7 +579,7 @@ bool LexAndPreparse(
                 CurrentTokenReset();
             }
             // Check for escape sequenced characters (plus special characters).
-            // TODO(Noah): More special characters to implement here.
+            // TODO(Noah): Implement the remaining escape sequence characters.
             else if (character == '\\' && raw[n-1] != '\\') {
                 if (raw[n+1] == 'n') {
                     CurrentTokenAddChar('\\');
@@ -592,7 +592,6 @@ bool LexAndPreparse(
             continue;
         }
         //# supposing that we are in no comment states, be on the lookout to enter one
-        //# TODO(Noah): Make sure that we do not go outside of the range of raw.
         else if (state == LEXER_NORMAL) { 
             
             //# check for single line comments.

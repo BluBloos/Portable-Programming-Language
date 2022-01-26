@@ -2,9 +2,10 @@
 #define GRAMMER_H
 #include <tree.h>
 
-// TODO(Noah): If we want to make our AST tree dramatically simpler, 
-// we can inline regex. Then we can make it highly modular (human readable),
-// but also have it so that it constructs a well optimized AST.
+// TODO(Noah): In making the AST tree dramatically simpler, 
+//      create ghost grammer definitions.
+// these definitions will not create a corresponding gnode and will
+// instead just "passthrough" the children to the request node. 
 
 /*
 equivalences = {}
@@ -44,7 +45,6 @@ class Grammer {
     }
     std::unordered_map<std::string, struct grammer_definition> defs;
     bool DefExists(const char *defName) {
-        // TODO(Noah): Implement.
         return defs.count(defName);
     }
     // NOTE(Noah): AddDef doesn't check to ensure that the defName you supplied already exists.
@@ -60,7 +60,6 @@ class Grammer {
     struct grammer_definition GetDef(const char *defName) {
         return defs[defName];
     }
-    // TODO(Noah): Implement this.
     void Print() {
         for (auto kv : defs) {
             struct grammer_definition &gd = kv.second;
@@ -73,7 +72,7 @@ class Grammer {
 
 Grammer GRAMMER = Grammer(); // global grammer object.
 
-// TODO(Noah): Account for failure to generate RegexTree.
+// TODO(Noah): Account for failure to generate RegexTree. Do something sensible.
 struct tree_node CreateRegexTree(Grammer &grammer, const char *regex) {
     
     struct tree_node regexTree = CreateTree(TREE_ROOT);
@@ -241,10 +240,8 @@ char *_grammerTable[][2] = {
         "(keyword=if)\\((expression)\\)(statement)((keyword=else)(statement))?"
     },
     {
-        // NOTE(Noah): Noticing that this allows for having for-loops as the end condition
-        // of a higher-level for-loop. I guess that is not so bad LOL.
-        // Of course, we can ensure the validity of the tree after it is made.
-        // TODO(Noah): Maybe not allow silly things like this.
+        // NOTE(Noah): Notice that this allows for having for-loops as the end condition
+        // of a higher-level for-loop. 
         "_for",
         "(keyword=for)\\((statement)(expression);(statement_noend)\\)(statement)"
     },
@@ -315,7 +312,7 @@ char *_grammerTable[][2] = {
         "(keyword=sizeof)"
     },
     {
-        // TODO(Noah): Maybe look at this grammer in particular. This is QUITE long.
+        // TODO(Noah): Look into making this grammer definition more readable.
         "factor",
         "[(object)((_sizeof)\\([(_symbol)(type)]\\))([(op,!)(op,-)(op,&)(op,*)(op,~)(\\((type)\\))](factor))(\\((expression)\\))]"
     },

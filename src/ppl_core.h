@@ -33,7 +33,9 @@ typedef unsigned int uint32;
 enum target_platform {
     MAC_OS,
     WINDOWS,
-    POSIX, // TODO(Noah): Should this be UNIX? What is going on here?
+    // TODO(Noah): Be serious and investigate the difference between POSIX and UNIX.
+    // We need to get these targets right.
+    POSIX, 
     WEB,
     WEB_SCRIPT
 };

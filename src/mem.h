@@ -1,3 +1,6 @@
+// TODO(Noah): Note that this implementation of memory arena is VERY unsafe.
+// We must check if allocation requests are valid, and fail in the case that they
+// are not.
 class ConstMemoryArena {
     public:
     ConstMemoryArena(unsigned int bytes) {
@@ -16,7 +19,6 @@ class ConstMemoryArena {
         dataPtr += dataSize;
         return result;
     }
-    // TODO(Noah): Check for unsafe allocs.
     char *StdStringAlloc(std::string str) {
         unsigned int stringSize = (str.size() + 1) * (sizeof(char)); // Includes null-terminator.
         return (char *)_Alloc((void *)str.c_str(), stringSize);
