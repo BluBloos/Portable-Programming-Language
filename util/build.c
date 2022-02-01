@@ -19,8 +19,9 @@ void ptest_Grammer(char *inFilePath, int&errors);
 /* ------- TESTS.CPP ------- */
 
 void PrintHelp();
-void DoCommand(const char *l);
+int DoCommand(const char *l);
 
+// usage ./build [options]
 int main(int argc, char **argv) {
     char cwd[PATH_MAX];
 	getcwd(cwd, sizeof(cwd));
@@ -30,20 +31,27 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-    PrintHelp();
-    
-    while (1) {
-		char *l = NULL;
-		size_t pos = 0;
-		printf("\n> ");
-		printf(ColorHighlight);
-		getline(&l, &pos, stdin);
-		printf(ColorNormal);
-		fflush(stdout);
-        RemoveEndline(l);
-        DoCommand(l);
-        free(l); // a call to getline, if given l=NULL, will alloc a buffer. So we must free it.
-	}
+    if (argc > 1) {
+        char *l = argv[1];
+        return DoCommand(l);
+    } else {
+        // Go into interactive mode.
+        PrintHelp();
+        while (1) {
+            char *l = NULL;
+            size_t pos = 0;
+            printf("\n> ");
+            printf(ColorHighlight);
+            getline(&l, &pos, stdin);
+            printf(ColorNormal);
+            fflush(stdout);
+            RemoveEndline(l);
+            DoCommand(l);
+            free(l); // a call to getline, if given l=NULL, will alloc a buffer. So we must free it.
+        }
+    }
+
+    return 1; // should never get here, so return error code.
 
 }
 
@@ -74,7 +82,9 @@ void PrintHelp() {
     printf("exit                                - Exit the build system.\n");
 }
 
-void DoCommand(const char *l) {
+// Does command then returns the result code.
+// anything non-zero is an error.
+int DoCommand(const char *l) {
 
     /* 
         Basically, what different commands do we want to be able to execute in this build system?
@@ -94,9 +104,12 @@ void DoCommand(const char *l) {
 
 	if (0 == strcmp(l, "b") || 0 == strcmp(l, "build")) {
         
-        CallSystem("g++ -std=c++11 -g src/ppl.cpp -I src/ -o bin/ppl -Wno-writable-strings -Wno-write-strings");
-        printf("PPL compiler built to bin/ppl\n");
-        printf("Usage: ppl <inFile> -o <outFile> -t <TARGET> [options]\n");
+        int r = CallSystem("g++ -std=c++11 -g src/ppl.cpp -I src/ -o bin/ppl -Wno-writable-strings -Wno-write-strings");
+        if (r == 0) {
+            printf("PPL compiler built to bin/ppl\n");
+            printf("Usage: ppl <inFile> -o <outFile> -t <TARGET> [options]\n");
+        }
+        return r;
 
 	} else if (0  == strcmp(l, "p") || 0 ==strcmp(l, "preparser")) {
         
@@ -109,6 +122,7 @@ void DoCommand(const char *l) {
         ptest_Preparser(inFilePath, errors);
         CheckErrors(errors);
         timer.TimerEnd();
+        return (errors > 0);
 
     } else if (0 == strcmp(l, "pall") || 0 == strcmp(l, "preparser_all")) {
         
@@ -132,6 +146,7 @@ void DoCommand(const char *l) {
         }
         CheckErrors(errors);
         timer.TimerEnd();
+        return (errors > 0);
 
     } else if (0 == strcmp(l, "re") || 0 == strcmp(l, "regex_gen")) {
         
@@ -141,6 +156,7 @@ void DoCommand(const char *l) {
         LoadGrammer();
         CheckErrors(errors);
         timer.TimerEnd();
+        return (errors > 0);
 
     } else if (0 == strcmp(l, "g") || 0 == strcmp(l, "grammer")) {
         
@@ -154,6 +170,7 @@ void DoCommand(const char *l) {
         ptest_Grammer(inFilePath, errors);
         CheckErrors(errors);
         timer.TimerEnd();
+        return (errors > 0);
 
     } else if (0 == strcmp(l, "gall") || 0 == strcmp(l, "grammer_all")) {
         
@@ -180,14 +197,17 @@ void DoCommand(const char *l) {
         }
         CheckErrors(errors);
         timer.TimerEnd();
+        return (errors > 0);
 
     } else if (0 == strcmp(l, "exit")) {
         exit(0);
     } else if (0 == strcmp(l, "h") || 0 == strcmp(l, "help")) {
         PrintHelp();
-    } else {
-        printf("Unrecognised command '%s'. Enter 'help' to get a list of commands.\n", l);
+        return 0;
     }
+
+    printf("Unrecognised command '%s'. Enter 'help' to get a list of commands.\n", l);
+    return 1;
 }
 
 void ptest_Grammer(char *inFilePath, int&errors) {
