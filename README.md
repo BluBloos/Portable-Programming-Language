@@ -1,7 +1,9 @@
+![Ubuntu](https://github.com/BluBloos/Portable-Programming-Language/actions/workflows/build_test/badge.svg)
+
 <div>
-<p align="center">
-<img src="https://user-images.githubusercontent.com/38915815/147722834-1602909f-fcbc-49bf-8ec3-6a0bd33ef3ec.png" />  
-</p>
+  <p align="center">
+  <img src="https://user-images.githubusercontent.com/38915815/147722834-1602909f-fcbc-49bf-8ec3-6a0bd33ef3ec.png" />  
+  </p>
 </div>
 
 The offical repo for the portable programming language. Built with ❤️
