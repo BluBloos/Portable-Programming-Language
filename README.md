@@ -27,6 +27,4 @@ The project has been tested with the following setups
 
 Support for different setups is still "rough around the edges". No guarentees.
 
-The project uses an interactive build system. Simply run build.sh to get started. 
-
-If you are using Visual Studio Code https://code.visualstudio.com/, just run Shift+Command+B (macOS) or Shift+Control+B (Windows) to run the build task.
+The project uses an interactive build system. Simply run build.sh to get started.
