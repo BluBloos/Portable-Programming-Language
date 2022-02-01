@@ -1,0 +1,24 @@
+name: Windows build 
+on:
+  push:
+    branches:    
+      - 'master'
+
+jobs:
+  build-test-ubuntu:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Dependencies
+        run: choco install mingw
+      - name: Build PPL
+        run: ./build.sh b 
+        shell: bash
+      - name: Preparser Test
+        run: ./build.sh pall 
+        shell: bash
+      - name: Grammer Test
+        run: ./build.sh gall 
+        shell: bash
+
