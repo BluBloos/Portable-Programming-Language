@@ -5,9 +5,7 @@
     NOTE: Many things I copy-and-pasted! :)
 */
 
-#define ColorError "\033[0;33m"
-#define ColorHighlight "\033[0;36m"
-#define ColorNormal "\033[0m"
+
 #ifndef PATH_MAX
 #define PATH_MAX 1024
 #endif
@@ -20,41 +18,8 @@ void ptest_Preparser(char *inFilePath, int &errors);
 void ptest_Grammer(char *inFilePath, int&errors);
 /* ------- TESTS.CPP ------- */
 
-#ifdef PLATFORM_WINDOWS
-    // TODO(Noah): Make faster and less "dumb". Make compliant with the behaviour of getline so that in the
-    // future, when someone who is not me tries to call getline, it works as expected.
-    void getline(char **l, size_t *n, FILE *streamIn) {
-
-        size_t nVal = 0;    
-        std::string str = "";
-
-        char c = fgetc(streamIn);    
-        while (c != EOF) {
-            str += c;
-            if (c == '\n') {
-                break;
-            }    
-            c = fgetc(streamIn);
-        }
-
-        if (*l == NULL) {
-            // Allocate a buffer to store the line.
-            unsigned int memSize = (str.size() + 1) * sizeof(char);
-            *l = (char *)malloc(memSize);
-            memcpy(*l, str.c_str(), memSize); // this will include the null-terminator.
-        }
-
-    }
-#endif
-
 void PrintHelp();
 void DoCommand(const char *l);
-void RemoveEndline(char* l) {
-    for (char *pStr = l; *pStr != 0; pStr++) {
-        if (*pStr == '\n') 
-            *pStr = 0;
-    }
-}
 
 int main(int argc, char **argv) {
     char cwd[PATH_MAX];

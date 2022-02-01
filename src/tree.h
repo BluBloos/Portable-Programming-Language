@@ -1,8 +1,8 @@
 #ifndef TREE_H
 #define TREE_H
 
-// TODO(Noah): I feel like there is something we can do here. 
-// All of this is pass thru for some tokens right to tree metadata. 
+// TODO(Noah): I feel like there is something we can do here.
+// All of this is pass thru for some tokens right to tree metadata.
 // like, TOKEN_QUOTE -> TREE_AST_STRING_LITERAL
 // there is basically nothing special that happens here.
 enum tree_type {
@@ -44,21 +44,21 @@ So here is what must be done:
 */
 
 struct tree_node {
-    public:
-    
+  public:
     /* psuedo-linked list style */
     struct tree_node *children;
     unsigned int childrenCount;
     unsigned int childrenContainerCount;
     /* linked list style */
-    
+
     enum tree_type type;
     struct tree_metadata metadata;
 };
 
 struct tree_node CreateTree(enum tree_type type) {
-    
-    struct tree_node tn = {}; // initialize everything to zero for sanity purposes.
+
+    struct tree_node tn =
+        {}; // initialize everything to zero for sanity purposes.
     tn.type = type;
     tn.children = NULL;
     tn.childrenCount = 0;
@@ -66,8 +66,6 @@ struct tree_node CreateTree(enum tree_type type) {
     tn.metadata.regex_mod = 0; // null character (null-terminator).
     return tn;
 }
-
-
 
 struct tree_node CreateTree(enum tree_type type, UNICODE_CPOINT c) {
     struct tree_node tn = CreateTree(type);
@@ -104,19 +102,22 @@ void TreeAdoptTree(struct tree_node &tn, struct tree_node child) {
     if (!(tn.childrenCount < tn.childrenContainerCount)) {
         if (tn.childrenCount > 0) {
             tn.childrenContainerCount += 100;
-            struct tree_node* _trees = (struct tree_node *)realloc(tn.children, tn.childrenContainerCount * sizeof(struct tree_node));
+            struct tree_node *_trees = (struct tree_node *)realloc(
+                tn.children,
+                tn.childrenContainerCount * sizeof(struct tree_node));
             Assert(_trees != NULL);
             tn.children = _trees;
         } else {
             // doesn't make sense to realloc memory that has not been alloc yet.
             // so here we do a malloc to init the array.
             tn.childrenContainerCount = 100;
-            struct tree_node* _trees = (struct tree_node *)malloc(tn.childrenContainerCount * sizeof(struct tree_node));
+            struct tree_node *_trees = (struct tree_node *)malloc(
+                tn.childrenContainerCount * sizeof(struct tree_node));
             Assert(_trees != NULL);
             tn.children = _trees;
         }
     }
-    memcpy(&tn.children[tn.childrenCount++], &child, sizeof(struct tree_node)); 
+    memcpy(&tn.children[tn.childrenCount++], &child, sizeof(struct tree_node));
 }
 
 // TODO(Noah): Test this function. We wrote it and observed our program
@@ -134,7 +135,7 @@ void DeallocTree(struct tree_node &tn) {
 }
 
 void PrintTree(struct tree_node &tn, unsigned int indentation) {
-    
+
     // NOTE(Noah): Max indentation is 80 ' ' . Any deeper AST get like, "truncated", or whatever.
     char sillyBuff[81]; // 1 extra than 80 for the null-terminator.
     int i;
@@ -143,59 +144,52 @@ void PrintTree(struct tree_node &tn, unsigned int indentation) {
     }
     sillyBuff[i] = 0; // null terminator.
 
-    switch(tn.type) {
+    switch (tn.type) {
         case TREE_REGEX_STR:
-        Assert(tn.metadata.str != NULL);
-        LOGGER.Min("%sSTR:%s", sillyBuff, tn.metadata.str);
-        break;
-        case TREE_REGEX_ANY:
-        LOGGER.Min("%sAny", sillyBuff);
-        break;
-        case TREE_REGEX_GROUP:
-        LOGGER.Min("%sGroup", sillyBuff);
-        break;
+            Assert(tn.metadata.str != NULL);
+            LOGGER.Min("%sSTR:%s", sillyBuff, tn.metadata.str);
+            break;
+        case TREE_REGEX_ANY: LOGGER.Min("%sAny", sillyBuff); break;
+        case TREE_REGEX_GROUP: LOGGER.Min("%sGroup", sillyBuff); break;
         case TREE_REGEX_CHAR:
-        LOGGER.Min("%sCHAR:%c", sillyBuff, tn.metadata.c);
-        break;
+            LOGGER.Min("%sCHAR:%c", sillyBuff, tn.metadata.c);
+            break;
         case TREE_REGEX_KEYWORD:
-        Assert(tn.metadata.str != NULL);
-        LOGGER.Min("%sKEYWORD:%s", sillyBuff, tn.metadata.str);
-        break;
-
+            Assert(tn.metadata.str != NULL);
+            LOGGER.Min("%sKEYWORD:%s", sillyBuff, tn.metadata.str);
+            break;
 
         case TREE_AST_GNODE:
-        Assert(tn.metadata.str != NULL);
-        LOGGER.Min("%sGNODE:%s", sillyBuff, tn.metadata.str);
-        break;
+            Assert(tn.metadata.str != NULL);
+            LOGGER.Min("%sGNODE:%s", sillyBuff, tn.metadata.str);
+            break;
         case TREE_AST_CLITERAL:
-        LOGGER.Min("%sCLITERAL:%c", sillyBuff, tn.metadata.c);
-        break;
+            LOGGER.Min("%sCLITERAL:%c", sillyBuff, tn.metadata.c);
+            break;
         case TREE_AST_INT_LITERAL:
-        LOGGER.Min("%sINT_LITERAL:%d", sillyBuff, tn.metadata.num);
-        break;
+            LOGGER.Min("%sINT_LITERAL:%d", sillyBuff, tn.metadata.num);
+            break;
         case TREE_AST_DECIMAL_LITERAL:
-        LOGGER.Min("%sDECIMAL_LITERAL:%f", sillyBuff, tn.metadata.dnum);
-        break;
+            LOGGER.Min("%sDECIMAL_LITERAL:%f", sillyBuff, tn.metadata.dnum);
+            break;
         case TREE_AST_STRING_LITERAL:
-        Assert(tn.metadata.str != NULL);
-        LOGGER.Min("%sSTRING_LITERAL:%s", sillyBuff, tn.metadata.str);
-        break;
+            Assert(tn.metadata.str != NULL);
+            LOGGER.Min("%sSTRING_LITERAL:%s", sillyBuff, tn.metadata.str);
+            break;
         case TREE_AST_SYMBOL:
-        Assert(tn.metadata.str != NULL);
-        LOGGER.Min("%sSYMBOL:%s", sillyBuff, tn.metadata.str);
-        break;
+            Assert(tn.metadata.str != NULL);
+            LOGGER.Min("%sSYMBOL:%s", sillyBuff, tn.metadata.str);
+            break;
         case TREE_AST_OP:
-        Assert(tn.metadata.str != NULL);
-        LOGGER.Min("%sOP:%s", sillyBuff, tn.metadata.str);
-        break;
+            Assert(tn.metadata.str != NULL);
+            LOGGER.Min("%sOP:%s", sillyBuff, tn.metadata.str);
+            break;
         case TREE_AST_KEYWORD:
-        Assert(tn.metadata.str != NULL);
-        LOGGER.Min("%sKEYWORD:%s", sillyBuff, tn.metadata.str);
-        break;
+            Assert(tn.metadata.str != NULL);
+            LOGGER.Min("%sKEYWORD:%s", sillyBuff, tn.metadata.str);
+            break;
         // TODO(Noah): Implement missing switch cases.
-        default:
-        break;
-
+        default: break;
     }
 
     if (tn.metadata.regex_mod > 0) {
@@ -209,7 +203,6 @@ void PrintTree(struct tree_node &tn, unsigned int indentation) {
             PrintTree(tn.children[i], indentation + 2);
         }
     }
-
 }
 
 #endif

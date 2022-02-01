@@ -2,6 +2,9 @@
 
 # TODO(Noah):
 # - If there is a multiline function decl, make it so that it does a break with the {
+# - I want the break in switch statements to appear like, after {}
+# - my goodness. Please get rid of the fact that it absolutely borks the definitions I have
+# setup in grammer.h -> Same with things in lexer.h top of file. Annoying...
 
 Language:        Cpp
 # BasedOnStyle:  LLVM

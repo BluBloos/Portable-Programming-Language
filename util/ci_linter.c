@@ -57,6 +57,8 @@ int main(int argc, char **argv) {
 
 }
 
+// Returns true if there are any changes that might need to be made
+// to the file.
 void ptest_Linter(char *inFile, int &errors) {
 
     // Copy the file to a temporary file.
@@ -79,6 +81,29 @@ void ptest_Linter(char *inFile, int &errors) {
     if (fileByteCount != 0) {
         system(SillyStringFmt("git diff --no-index %s bin/clangfout", _str.c_str()));
         errors += 1;
+    }
+
+    if (errors > 0) {
+        printf("Enter 'y' to apply the file changes, 'n' to not do anything\n");
+        char *l = NULL;
+		size_t pos = 0;
+		printf("\n> ");
+		printf(ColorHighlight);
+		getline(&l, &pos, stdin);
+		printf(ColorNormal);
+		fflush(stdout);
+        if (l != NULL) {
+            RemoveEndline(l);
+            switch(*l) {
+                case 'y':
+                system(SillyStringFmt("clang-format -i %s", _str.c_str()));
+                break;
+                case 'n':
+                // do nothing.
+                break;
+            }
+            free(l); // a call to getline, if given l=NULL, will alloc a buffer. So we must free it.
+        }
     }
 
 }

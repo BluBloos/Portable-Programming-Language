@@ -2,15 +2,13 @@
 // We must check if allocation requests are valid, and fail in the case that they
 // are not.
 class ConstMemoryArena {
-    public:
+  public:
     ConstMemoryArena(unsigned int bytes) {
         _base = malloc(bytes);
         dataPtr = (char *)_base;
         totalDataBytes = bytes;
     }
-    ~ConstMemoryArena() {
-        free(_base);
-    }
+    ~ConstMemoryArena() { free(_base); }
     void *_base;
     char *dataPtr;
     unsigned int totalDataBytes;
@@ -20,7 +18,8 @@ class ConstMemoryArena {
         return result;
     }
     char *StdStringAlloc(std::string str) {
-        unsigned int stringSize = (str.size() + 1) * (sizeof(char)); // Includes null-terminator.
+        unsigned int stringSize =
+            (str.size() + 1) * (sizeof(char)); // Includes null-terminator.
         return (char *)_Alloc((void *)str.c_str(), stringSize);
     }
     char *StringAlloc(char *str) {
@@ -28,7 +27,8 @@ class ConstMemoryArena {
         for (char *pStr = str; *pStr != 0; pStr++) {
             stringSize++;
         }
-        stringSize = (stringSize + 1) * sizeof(char); // Includes null-terminator.
+        stringSize =
+            (stringSize + 1) * sizeof(char); // Includes null-terminator.
         return (char *)_Alloc(str, stringSize);
     }
 };

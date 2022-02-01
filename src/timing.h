@@ -1,13 +1,11 @@
 #ifndef TIMER_H
 #define TIMER_H
 class Timer {
-    public:
+  public:
     clock_t begin;
     char *msg;
     bool active;
-    Timer(char *msg) : msg(msg), active(true) {
-        begin = clock();
-    }
+    Timer(char *msg) : msg(msg), active(true) { begin = clock(); }
     void TimerEnd() {
         if (active) {
             clock_t end = clock();
@@ -17,8 +15,6 @@ class Timer {
             active = false;
         }
     }
-    ~Timer() {
-        TimerEnd();
-    }
+    ~Timer() { TimerEnd(); }
 };
 #endif

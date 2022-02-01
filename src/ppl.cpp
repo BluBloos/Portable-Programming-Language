@@ -1,27 +1,26 @@
 // NOTE(Noah): This is the full toolchain. The thing that is meant to be run on the command line.
 #include <ppl_core.h>
 
-// USAGE 
+// USAGE
 // ppl.exe "inFile" -o "outFile" -t "TARGET" [options]
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     Timer timer = Timer("ppl.exe");
     LOGGER.InitFileLogging("w");
 
     const char *userPlatform;
-    const char *inFilePath; 
+    const char *inFilePath;
     const char *outFilePath;
 
     bool paramsValid = false;
     if (argc > 1) {
         inFilePath = argv[1];
-        if (argc > 3){
+        if (argc > 3) {
             std::string dash_o = std::string(argv[2]);
             if (dash_o == "-o") {
                 outFilePath = argv[3];
-                if (argc > 5){
+                if (argc > 5) {
                     std::string dash_t = std::string(argv[4]);
-                    if (dash_t == "-t"){
+                    if (dash_t == "-t") {
                         userPlatform = argv[5];
                         paramsValid = true;
                     } else
@@ -37,7 +36,7 @@ int main(int argc, char **argv)
     }
 
     if (paramsValid) {
-        
+
         LoadGrammer();
 
         FILE *inFile = fopen(inFilePath, "r");
@@ -45,17 +44,17 @@ int main(int argc, char **argv)
             LOGGER.Error("inFile of '%s' does not exist", inFilePath);
             return 0; // exit program.
         }
-        
+
         TokenContainer tokensContainer;
         PreparseContext preparseContext;
         if (!LexAndPreparse(inFile, tokensContainer, preparseContext)) {
-            // NOTE(Noah): exit program and silently fail. 
+            // NOTE(Noah): exit program and silently fail.
             // All error messages are handled by whom that throws err.
-            
+
             // TODO(Noah): Add some sort of file manager object because then we won't
             // have to write fclose twice.
-            fclose(inFile); 
-            return 0; 
+            fclose(inFile);
+            return 0;
         }
 
         fclose(inFile);
@@ -83,9 +82,7 @@ int main(int argc, char **argv)
             for token in tokens.tokens:
                 logger.Log(str(token))
         */
-
     }
 
     timer.TimerEnd();
-    
 }
