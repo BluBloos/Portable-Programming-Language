@@ -1,4 +1,5 @@
-![Ubuntu](https://github.com/BluBloos/Portable-Programming-Language/actions/workflows/build_test/badge.svg)
+![](https://github.com/BluBloos/Portable-Programming-Language/workflows/macOS%20build/badge.svg)
+![](https://github.com/BluBloos/Portable-Programming-Language/workflows/Ubuntu%20build/badge.svg)
 
 <div>
   <p align="center">
