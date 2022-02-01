@@ -23,7 +23,7 @@ for FILE in src/*;
         # you can pass arguments to this which ultimately is then used to decide which .c to compile and run.
 */
 
-#include <util.h>
+#include <ppl_util.h>
 
 void ptest_Linter(char *inFile, int &errors);
 

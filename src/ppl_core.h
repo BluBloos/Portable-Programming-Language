@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
+#include <cstring>
 #include <vector>
 // #include <time.h>
 #include <stdarg.h>

@@ -1,7 +1,11 @@
+![](https://github.com/BluBloos/Portable-Programming-Language/workflows/macOS%20build/badge.svg)
+![](https://github.com/BluBloos/Portable-Programming-Language/workflows/Ubuntu%20build/badge.svg)
+![](https://github.com/BluBloos/Portable-Programming-Language/workflows/Windows%20build/badge.svg)
+
 <div>
-<p align="center">
-<img src="https://user-images.githubusercontent.com/38915815/147722834-1602909f-fcbc-49bf-8ec3-6a0bd33ef3ec.png" />  
-</p>
+  <p align="center">
+  <img src="https://user-images.githubusercontent.com/38915815/147722834-1602909f-fcbc-49bf-8ec3-6a0bd33ef3ec.png" />  
+  </p>
 </div>
 
 The offical repo for the portable programming language. Built with ❤️
@@ -16,13 +20,11 @@ Currently porting from a Python-based codebase to a C/C++ codebase. Working on c
 
 The only dependency as of right now is a C++ compiler. 
 
-The project has been tested on the following compilers:
+The project has been tested with the following setups
 - Clang on macOS x86_64
-- MinGW-W64 on Windows 
-  - Version 8.1.0, target of i686-win32-dwarf-rev0
+- MinGW-W64 and Git bash on Windows
+- g++ on Ubuntu 20.04.3
 
-No guarentees for a working build on other systems! Windows support is still "rough around the edges".
+Support for different setups is still "rough around the edges". No guarentees.
 
-The project uses an interactive build system. Simply run build.sh (or build.bat on Windows) to get started. 
-
-If you are using Visual Studio Code https://code.visualstudio.com/, just run Shift+Command+B (macOS) or Shift+Control+B (Windows) to run the build task.
+The project uses an interactive build system. Simply run build.sh to get started.
