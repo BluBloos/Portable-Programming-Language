@@ -1,11 +1,12 @@
 ## ROADMAP
 
 ### Port Compiler codebase to C/C++
-- Add continuous integration via Github Actions to repo.
+- Add continuous integration via Github Actions to repo -> <span style="color:green">COMPLETE</span>
   - We can run .sh files directly in a workflow. See <a href="https://docs.github.com/en/actions/learn-github-actions/essential-features-of-github-actions#adding-scripts-to-your-workflow">here</a>
   - Start with a linter.
-    - <span style="color:red">EDIT: No longer doing a linter as I am too particular of the codebase. Instead I am just going to later on write a document with some standards that the codebase conforms to. Kind of like what Essence does with its contributing.md file.</span>
+    - EDIT: No longer doing a linter as I am too particular of the codebase. Instead I am just going to later on write a document with some standards that the codebase conforms to. Kind of like what Essence does with its contributing.md file.
   - Then add in build tests on Linux and Windows.
+- Get the project working for all build targets. -> <span style="color:red">DOING
 - Add the LLVM project as a submodule, add in build.c compiling from source for needed LLVM toolchain. Cache the build so it only has to be done like once (because I imagine the LLVM project is a b*tch to compile).
   - Test by handwriting a small "Hello, World!" program.
 - In small steps, building up from fundamental grammer components (bottom-up), add codegen to LLVM IR.
