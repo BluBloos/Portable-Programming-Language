@@ -1,12 +1,76 @@
-## ROADMAP
+# MVP
 
-### Port Compiler codebase to C/C++
-- Add continuous integration via Github Actions to repo -> <span style="color:green">COMPLETE</span>
-  - We can run .sh files directly in a workflow. See <a href="https://docs.github.com/en/actions/learn-github-actions/essential-features-of-github-actions#adding-scripts-to-your-workflow">here</a>
-  - Start with a linter.
-    - EDIT: No longer doing a linter as I am too particular of the codebase. Instead I am just going to later on write a document with some standards that the codebase conforms to. Kind of like what Essence does with its contributing.md file.
-  - Then add in build tests on Linux and Windows.
-- Get the project working for all build targets. -> <span style="color:red">DOING
+## Functional Requirements
+- Deviates from a toy language
+  - Develop real things
+    - Things that work on the console
+    - Things that have a GUI
+    - Things that are hardware accelerated for Graphics
+    - Things that are optimized
+      - Threading
+      - SIMD (Single instruction multiple data)
+- Language Design
+  - "Joy of programming" metric
+- Hit the right developer workflow
+  - Syntax highlighting in Vscode
+  - Debugging needs to work
+  - cli for compiling
+- Target Platforms
+  - Target the Web
+  - Target Mobile 
+    - iOS
+    - Android
+  - Target Desktop operating systems
+    - Windows
+    - macOS
+    - Linux
+
+## The Sensible Road There
+
+I'm gonna start by looking at the things that are a little unclear as to how I might do them. Like, **how do I go about targeting multiple platforms? How do I get debugging to work? How do I reliably support all the needed "real things" across different platforms?**
+
+Let's start the disucssion by thinking about how debugging might work across multiple desktop targets.
+
+Let's break down the components here:
+- Source code
+- Visual Studio
+- The debugger:
+  - gdb
+  - lldb
+
+The workflow is to compile your code with **debugging information, and this puts this stuff in the symbol table.
+
+But I think this looks different for each platform:**
+- Webassembly bytecode
+  - Stored in a .wasm file for ingestion by the browser
+- DEX file format
+  - https://source.android.com/devices/tech/dalvik/dalvik-bytecode
+  - Contains a Dalvik bytecode
+  - Suitable for being run by the Android Runtime (ART)
+- Portable Executable file format
+  - Windows
+- Mach-O
+  - macOS 
+  - iOS
+- Executable and Linkking format (ELF)
+  - Linux
+
+And then for each architecture, do we even know what the instruction set is? Arm, x86, etc? 
+
+For Windows, they run on Intel machines. For macOS, its fuzzy. The older macs use Intel, newer M1 are ARM. iOS is actually ARM. Linux is x86 but I believe can also be compiled to run (and has) on ARM.
+
+For Webassembly, there is a bytecode but also a human-readable form. This is WASM-text and has file ending of .wat
+
+The same goes for the Dalvik bytecode. It also has a human-readable form (and generally x86 and ARM as well).
+
+We will do the following (for the MVP). **x86 for Windows, macOS, and Linux, ARM for iOS, Dalvik for Android, and Webassembly for Web**
+
+Finally, there exists something called the DWARF standard. We might see this in some of the target executable file types.
+
+
+# ROADMAP
+
+## Port Compiler codebase to C/C++
 - Add the LLVM project as a submodule, add in build.c compiling from source for needed LLVM toolchain. Cache the build so it only has to be done like once (because I imagine the LLVM project is a b*tch to compile).
   - Test by handwriting a small "Hello, World!" program.
 - In small steps, building up from fundamental grammer components (bottom-up), add codegen to LLVM IR.
@@ -14,7 +78,7 @@
 - As needed, introduce and write components of the semantic parser.
   - Verify that function names are legal (cannot begin with $, for example).
 
-### Get Language to a "usable" state
+## Get Language to a "usable" state
 
 In helping to answer this question, we can review the C89 spec http://port70.net/~nsz/c/c89/c89-draft.html#2, as well as existing and randomly chosen projects on Github.
 
@@ -56,7 +120,7 @@ Feature list:
   - Add -> for dereffing pointers. OR decide on implicit dereferencing.
 
 
-### Other Next Steps
+## Other Next Steps
 
 Not entirely sure the appropriate order for these next steps, but they are important to get going.
 
@@ -84,7 +148,7 @@ Next Steps:
 - Write an optimization layer.
   - Done for the purpose of learning what optimized code is like, and how to write optimized code by-hand.
 
-## EXTRA LANGUAGE FEATURES
+# EXTRA LANGUAGE FEATURES
 - add the alloc keyword as an expression (kind of like var assignment/func decl).
 - add the free keyword as a statement.
 - \>> operator for piping function calls to object instances
@@ -98,7 +162,7 @@ Next Steps:
 - 1_000_000_000 (underscores for better readability)
 - make Quaternions a default type.
 
-## LANGUAGE DESIGN DISCUSSION
+# LANGUAGE DESIGN DISCUSSION
 
 Package System, Some Goals:
 - If I have a file, I want to know what things the file depends on.
@@ -119,6 +183,9 @@ implicit dereference / reference types:
 - But then the advantage of implicit deref is not having to change large swaths of code if you wish to go from a non pointer type to a pointer type.
 
 ## THINGS I NEED/WOULD-LIKE TO LEARN
+- Statis Single Assignment (SSA)
+  - Basically we are treating each intermediate value of some variable as it's own variable.
+  - https://en.wikipedia.org/wiki/Static_single_assignment_form
 - Consider branching and Phi nodes for compiler optimization.
     - Branch prediction. What is this? How do CPUs do it?
 - Check out what vectorizing is.

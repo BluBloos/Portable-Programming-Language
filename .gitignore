@@ -13,3 +13,4 @@ tests/*
 *.o
 !tests/preparse/
 !tests/grammer
+JOURNAL.md
