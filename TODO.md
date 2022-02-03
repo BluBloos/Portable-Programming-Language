@@ -71,9 +71,13 @@ Finally, there exists something called the DWARF standard. We might see this in 
 # ROADMAP
 
 ## Port Compiler codebase to C/C++
-- Add the LLVM project as a submodule, add in build.c compiling from source for needed LLVM toolchain. Cache the build so it only has to be done like once (because I imagine the LLVM project is a b*tch to compile).
-  - Test by handwriting a small "Hello, World!" program.
-- In small steps, building up from fundamental grammer components (bottom-up), add codegen to LLVM IR.
+- Read through the LLVM IR language. Design a slim version and stick to that. 
+- Getting to a "Hello, World!"
+  - Write a hello world program manually and by hand. 
+  - Build codegen to go from this IR to the underlying bytecode for the Intel assembly arch
+  - Chuck this in the Mach-O format.
+  - Write standard library code for a print routine for macOS.
+- In small steps, building up from fundamental grammer components (bottom-up), add codegen to our IR.
 - While writing codegen routines, optimize the AST for conciseness and ease of traversal.
 - As needed, introduce and write components of the semantic parser.
   - Verify that function names are legal (cannot begin with $, for example).
