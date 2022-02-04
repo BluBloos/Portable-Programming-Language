@@ -18,21 +18,21 @@
 
 ; How do we build this file?
 ; nasm -f macho64 helloworld.x86
-; ld helloworld.o -L/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib -lSystem
+; ld -static helloworld.o
+;   TODO(Noah): Understand how static actually impacts things. Because prior, I had to link with
+;   lSystem and make the symbol main().
 
 ; For some explicit details on how one might know that they have to use syscall,
 ; they need go no further than read the System V ABI (section A.2.1).
 ; This also details the kernal calling convention of passing arguments in the 
 ; rdi, rsi, rdx, r10, r8 and r9 registers.
 
-; Right, so what the heck is going on with -lSystem? 
-
 ; https://developer.apple.com/forums/thread/667340 apparently according to this thread,
-; syscall is deprecated???? YO. What the FUCK is going on man. Why is this so silly...
+;   TODO(Noah): Some people are saying that syscall is deprecated. Look into this.
 
-global _main
+global start
 section .text
-_main:
+start:
   mov rax, 0x2000004 ; write
   mov rdi, 1 ; stdout
   mov rsi, msg
