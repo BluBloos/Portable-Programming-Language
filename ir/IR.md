@@ -20,7 +20,7 @@ Dalvik?
 
 Hold on.
 
-I see what the problem is here. The reason I cannot design a compelling or reasonable intermediate representation is because I have know idea what it is supposed to look like on the other end. What I need to do is manually write a hello-world routine for each of these things. I need to start to write by hand what I am going to have the compiler do.
+I see what the problem is here. The reason I cannot design a compelling or reasonable intermediate representation is because I have no idea what it is supposed to look like on the other end. What I need to do is manually write a hello-world routine for each of these things. I need to start to write by hand what I am going to have the compiler do.
 
 We start with x86.
 

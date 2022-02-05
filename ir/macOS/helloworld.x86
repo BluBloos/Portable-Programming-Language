@@ -22,6 +22,8 @@
 ;   TODO(Noah): Understand how static actually impacts things. Because prior, I had to link with
 ;   lSystem and make the symbol main().
 
+; NOTE(Noah): What happens with static is that we no longer link with dyld
+
 ; For some explicit details on how one might know that they have to use syscall,
 ; they need go no further than read the System V ABI (section A.2.1).
 ; This also details the kernal calling convention of passing arguments in the 
@@ -29,6 +31,8 @@
 
 ; https://developer.apple.com/forums/thread/667340 apparently according to this thread,
 ;   TODO(Noah): Some people are saying that syscall is deprecated. Look into this.
+
+; TODO(Noah): Figure out how to build macOS apps that have an icon and all that goodness.
 
 global start
 section .text
