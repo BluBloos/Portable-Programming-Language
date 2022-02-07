@@ -29,6 +29,7 @@
 		C6077F7E27AFFE3600746340 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		C6077F8027AFFE3600746340 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		C6077F8127AFFE3600746340 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		C63B929E27B13800001211C7 /* myClass.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = myClass.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -72,6 +73,7 @@
 				C6077F7D27AFFE3600746340 /* LaunchScreen.storyboard */,
 				C6077F8027AFFE3600746340 /* Info.plist */,
 				C6077F8127AFFE3600746340 /* main.m */,
+				C63B929E27B13800001211C7 /* myClass.h */,
 			);
 			path = myFirstIOSApp;
 			sourceTree = "<group>";
