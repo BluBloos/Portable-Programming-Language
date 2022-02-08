@@ -1,28 +1,15 @@
-## 2022.02.03
+# Roadmap
 
-The task is as such. We are to read the LLVM IR. Get inspired. And invent our own, more slim IR.
+What is the path forward for developing the underlying IR for PPL? 
 
-Of course, there are probably benefits to using IRs that other people have used.
+- We are to first write a Hello, World! example for each underyling target platform of the MVP. Each example should be easily built and tested to run on each platform.
 
-So maybe we are not inventing our own IR, but rather chosing some small subset of the LLVM IR.
+- Using the low-level knowledge of each platform, invent a higher-level textual language for representing the IR. In this step, we are likely to leverage the existing and well-documented LLVM IR. Our IR should have a corresponding in-memory representation, and the text files can be converted to said in-memory representation.
 
-## 2022.02.04
+- Then we are to write just one Hello, World! example using our newly invented IR.
 
-It's a hard task that I have given myself. Frankly, as I read over the LLVM IR language specification, this thing is HUGE. I find it's almost a little like C. For example, there is an array type, and this is a first-class citizen...
-
-My big question is then the following. At what level of abstraction are the underlying bytecodes for each machine architecutre?
-
-Recall the architectures: x86, ARM, Davlik, WebAssembly
-
-We know that x86 and ARM are going to be your typical assembly language. So it would be difficult to make anything lower level.
-
-Dalvik? 
-
-Hold on.
-
-I see what the problem is here. The reason I cannot design a compelling or reasonable intermediate representation is because I have no idea what it is supposed to look like on the other end. What I need to do is manually write a hello-world routine for each of these things. I need to start to write by hand what I am going to have the compiler do.
-
-We start with x86.
+- Finally, we are to write the corresponding translation code for each mapping from the in-memory IR to the underlying target platform executable binary.
+  - We note that this step will also include the creation of an extremely minimal implementation of the PPL standard library, which as of the moment includes one function, print.
 
 # Assembly IR (Not LLVM IR compatible)
 
