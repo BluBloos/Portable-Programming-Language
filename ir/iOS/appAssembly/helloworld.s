@@ -1,11 +1,11 @@
-; My device (the iPhone 6s), uses the Apple A9 chip...
-; which seems to use the ARMv8-A architecture...
-; which also seems to be specified by the AArch64 architecture.
+// My device (the iPhone 6s), uses the Apple A9 chip...
+// which seems to use the ARMv8-A architecture...
+// which also seems to be specified by the AArch64 architecture.
 
-; maybe one of the most relevant resources is the following:
-; https://developer.apple.com/documentation/xcode/writing-arm64-code-for-apple-platforms#//apple_ref/doc/uid/TP40009020-SW1
+// maybe one of the most relevant resources is the following:
+// https://developer.apple.com/documentation/xcode/writing-arm64-code-for-apple-platforms#//apple_ref/doc/uid/TP40009020-SW1
 
-; NOTE, this work is an adaptation of https://github.com/richardjrossiii/iOSAppInAssembly
+// NOTE, this work is an adaptation of https://github.com/richardjrossiii/iOSAppInAssembly
 
 // WHAT IS THE CALLING CONVENTION?
 /*
@@ -33,16 +33,18 @@
 
 .section __TEXT,__cstring
 s_delegateClassNameCStr:
-    .asciz "AppDelegate" ; .asciz will append null byte at end of string
+    .asciz "AppDelegate" // .asciz will append null byte at end of string
 
 // For main function, r0: error code to return to OS.
 .section __TEXT,__text,regular,pure_instructions
 .global _main
-.align 4 ; NOTE(Noah): I presume that this is to byte-align the start of the code?
+.align 4 // NOTE(Noah): I presume that this is to byte-align the start of the code?
 _main:
 
     // NOTE(Noah): Standard modular programming procedure. For all the registers that are modified by 
     // this subroutine, we must save them and restore at the end of the subroutine.
+    // we can find documentation for these exact instructions here: 
+    // https://developer.apple.com/documentation/xcode/writing-armv7-code-for-ios
     push     {r4-r7, lr}           // save LR, R7, R4-R6
     add      r7, sp, #12           // adjust R7 to point to saved R7
     push     {r8, r10, r11}        // save remaining GPRs (R8, R10, R11)
@@ -53,7 +55,7 @@ _main:
     // maybe the best online reference to the existence of this function is the following Github issue:
     // https://github.com/gfx-rs/gfx/issues/2190
     //     takes no params, returns no params.
-    bl _objc_autoreleasePoolPush ; bl is branch to label.
+    bl _objc_autoreleasePoolPush // bl is branch to label.
 
     // Setup our app delegate's class. This is done using our function AppDelegate_Setup.
     //     It takes no parameters.
@@ -69,7 +71,8 @@ _main:
        1: Create a Objective-C string from a C-String for our App Delegate's name.
        2: Start the visual application.  */
    
-    mov r0, s_delegateClassNameCStr 
+    movw r0, #:lower16:s_delegateClassNameCStr
+    movt r0, #:upper16:s_delegateClassNameCStr
     bl util_getCFString // Turn our C string into a NSString, using our function util_getCFString.
     // The newly created string object is stored in r0 after calling the function.
 

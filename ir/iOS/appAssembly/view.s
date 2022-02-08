@@ -15,7 +15,7 @@ View_MethodEncoding:
     .asciz "v@:{CGRect={CGPoint=ff}{CGSize=ff}}"
 .section __TEXT,__cstring
 View_DrawString:
-    .asciz "Hello, Assembly!"
+    .asciz "Hello, World!"
 
 /* GLOBAL VARIABLES FOR STORING THE CLASS */ 
 .section __DATA,regular
