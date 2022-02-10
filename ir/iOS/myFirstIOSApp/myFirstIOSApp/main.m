@@ -17,9 +17,12 @@ int main(int argc, char * argv[]) {
     // will destory our objects.
     // this is done by automatic reference counting.
     @autoreleasepool {
-        // Setup code that might create autoreleased objects goes here.
         appDelegateClassName = NSStringFromClass([AppDelegate class]);  
     }
     
+    // Creates the application object and the application delegate and sets up the event cycle.
+    //     UIApplication is the app process.
+    //     UIApplicationDelegate is an obj that responds to events happening within the process.
+    // Must provide a Launch storyboard to display while our app is loading.
     return UIApplicationMain(argc, argv, nil, appDelegateClassName);
 }

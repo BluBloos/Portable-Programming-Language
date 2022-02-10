@@ -14,27 +14,4 @@ Install and launch an app.
 
 # Path Forward
 
-Ran into some issues today with getting the iOS build to work. Tried to compile with clang but the armv7 architecture simply does not exist on my system. Makes sense, this Github repo is WAY back. Things are much more up-to-date now. 
-
-Current effort right now:
-- Clone and try to run the repo through Xcode.
-- Trying to install exact phone as used by repo owner.
-- Then try command line again once we can get repo working.
-
-# 2022.03.09
-
-So we are yet again running into issues. This repo does NOT work out of the gate. 
-
-So now I need to think of another way to move forward here. There are actually many different
-components of what I am trying to do.
-
-Maybe one of the most important ones is to do the following: 
-- "How to compile and objective-C app for xCode."
-
-Because if I cannot even do something as simple as this, then how do I expect to do the same for 
-a full-blown assembly project? 
-
-All I can say is....what the fuck have I gotten myself into...
-
-Here is a useful article I found in the last moments as I scrambled to try to get something working,
-https://commandlinefanatic.com/cgi-bin/showarticle.cgi?article=art024
+iOS build seems to be working. But is displaying nothing. Since I am new to iOS development, going to learn a thing or two about this world and implement a dead-simple "Hello, World!" application.
