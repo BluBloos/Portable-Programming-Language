@@ -15,6 +15,7 @@ In order to effectively create a minimal iOS application, we have to take the "s
 
 Once we finalize the minimal iOS app, we must strip the build system to keep just the CFLAGS that we need. Then slowly replace the app until the entire thing is written in assembly.
 - We further note that the iOS simulator is x86_64 assembly while actual iPhones are ARM.
+- Which means that we actually have two targets here.
 
 # Reference
 So, there exists many commands that we can run via the xcode command line utility.

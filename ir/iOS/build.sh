@@ -1,8 +1,8 @@
 pushd bin
 
-rm -R myFirstIOSApp.app
+rm -R minimalApp.app
 
-mkdir myFirstIOSApp.app
+mkdir minimalApp.app
 
 CFLAGS="-x objective-c -target x86_64-apple-ios15.2-simulator -fmessage-length=0 \
 -fdiagnostics-show-note-include-stack -fmacro-backtrace-limit=0 -std=gnu11 -fobjc-arc \
@@ -23,12 +23,15 @@ CFLAGS="-x objective-c -target x86_64-apple-ios15.2-simulator -fmessage-length=0
 -MMD" 
 
 DIR=/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator15.2.sdk
-clang -isysroot $DIR $CFLAGS ../myFirstIOSApp/myFirstIOSApp/*.m -framework Foundation \
-    -framework UIKit -o myFirstIOSApp.app/myFirstIOSApp
+clang -isysroot $DIR $CFLAGS ../minimalApp/*.m -framework Foundation \
+    -framework UIKit -o minimalApp.app/minimalApp
 
-cp  Info.plist myFirstIOSApp.app/Info.plist
+cp ../minimalApp/Info.plist minimalApp.app/Info.plist
 
-#xcrun simctl install booted myFirstIOSApp.app
+cp -R ../minimalApp/assets/ minimalApp.app/
+
 #open -a Simulator.app --args -CurrentDeviceUDID D04DA895-C6A6-43DB-A517-2E28FB9C40C2
+#xcrun simctl install booted bin/minimalApp.app
+
 
 popd
