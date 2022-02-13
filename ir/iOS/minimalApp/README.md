@@ -11,3 +11,10 @@ Controller objects are:
 - App Delegate
 - View Controller
 - UIApplication object
+
+# TODO
+
+- Make the app take up the entire screen.
+- Add an app icon.
+- Add a launch screen.
+- Build out more of the app and continue to understand precisely how UIKit does its magic.
