@@ -22,5 +22,17 @@
 	<string>1.0.0</string>
 	<key>CFBundleExecutable</key>
 	<string>minimalApp</string>
+	<key>CFBundleIcons</key>
+	<dict>
+		<key>CFBundlePrimaryIcon</key>
+		<dict>
+			<key>CFBundleIconFiles</key>
+			<array>
+				<string>AppIcon60x60</string>
+			</array>
+			<key>CFBundleIconName</key>
+			<string>AppIcon</string>
+		</dict>
+	</dict>
 </dict>
 </plist>

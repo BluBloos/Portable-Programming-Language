@@ -29,7 +29,13 @@ clang -isysroot $DIR $CFLAGS ../minimalApp/*.m -framework Foundation \
 
 cp ../minimalApp/Info.plist minimalApp.app/Info.plist
 
-cp -R ../minimalApp/assets/ minimalApp.app/
+actool --output-format human-readable-text \
+    --notices --warnings --app-icon AppIcon --compress-pngs \
+    --enable-on-demand-resources YES --filter-for-device-model iPod9,1 \
+    --filter-for-device-os-version 15.2 --development-region en --target-device iphone \
+    --target-device ipad --minimum-deployment-target 15.2 --platform iphonesimulator \
+    --output-partial-info-plist ./partial.plist \
+    --compile minimalApp.app ../minimalApp/assets
 
 open -a Simulator.app --args -CurrentDeviceUDID D04DA895-C6A6-43DB-A517-2E28FB9C40C2
 xcrun simctl install booted minimalApp.app
