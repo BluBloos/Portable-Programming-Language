@@ -37,6 +37,8 @@ actool --output-format human-readable-text \
     --output-partial-info-plist ./partial.plist \
     --compile minimalApp.app ../minimalApp/assets
 
+../compile_storyboard.sh
+
 open -a Simulator.app --args -CurrentDeviceUDID D04DA895-C6A6-43DB-A517-2E28FB9C40C2
 xcrun simctl install booted minimalApp.app
 
