@@ -38,9 +38,9 @@ Let's break down the components here:
   - gdb
   - lldb
 
-The workflow is to compile your code with **debugging information, and this puts this stuff in the symbol table.
+The workflow is to compile your code with debugging information, and this puts this stuff in the symbol table.
 
-But I think this looks different for each platform:**
+But I think this looks different for each platform:
 - Webassembly bytecode
   - Stored in a .wasm file for ingestion by the browser
 - DEX file format
@@ -52,7 +52,7 @@ But I think this looks different for each platform:**
 - Mach-O
   - macOS 
   - iOS
-- Executable and Linkking format (ELF)
+- Executable and Linking format (ELF)
   - Linux
 
 And then for each architecture, do we even know what the instruction set is? Arm, x86, etc? 

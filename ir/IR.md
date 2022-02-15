@@ -3,6 +3,8 @@
 What is the path forward for developing the underlying IR for PPL? 
 
 - We are to first write a Hello, World! example for each underyling target platform of the MVP. Each example should be easily built and tested to run on each platform.
+  - EDIT: We have done some good work for the iOS platform. But the fact remains that the base level API for this platform exposes at its lowest level only objective C. Do we are left with complexities in order to make developing for this platform using PPL a sensible experience.
+  - Thus, we exclude iOS from the set of targets that will be working for the first pass of the IR. Of course, we will still include iOS in the MVP, but it remains a challenge to get working for a first pass IR.
 
 - Using the low-level knowledge of each platform, invent a higher-level textual language for representing the IR. In this step, we are likely to leverage the existing and well-documented LLVM IR. Our IR should have a corresponding in-memory representation, and the text files can be converted to said in-memory representation.
 
