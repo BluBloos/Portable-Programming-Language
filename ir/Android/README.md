@@ -19,7 +19,7 @@ $ sdkmanager "system-images;android-30;google_apis;x86"
 Note that the 30 in this instance is the API level. This can be whatever you would like....okay. Now we want to create an Android virtual device.
 
 ```bash
-$ avdmanager create avd -n Android30 -k "system-images;android-28;google_apis;x86"
+$ avdmanager create avd -n Android30 -k "system-images;android-30;google_apis;x86"
 ```
 
 Again, we can name this whatever we like. In this case we are naming it Android30.
@@ -32,7 +32,7 @@ $ emulator -avd Android30
 
 As for getting an app running, let's start by trying to build something in C...
 
-We can the following link for this: https://hackaday.com/2020/05/13/writing-android-apps-in-c-no-java-required/
+We can the following link for this: https://github.com/cnlohr/rawdrawandroid
 
 # 2022.02.16
 
@@ -91,7 +91,14 @@ JNI:
 
 # Roadmap Forward
 
-Want to strip down the example C app into a minimal app.
+Get the example C app working AS IS. <span style="color: green;">DONE</span>
+- Even with the build system that has been provided.
+
+Get the Android Emulator to a stable and working state.
+
+Then, once the example is working, strip it down into a minimal app.
+- Removing a bunch of C code.
+- Using just a plain old bash script.
 
 Then transform it into assembly language for some specific target ABI of the Android platform.
 
