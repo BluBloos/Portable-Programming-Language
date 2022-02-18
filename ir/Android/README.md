@@ -94,8 +94,6 @@ JNI:
 Get the example C app working AS IS. <span style="color: green;">DONE</span>
 - Even with the build system that has been provided.
 
-Get the Android Emulator to a stable and working state.
-
 Then, once the example is working, strip it down into a minimal app.
 - Removing a bunch of C code.
 - Using just a plain old bash script.
@@ -105,3 +103,5 @@ Then transform it into assembly language for some specific target ABI of the And
 Calling into the NDK, we just need to figure out how the C headers get mangled. At the end of the day, symbols are symbols.
 
 The safest bet is to use the compilers shipped by the android people. Here's to hoping that they take asm as input...
+
+Get the Android Emulator to a stable and working state.
