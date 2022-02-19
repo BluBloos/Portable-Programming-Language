@@ -3,14 +3,18 @@ both https://github.com/cnlohr/rawdrawandroid
 and https://github.com/android/ndk-samples/blob/master/native-activity/app/src/main/cpp/main.cpp
 */
 
+#include <assert.h>
 #include <android/log.h>
+// #include <native_window.h>
+#include <string.h> // for memset
 #include <android_native_app_glue.h>
 
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "native-activity", __VA_ARGS__))
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "native-activity", __VA_ARGS__))
 
 struct engine {
-    struct android_app* app;
+    struct android_app* app; // contains pointer window to ANativeWindow.
+    struct ANativeWindow *window;
     int32_t width;
     int32_t height;
 };
@@ -24,7 +28,7 @@ struct engine {
  * Process the next input event.
  */
 static int32_t engine_handle_input(struct android_app* app, AInputEvent* event) {
-    auto* engine = (struct engine*)app->userData;
+    // struct engine* engine = (struct engine*)app->userData;
     if (AInputEvent_getType(event) == AINPUT_EVENT_TYPE_MOTION) {
         //engine->animating = 1;
         //engine->state.x = AMotionEvent_getX(event, 0);
@@ -38,7 +42,7 @@ static int32_t engine_handle_input(struct android_app* app, AInputEvent* event) 
  * Process the next main command.
  */
 static void engine_handle_cmd(struct android_app* app, int32_t cmd) {
-    auto* engine = (struct engine*)app->userData;
+    struct engine *engine = (struct engine *)app->userData;
     switch (cmd) {
         case APP_CMD_SAVE_STATE:
             // The system has asked us to save our current state.  Do so.
@@ -48,15 +52,47 @@ static void engine_handle_cmd(struct android_app* app, int32_t cmd) {
             break;
         case APP_CMD_INIT_WINDOW:
             // The window is being shown, get it ready.
-            /* if (engine->app->window != nullptr) {
-                engine_init_display(engine);
-                engine_draw_frame(engine);
-            } */
+            engine->width = ANativeWindow_getWidth(engine->window);
+            engine->height = ANativeWindow_getHeight(engine->window);
+            struct ANativeWindow_Buffer buf;
+            struct ARect dirtyBounds; { 
+                // NOTE(Noah): (0,0) is top left. (width, height) is bottom right.
+                dirtyBounds.bottom = engine->height;
+                dirtyBounds.top = 0;
+                dirtyBounds.left = 0;
+                dirtyBounds.right = engine->width;
+            }
+            if (ANativeWindow_lock(engine->window, &buf, &dirtyBounds) == 0) {
+                // Before writing anything to the buffer, let's make sure that it is a
+                // "sensible" format.
+                assert(
+                    buf.format == AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM ||
+                    buf.format == AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM || 
+                    buf.format == AHARDWAREBUFFER_FORMAT_D24_UNORM_S8_UINT || 
+                    buf.format == AHARDWAREBUFFER_FORMAT_D32_FLOAT
+                );
+                LOGI("ANativeWindow buffer format is %X", buf.format);
+                // YAY. Now we get a small little fill routine of a single color 
+                // for the buffer :)
+                unsigned int *pixels = (unsigned int *)buf.bits;
+                char R = 255; char G = 0; char B = 255; char A = 255;
+                for (int y = 0; y < engine->height; y++) {
+                    unsigned int *pixel = pixels + buf.stride * y; 
+                    for (int x = 0; x < engine->width; x++) {
+                        // NOTE(Noah): We are assuming that the color format when stated as RGBA
+                        // means that R is the lowest bit, and A is the highest bit.
+                        *pixel++ = (A << 24) | (B << 16) | (G << 8) | R;
+                    }
+                }
+
+                // now we relock and let the native window do its magic.
+                ANativeWindow_unlockAndPost(engine->window);
+            }
+            
             break;
         case APP_CMD_TERM_WINDOW:
             // The window is being hidden or closed, clean it up.
             // engine_term_display(engine);
-
             break;
         case APP_CMD_GAINED_FOCUS:
             // When our app gains focus, we start monitoring the accelerometer.
@@ -94,21 +130,17 @@ extern void android_main(struct android_app* app) {
 
     struct engine engine = {};
     memset(&engine, 0, sizeof(engine));
-    
+
     app->userData = &engine;
     app->onAppCmd = engine_handle_cmd;
     app->onInputEvent = engine_handle_input;
-    app.app = state;
+    engine.app = app;
+    engine.window = app->window;
 
-    if (state->savedState != nullptr) {
+    if (app->savedState != (void *)0) {
         // We are starting with a previous saved state; restore from it.
         // engine.state = *(struct saved_state*)state->savedState;
     }
-
-    // Just want to log Hello, World to the debug console.
-    // Then have the app stall and do nothing for the 
-    // rest of time.
-    bool suspended = true;
 
     while(1)
 	{
@@ -123,13 +155,13 @@ extern void android_main(struct android_app* app) {
         while (
             // First param of ALooper_pollAll is the timeout. If -1, waits indefinitely until 
             // an event appears.
-            (ident=ALooper_pollAll(-1, nullptr, &events, (void**)&source)) 
+            (ident=ALooper_pollAll(-1, (void *)0, &events, (void**)&source)) 
                 >= 0
         ) {
 
             // Process this event.
-            if (source != nullptr) {
-                source->process(state, source);
+            if (source != (void *)0) {
+                source->process(app, source);
             }
 
             // If a sensor has data, process it now.
@@ -146,7 +178,7 @@ extern void android_main(struct android_app* app) {
             } */
 
             // Check if we are exiting.
-            if (state->destroyRequested != 0) {
+            if (app->destroyRequested != 0) {
                 // engine_term_display(&engine);
                 return;
             }
@@ -164,6 +196,4 @@ extern void android_main(struct android_app* app) {
         }
 
 	}
-
-	return(0);
 }
