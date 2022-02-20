@@ -13,8 +13,8 @@ and https://github.com/android/ndk-samples/blob/master/native-activity/app/src/m
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "native-activity", __VA_ARGS__))
 
 struct engine {
-    struct android_app* app; // contains pointer window to ANativeWindow.
-    struct ANativeWindow *window;
+    // struct android_app* app; // contains pointer window to ANativeWindow.
+    // struct ANativeWindow *window;
     int32_t width;
     int32_t height;
 };
@@ -52,41 +52,48 @@ static void engine_handle_cmd(struct android_app* app, int32_t cmd) {
             break;
         case APP_CMD_INIT_WINDOW:
             // The window is being shown, get it ready.
-            engine->width = ANativeWindow_getWidth(engine->window);
-            engine->height = ANativeWindow_getHeight(engine->window);
-            struct ANativeWindow_Buffer buf;
-            struct ARect dirtyBounds; { 
-                // NOTE(Noah): (0,0) is top left. (width, height) is bottom right.
-                dirtyBounds.bottom = engine->height;
-                dirtyBounds.top = 0;
-                dirtyBounds.left = 0;
-                dirtyBounds.right = engine->width;
-            }
-            if (ANativeWindow_lock(engine->window, &buf, &dirtyBounds) == 0) {
-                // Before writing anything to the buffer, let's make sure that it is a
-                // "sensible" format.
-                assert(
-                    buf.format == AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM ||
-                    buf.format == AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM || 
-                    buf.format == AHARDWAREBUFFER_FORMAT_D24_UNORM_S8_UINT || 
-                    buf.format == AHARDWAREBUFFER_FORMAT_D32_FLOAT
-                );
-                LOGI("ANativeWindow buffer format is %X", buf.format);
-                // YAY. Now we get a small little fill routine of a single color 
-                // for the buffer :)
-                unsigned int *pixels = (unsigned int *)buf.bits;
-                char R = 255; char G = 0; char B = 255; char A = 255;
-                for (int y = 0; y < engine->height; y++) {
-                    unsigned int *pixel = pixels + buf.stride * y; 
-                    for (int x = 0; x < engine->width; x++) {
-                        // NOTE(Noah): We are assuming that the color format when stated as RGBA
-                        // means that R is the lowest bit, and A is the highest bit.
-                        *pixel++ = (A << 24) | (B << 16) | (G << 8) | R;
-                    }
-                }
 
-                // now we relock and let the native window do its magic.
-                ANativeWindow_unlockAndPost(engine->window);
+            if (app->window != (void *)0) {
+                engine->width = ANativeWindow_getWidth(app->window);
+                engine->height = ANativeWindow_getHeight(app->window);
+                struct ANativeWindow_Buffer buf = {};
+                struct ARect dirtyBounds; { 
+                    // NOTE(Noah): (0,0) is top left. (width, height) is bottom right.
+                    dirtyBounds.bottom = engine->height;
+                    dirtyBounds.top = 0;
+                    dirtyBounds.left = 0;
+                    dirtyBounds.right = engine->width;
+                }
+                if (ANativeWindow_lock(app->window, &buf, &dirtyBounds) == 0) {
+                    // Before writing anything to the buffer, let's make sure that it is a
+                    // "sensible" format.
+                    assert(
+                        buf.format == AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM ||
+                        buf.format == AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM || 
+                        buf.format == AHARDWAREBUFFER_FORMAT_D24_UNORM_S8_UINT || 
+                        buf.format == AHARDWAREBUFFER_FORMAT_D32_FLOAT
+                    );
+                    LOGI("ANativeWindow buffer format is %X", buf.format);
+                    // YAY. Now we get a small little fill routine of a single color 
+                    // for the buffer :)
+                    unsigned int *pixels = (unsigned int *)buf.bits;
+                    char R = 255; char G = 0; char B = 255; char A = 255;
+                    for (int y = 0; y < engine->height; y++) {
+                        unsigned int *pixel = pixels + buf.stride * y; 
+                        for (int x = 0; x < engine->width; x++) {
+                            // NOTE(Noah): We are assuming that the color format when stated as RGBA
+                            // means that R is the lowest bit, and A is the highest bit.
+                            *pixel++ = (A << 24) | (B << 16) | (G << 8) | R;
+                        }
+                    }
+
+                    // now we relock and let the native window do its magic.
+                    ANativeWindow_unlockAndPost(app->window);
+                } else {
+                    LOGW("Unable to get lock on ANativeWindow");
+                }
+            } else {
+                LOGW("app->window is NULL but window is being shown?");
             }
             
             break;
@@ -134,8 +141,8 @@ extern void android_main(struct android_app* app) {
     app->userData = &engine;
     app->onAppCmd = engine_handle_cmd;
     app->onInputEvent = engine_handle_input;
-    engine.app = app;
-    engine.window = app->window;
+
+    // engine.window = app->window;
 
     if (app->savedState != (void *)0) {
         // We are starting with a previous saved state; restore from it.
