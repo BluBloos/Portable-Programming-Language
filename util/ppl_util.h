@@ -30,7 +30,6 @@ void CheckErrors(int errors) {
             *l = (char *)malloc(memSize);
             memcpy(*l, str.c_str(), memSize); // this will include the null-terminator.
         }
-
     }
 #endif
 
