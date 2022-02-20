@@ -3,7 +3,7 @@
 APPNAME="MinimalApp"
 LABEL="$APPNAME"
 APKFILE="$APPNAME.apk"
-PACKAGENAME="org.ncabral.$APPNAME"
+PACKAGENAME="org.noahcabral.$APPNAME"
 SRC="main.c"
 
 ANDROIDVERSION="30"
@@ -85,7 +85,7 @@ envsubst '$ANDROIDTARGET $$ANDROIDVERSION $$APPNAME $$PACKAGENAME $$LABEL' \
 # cp -r Sources/assets/* makecapk/assets
 rm -rf temp.apk
 $AAPT package -f -F temp.apk -I $ANDROIDSDK/platforms/android-$ANDROIDVERSION/android.jar \
-    -M AndroidManifest.xml -v --target-sdk-version $ANDROIDTARGET
+    -M AndroidManifest.xml -S res -v --target-sdk-version $ANDROIDTARGET
 unzip -o temp.apk -d makecapk
 rm -rf makecapk.apk
 
@@ -93,22 +93,25 @@ rm -rf makecapk.apk
 pushd makecapk
 zip -D9r ../makecapk.apk . && zip -D0r ../makecapk.apk ./resources.arsc ./AndroidManifest.xml
 popd
+# NOTE(Noah): This part we are unsure of...
 
 jarsigner -sigalg SHA1withRSA -digestalg SHA1 -verbose -keystore $KEYSTOREFILE \
-#    -storepass $STOREPASS makecapk.apk $ALIASNAME
-#rm -rf $APKFILE
-#$BUILD_TOOLS/zipalign -v 4 makecapk.apk $APKFILE
+    -storepass $STOREPASS makecapk.apk $ALIASNAME
+rm -rf $APKFILE
+$BUILD_TOOLS/zipalign -v 4 makecapk.apk $APKFILE
 # Using the apksigner in this way is only required on Android 30+
-#$BUILD_TOOLS/apksigner sign --key-pass pass:$STOREPASS --ks-pass pass:$STOREPASS --ks $KEYSTOREFILE $APKFILE
-#rm -rf temp.apk
-#rm -rf makecapk.apk
-#@ls -l $APKFILE
+$BUILD_TOOLS/apksigner sign --key-pass pass:$STOREPASS --ks-pass pass:$STOREPASS --ks $KEYSTOREFILE $APKFILE
+rm -rf temp.apk
+rm -rf makecapk.apk
+# I guess just for fun?
+ls -l $APKFILE 
 ############### MAKE APK ###############
 
-############### RUN IN EMULATOR ###########
-#@echo "Installing" $PACKAGENAME
-#$ADB install -r $APKFILE
-#$(eval ACTIVITYNAME:=$(shell $(AAPT) dump badging $(APKFILE) | grep "launchable-activity" | cut -f 2 -d"'"))
-#$ADB shell am start -n $PACKAGENAME/$ACTIVITYNAME
-############### RUN IN EMULATOR ###########
+############### INSTALL APK AND RUN IN EMULATOR ###########
+echo "Installing" $PACKAGENAME
+$ADB install -r $APKFILE
+#eval ACTIVITYNAME="$AAPT dump badging $APKFILE | grep \"launchable-activity\" | cut -f 2 -d\"'\""
+ACTIVITYNAME="android.app.NativeActivity" # NOTE(Noah): This should always be the same.
+$ADB shell am start -n $PACKAGENAME/$ACTIVITYNAME
+############### INSTALL APK AND RUN IN EMULATOR ###########
 

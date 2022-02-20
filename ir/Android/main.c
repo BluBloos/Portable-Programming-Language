@@ -142,6 +142,8 @@ extern void android_main(struct android_app* app) {
         // engine.state = *(struct saved_state*)state->savedState;
     }
 
+    LOGI("\"Hello, World!\" from MinimalApp\n");
+
     while(1)
 	{
 		// Read all pending events.
