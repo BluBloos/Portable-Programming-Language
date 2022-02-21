@@ -74,6 +74,7 @@ char *GetInFile() {
 void PrintHelp() {
     printf(ColorHighlight "\n=== Common Commands ===\n" ColorNormal);
     printf("build           (b)                 - Build all cli tools.\n");
+    printf("asmhello        (ah)                - Test pplasm assembler on backend/helloworld.\n");
     printf("preparser       (p)                 - Test preparser on single unit.\n");
     printf("preparser_all   (pall)              - Test preparser on all units in tests/preparse/.\n");
     printf("regex_gen       (re)                - Test LoadGrammer() for building custom regex trees.\n");
@@ -110,16 +111,21 @@ int DoCommand(const char *l) {
             printf("Usage: ppl <inFile> -o <outFile> -t <TARGET> [options]\n");
         }
 
-        r = CallSystem("g++ -std=c++11 -g ir/src/assembler.cpp -I src/ -I util/ -o bin/pplasm -Wno-writable-strings \
+        r = CallSystem("g++ -std=c++11 -g backend/src/assembler.cpp -I src/ -I util/ -o bin/pplasm -Wno-writable-strings \
             -Wno-write-strings");
         if (r == 0) {
             printf("PPL assembler built to bin/pplassem\n");
-            printf("Usage: pplassem <inFile> <TARGET>\n");
+            printf("Usage: pplasm <inFile> <TARGET>\n");
         }
 
         return r;
 
-	} else if (0  == strcmp(l, "p") || 0 ==strcmp(l, "preparser")) {
+	} else if (0  == strcmp(l, "ah") || 0 ==strcmp(l, "asmhello")) {
+
+        int r = CallSystem("bin/pplasm backend/helloworld/helloworld.pasm macOS");
+        return r;
+
+    } else if (0  == strcmp(l, "p") || 0 ==strcmp(l, "preparser")) {
         
         printf("NOTE: cwd is set to tests/preparse/\n");
         char *inFile = GetInFile();

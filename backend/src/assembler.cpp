@@ -1,10 +1,15 @@
 // This file takes the human readable text representation of the PPL IR
 // and converts it into an in-memory representation suitable for translation into
-// arbitrary target platforms such as x86_64, x86, 64 bit ARM, and webassembly.
+// arbitrary target platforms such as x86_64, x86, 64 bit ARM, webassmely, and
+// generally, and RISC / CISC based architecture.
 
 #include <ppl_util.h>
+#include "assembler.h"
+#include <vector>
 
 void HandleLine(char *line);
+
+std::vector<pasm_line> pasm_lines = std::vector<pasm_line>();
 
 // USAGE:
 // pplasm <inFile> <targetPlatform> 
@@ -56,13 +61,39 @@ int main(int argc, char **argv) {
 
     }
 
+    for (int i = 0; i < pasm_lines.size(); i++) {
+        PasmLinePrint(pasm_lines[i]);
+    }
+
     return 0;
 
 }
 
 void HandleLine(char *line) {
+    
     // NOTE(Noah): For right now, we are literally just going to echo the lines of all source files.
     // And we know that all lines contain the null-terminator, so we are going to use the Min version
     // of the log function.
     LOGGER.Min("%s", line);
+
+    if (*line == '.') { // Found a directive.
+        line++; // skip over the '.'
+        std::string directive = "";
+        // go up until the space.
+        while (*line != ' ') {
+            directive += *line++;
+        }
+        line++; // skip over the ' ' 
+        if (directive == "section") {
+            pasm_line pline = PasmLineEmpty();
+            pline.lineType = (*line == 'c') ? PASM_LINE_SECTION_CODE :
+                PASM_LINE_SECTION_DATA;
+            pasm_lines.push_back(pline);
+        } else if (directive == "extern") {
+            // TODO(Noah): Implement.
+        } else if (directive == "db") {
+            // TODO(Noah): Implement.
+        }
+    }
+
 }
