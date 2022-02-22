@@ -114,7 +114,7 @@ int DoCommand(const char *l) {
         r = CallSystem("g++ -std=c++11 -g backend/src/assembler.cpp -I src/ -I util/ -o bin/pplasm -Wno-writable-strings \
             -Wno-write-strings");
         if (r == 0) {
-            printf("PPL assembler built to bin/pplassem\n");
+            printf("PPL assembler built to bin/pplasm\n");
             printf("Usage: pplasm <inFile> <TARGET>\n");
         }
 

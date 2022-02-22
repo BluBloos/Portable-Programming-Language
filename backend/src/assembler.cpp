@@ -94,6 +94,18 @@ void HandleLine(char *line) {
         } else if (directive == "db") {
             // TODO(Noah): Implement.
         }
+    } else if (SillyStringStartsWith(line, "label_")) {
+        while (*line++ != '_');
+        // line should now point to after the underscore.
+        std::string label = "";
+        while (*line != ':') {
+            label += *line++;
+        }
+        char *pstr = MEMORY_ARENA.StdStringAlloc(label);
+        pasm_line pline = PasmLineEmpty();
+        pline.lineType = PASM_LINE_LABEL;
+        pline.data_cptr = pstr;
+        pasm_lines.push_back(pline);
     }
 
 }
