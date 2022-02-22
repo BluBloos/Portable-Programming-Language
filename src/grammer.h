@@ -76,18 +76,19 @@ Grammer GRAMMER = Grammer(); // global grammer object.
 struct tree_node CreateRegexTree(Grammer &grammer, const char *regex) {
     
     struct tree_node regexTree = CreateTree(TREE_ROOT);
-    std::vector<struct tree_node> contextStack(1);
-    contextStack[0] = regexTree;
+    struct tree_node *contextStack = NULL; // stretch buffer.
+    StretchyBufferInit(contextStack);
+    StretchyBufferPush(contextStack, regexTree);
 
     int regexLen = strlen(regex);
     int n = 0;
 
     while (n < regexLen) {
         char c = regex[n]; 
-        struct tree_node &lastTree = contextStack[contextStack.size()-1];
+        struct tree_node &lastTree = StretchyBufferLast(contextStack);
         // Enter in and out of context stacks.
         if (c == '[') {
-            contextStack.push_back(CreateTree(TREE_REGEX_ANY));
+            StretchyBufferPush(contextStack, CreateTree(TREE_REGEX_ANY));
         }
         else if (c == '(') {
             // Search until ')'
@@ -112,12 +113,12 @@ struct tree_node CreateRegexTree(Grammer &grammer, const char *regex) {
                 TreeAdoptTree(lastTree, tn);
                 n += 1 + newStr.size(); // skip over () block
             } else {
-                contextStack.push_back(CreateTree(TREE_REGEX_GROUP));
+                StretchyBufferPush(contextStack, CreateTree(TREE_REGEX_GROUP));
             }
         } 
         else if (c == ']' || c == ')') {
-            contextStack.pop_back();
-            TreeAdoptTree(contextStack[contextStack.size() - 1], lastTree);
+            StretchyBufferPop(contextStack);
+            TreeAdoptTree(StretchyBufferLast(contextStack), lastTree);
         } 
         else if (c == '?' || c == '*' || c == '+') {
             // NOTE(Noah): This if statement actually never evaluates to true it seems...
@@ -143,7 +144,9 @@ struct tree_node CreateRegexTree(Grammer &grammer, const char *regex) {
         }
         n += 1;
     }
-    return contextStack[0];
+    struct tree_node r = contextStack[0];
+    StretchyBufferFree(contextStack);
+    return r;
 }
 
 struct grammer_definition CreateGrammerDefinition(const char *name, const char *regExp) {

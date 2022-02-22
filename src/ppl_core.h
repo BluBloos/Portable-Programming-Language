@@ -103,6 +103,9 @@ bool SillyStringCharIn(const char *a, char c) {
 // Returns a reference to the last element of the stretchy buffer.
 #define StretchyBufferLast(a)             ((a)[StretchyBuffer_GetCount(a)-1])
 
+// Returns and deletes the last element from inside the stretchy buffer.
+#define StretchyBufferPop(a)              ((a)[StretchyBuffer_GetCount(a)--]) 
+
 #define StretchyBuffer_GetMetadataPtr(a)  ((int *) (a) - 2)
 #define StretchyBuffer_GetBufferSize(a)   StretchyBuffer_GetMetadataPtr(a)[0]
 #define StretchyBuffer_GetCount(a)        StretchyBuffer_GetMetadataPtr(a)[1]
