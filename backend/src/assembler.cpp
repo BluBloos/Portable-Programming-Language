@@ -9,11 +9,13 @@
 
 void HandleLine(char *line);
 
-std::vector<pasm_line> pasm_lines = std::vector<pasm_line>();
+struct pasm_line *pasm_lines = NULL; // stretchy buffer.
 
 // USAGE:
 // pplasm <inFile> <targetPlatform> 
 int main(int argc, char **argv) {
+
+    StretchyBufferInit(pasm_lines);
 
     if (argc < 3) {
         LOGGER.Error("Not enough arguments");
@@ -61,12 +63,40 @@ int main(int argc, char **argv) {
 
     }
 
-    for (int i = 0; i < pasm_lines.size(); i++) {
+    for (int i = 0; i < StretchyBufferCount(pasm_lines); i++) {
         PasmLinePrint(pasm_lines[i]);
     }
 
+    StretchyBufferFree(pasm_lines);
+
     return 0;
 
+}
+
+enum pasm_type SillyStringGetPasmType(char *typeStr) {
+    // TODO(Noah): The code below is better done with a map.
+    if (SillyStringStartsWith(typeStr, "int8")) {
+        return PASM_INT8;
+    } else if (SillyStringStartsWith(typeStr, "int16")) {
+        return PASM_INT16;
+    } else if (SillyStringStartsWith(typeStr, "int32")) {
+        return PASM_INT32;
+    } else if (SillyStringStartsWith(typeStr, "int64")) {
+        return PASM_INT64;
+    } else if (SillyStringStartsWith(typeStr, "uint8")) {
+        return PASM_UINT8;
+    } else if (SillyStringStartsWith(typeStr, "uint16")) {
+        return PASM_UINT16;
+    } else if (SillyStringStartsWith(typeStr, "uint32")) {
+        return PASM_UINT32;
+    } else if (SillyStringStartsWith(typeStr, "uint64")) {
+        return PASM_UINT64;
+    } else if (SillyStringStartsWith(typeStr, "float32")) {
+        return PASM_FLOAT32;
+    } else if (SillyStringStartsWith(typeStr, "float64")) {
+        return PASM_FLOAT64;
+    }
+    return PASM_VOID;
 }
 
 void HandleLine(char *line) {
@@ -88,9 +118,43 @@ void HandleLine(char *line) {
             pasm_line pline = PasmLineEmpty();
             pline.lineType = (*line == 'c') ? PASM_LINE_SECTION_CODE :
                 PASM_LINE_SECTION_DATA;
-            pasm_lines.push_back(pline);
-        } else if (directive == "extern") {
-            // TODO(Noah): Implement.
+            StretchyBufferPush(pasm_lines, pline);
+        } 
+        // NOTE(Noah): I suppose the only thing that will ever be extern
+        // is that we are trying to define a function that someone who is 
+        // not us can call.
+        else if (directive == "extern") {
+
+            /*
+            // First thing to check is the calling convention
+            enum pasm_cc ecc = (*line == 'p') ? PASM_CC_PDECL : 
+                PASM_CC_CDECL;
+            while (*line++ != ' '); // skip over until whitespace
+
+            // Now check the return type.
+            enum pasm_type ptype = PASM_VOID;
+            std::string type = "";
+            while (*line != ' ') type += *line++;
+            ptype = SillyStringGetPasmType((char *)type.c_str());
+
+            // Now check the name for the function.
+            std::string fname = "";
+            while(*line != '(') fname += *line++;
+
+            // Now we have to check for the parameters.
+            while(*line != ')') {
+                while (*line == ',' || *line == ' ') line++;
+                std::string type = "";
+                while(*line != ',' || *line != ')') {
+                    type += *line++;
+                }
+                enum pasm_type ptype = SillyStringGetPasmType((char *)type.c_str());
+                // *line++; // skip over ','
+                // *line++; // skip over ' '
+                
+            }
+            */
+
         } else if (directive == "db") {
             // TODO(Noah): Implement.
         }
@@ -105,7 +169,7 @@ void HandleLine(char *line) {
         pasm_line pline = PasmLineEmpty();
         pline.lineType = PASM_LINE_LABEL;
         pline.data_cptr = pstr;
-        pasm_lines.push_back(pline);
+        StretchyBufferPush(pasm_lines, pline);
     }
 
 }

@@ -10,6 +10,8 @@ label_main:
 label_msg:
 .db "Hello, world!", 10, 0
 
-; everything is one line.
-; anything that is not a command starts with .
-; labels start with label_, end with :
+; Ruleset that promotes easy parsing of pasm:
+;   everything is one line.
+;   anything that is not a command starts with .
+;   labels start with label_, end with :
+;   things are whitespace sensitive.

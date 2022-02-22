@@ -1,8 +1,42 @@
+#ifndef PASSEMBLER_H
+#define PASSEMBLER_H
+#include <vector>
+
 enum pasm_line_type {
     PASM_LINE_UNDEFINED = 0,
     PASM_LINE_SECTION_CODE,
     PASM_LINE_SECTION_DATA,
     PASM_LINE_LABEL
+};
+
+// calling convention
+enum pasm_cc {
+    PASM_CC_PDECL = 0,
+    PASM_CC_CDECL
+};
+
+// TODO(Noah): I'm pretty sure it is feasible to have 128 bit floats
+// Also, what about the SIMD registers (if they even are registers)?
+enum pasm_type {
+    PASM_VOID = 0,
+    PASM_INT8,
+    PASM_INT16,
+    PASM_INT32,
+    PASM_INT64,
+    PASM_UINT8,
+    PASM_UINT16,
+    PASM_UINT32,
+    PASM_UINT64,
+    PASM_FLOAT32,
+    PASM_FLOAT64
+};
+
+// Function declaration.
+struct pasm_fdecl {
+    enum pasm_cc callingConvention;
+    enum pasm_type returnType;
+    char *name;
+    enum pasm_type *params; // stretchy buffer.
 };
 
 struct pasm_line {
@@ -36,3 +70,4 @@ void PasmLinePrint(struct pasm_line pl) {
         break;
     }
 }
+#endif

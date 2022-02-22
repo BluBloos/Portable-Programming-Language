@@ -54,6 +54,9 @@ bool VERBOSE = true;
 
 /* SILLY THINGS */
 char __silly_buff[256];
+
+// Uses printf syntax to format a string, but it returns as a paramter the pointer to the null-terminated
+// string. Be warned that every call to this function destroys the result of the last call to this function.
 char *SillyStringFmt(char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
@@ -62,7 +65,7 @@ char *SillyStringFmt(char *fmt, ...) {
     return __silly_buff;
 }
 
-// Checking if a starts with b, returns with appropriate boolean value.
+// Returns true if a starts with b, false otherwise.
 bool SillyStringStartsWith(const char *a, const char *b) {
     char *pStrA = (char *)a;
     char *pStrB = (char *)b;
@@ -73,6 +76,7 @@ bool SillyStringStartsWith(const char *a, const char *b) {
     return (*pStrB == 0);
 }
 
+// Returns true if the character c is inside the SillyString a.
 bool SillyStringCharIn(const char *a, char c) {
     for (char *pStr = (char *)a; *pStr != 0; pStr++) {
         if (*pStr == c)
@@ -81,6 +85,43 @@ bool SillyStringCharIn(const char *a, char c) {
     return false;
 }
 
+// NOTE(Noah): Stretchy buffers adapated from the cryptic C code of https://nothings.org/stb/stretchy_buffer.txt
+// Stretchy buffers basically work like so: A block of memory is allocated to store the current count, total element size,
+// plus all the elements. The array pointer that was passed in originally is modified in place with the new element pointer,
+// which is offset by 2 in the allocated block (just after the count and total element size).
+// 
+// All stretchy buffers must begin as a null pointer.
+
+// Inits the stretchy buffer.
+#define StretchyBufferInit(a)             (StretchyBuffer_Grow(a,1))
+// Frees the strechy buffer. Warning: the array a will be a dangling pointer after this call.
+#define StretchyBufferFree(a)             ((a) ? free(StretchyBuffer_GetMetadataPtr(a)), 0 : 0)
+// Pushes a new element to the stretchy buffer.
+#define StretchyBufferPush(a,v)           (StretchyBuffer_MaybeGrow(a,1), (a)[StretchyBuffer_GetCount(a)++] = (v))
+// Returns a reference to the count of the stretchy buffer.
+#define StretchyBufferCount(a)            ((a) ? StretchyBuffer_GetCount(a) : 0)
+// Returns a reference to the last element of the stretchy buffer.
+#define StretchyBufferLast(a)             ((a)[StretchyBuffer_GetCount(a)-1])
+
+#define StretchyBuffer_GetMetadataPtr(a)  ((int *) (a) - 2)
+#define StretchyBuffer_GetBufferSize(a)   StretchyBuffer_GetMetadataPtr(a)[0]
+#define StretchyBuffer_GetCount(a)        StretchyBuffer_GetMetadataPtr(a)[1]
+
+#define StretchyBuffer_NeedGrow(a,n)      ((a) == 0 || StretchyBuffer_GetCount(a) + n >= StretchyBuffer_GetBufferSize(a))
+#define StretchyBuffer_MaybeGrow(a,n)     (StretchyBuffer_NeedGrow(a,(n)) ? StretchyBuffer_Grow(a,n) : (void)0)
+#define StretchyBuffer_Grow(a,n)          StretchyBuffer_Growf((void **) &(a), (n), sizeof(*(a)))
+
+static void StretchyBuffer_Growf(void **arr, int increment, int itemsize)
+{
+   int m = *arr ? 2 * StretchyBuffer_GetBufferSize(*arr) + increment : increment + 1;
+   void *p = realloc(*arr ? StretchyBuffer_GetMetadataPtr(*arr) : 0, itemsize * m + sizeof(int) * 2);
+   Assert(p);
+   if (p) {
+      if (!*arr) ((int *) p)[1] = 0;
+      *arr = (void *) ((int *) p + 2);
+      StretchyBuffer_GetBufferSize(*arr) = m;
+   }
+}
 /* SILLY THINGS */
 
 /* OTHER COMPILATION UNITS */
