@@ -13,10 +13,17 @@
 /* ------- TESTS.CPP ------- */
 // Standard for any compilation unit of this project.
 // NOTE(Noah): ppl.h on Windows is the parallel platforms library....I HATE EVERYTHING.
-#include <ppl_util.h>
+#include <ppl_core.h>
 void ptest_Preparser(char *inFilePath, int &errors);
 void ptest_Grammer(char *inFilePath, int&errors);
-/* ------- TESTS.CPP ------- */
+/* ------- TESTS.CPaP ------- */
+
+void CheckErrors(int errors) {
+    if (errors > 0)
+        LOGGER.Error("Completed with %d error(s)", errors);
+    else
+        LOGGER.Success("Completed with 0 errors.");
+}
 
 void PrintHelp();
 int DoCommand(const char *l);
@@ -45,7 +52,7 @@ int main(int argc, char **argv) {
             getline(&l, &pos, stdin);
             printf(ColorNormal);
             fflush(stdout);
-            RemoveEndline(l);
+            SillyStringRemove0xA(l);
             DoCommand(l);
             free(l); // a call to getline, if given l=NULL, will alloc a buffer. So we must free it.
         }
@@ -67,7 +74,7 @@ char *GetInFile() {
     getline(&inFile, &pos, stdin);
     printf(ColorNormal);
     fflush(stdout);
-    RemoveEndline(inFile);
+    SillyStringRemove0xA(inFile);
     return inFile;
 }
 
@@ -105,13 +112,13 @@ int DoCommand(const char *l) {
 
 	if (0 == strcmp(l, "b") || 0 == strcmp(l, "build")) {
         
-        int r = CallSystem("g++ -std=c++11 -g src/ppl.cpp -I src/ -o bin/ppl -Wno-writable-strings -Wno-write-strings");
+        int r = CallSystem("g++ -std=c++11 -g src/ppl.cpp -I src/ -I backend/src/ -o bin/ppl -Wno-writable-strings -Wno-write-strings");
         if (r == 0) {
             printf("PPL compiler built to bin/ppl\n");
             printf("Usage: ppl <inFile> -o <outFile> -t <TARGET> [options]\n");
         }
 
-        r = CallSystem("g++ -std=c++11 -g backend/src/assembler.cpp -I src/ -I util/ -o bin/pplasm -Wno-writable-strings \
+        r = CallSystem("g++ -std=c++11 -g backend/src/assembler.cpp -I src/ -I backend/src/ -o bin/pplasm -Wno-writable-strings \
             -Wno-write-strings");
         if (r == 0) {
             printf("PPL assembler built to bin/pplasm\n");
@@ -122,7 +129,7 @@ int DoCommand(const char *l) {
 
 	} else if (0  == strcmp(l, "ah") || 0 ==strcmp(l, "asmhello")) {
 
-        int r = CallSystem("bin/pplasm backend/helloworld/helloworld.pasm macOS");
+        int r = passembler("backend/helloworld/helloworld.pasm", "macOS");
         return r;
 
     } else if (0  == strcmp(l, "p") || 0 ==strcmp(l, "preparser")) {

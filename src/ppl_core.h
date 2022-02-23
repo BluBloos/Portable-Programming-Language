@@ -1,3 +1,5 @@
+#ifndef PPL_CORE_H
+#define PPL_CORE_H
 // Common include for all files.
 
 #if defined(_WIN32)
@@ -29,6 +31,9 @@ typedef unsigned int uint32;
 #define INTERNAL static
 #define PERSISTENT static
 #define Assert(b) (b) ? (void)0 : (LOGGER.Error("Assertion failure!"), abort())
+#define ColorError "\033[0;33m"
+#define ColorHighlight "\033[0;36m"
+#define ColorNormal "\033[0m"
 
 enum target_platform {
     MAC_OS,
@@ -126,6 +131,40 @@ static void StretchyBuffer_Growf(void **arr, int increment, int itemsize)
 }
 /* SILLY THINGS */
 
+#ifdef PLATFORM_WINDOWS
+    // TODO(Noah): Make faster and less "dumb". Make compliant with the behaviour of getline so that in the
+    // future, when someone who is not me tries to call getline, it works as expected.
+    void getline(char **l, size_t *n, FILE *streamIn) {
+
+        size_t nVal = 0;    
+        std::string str = "";
+
+        char c = fgetc(streamIn);    
+        while (c != EOF) {
+            str += c;
+            if (c == '\n') {
+                break;
+            }    
+            c = fgetc(streamIn);
+        }
+
+        if (*l == NULL) {
+            // Allocate a buffer to store the line.
+            unsigned int memSize = (str.size() + 1) * sizeof(char);
+            *l = (char *)malloc(memSize);
+            memcpy(*l, str.c_str(), memSize); // this will include the null-terminator.
+        }
+    }
+#endif
+
+// TODO(Noah): Rename
+void SillyStringRemove0xA(char* l) {
+    for (char *pStr = l; *pStr != 0; pStr++) {
+        if (*pStr == '\n') 
+            *pStr = 0;
+    }
+}
+
 /* OTHER COMPILATION UNITS */
 #include <lexer.h>
 #ifdef PLATFORM_WINDOWS
@@ -136,4 +175,7 @@ static void StretchyBuffer_Growf(void **arr, int increment, int itemsize)
 #include <grammer.h>
 #include <syntax.h>
 #include <tree.h>
+#include <assembler.h>
 /* OTHER COMPILATION UNITS */
+
+#endif
