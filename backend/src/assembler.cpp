@@ -5,7 +5,6 @@
 
 #include <ppl_util.h>
 #include "assembler.h"
-#include <vector>
 
 void HandleLine(char *line);
 
