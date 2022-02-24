@@ -8,7 +8,9 @@ label_main:
 
 .section data
 label_msg:
-.db "Hello, world!", 10, 0
+.db "Hello, world!"
+.db 10
+.db 0
 
 ; Ruleset that promotes easy parsing of pasm:
 ;   everything is one line.

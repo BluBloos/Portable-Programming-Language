@@ -11,7 +11,9 @@ enum pasm_line_type {
     PASM_LINE_SECTION_CODE,
     PASM_LINE_SECTION_DATA,
     PASM_LINE_LABEL,
-    PASM_LINE_FDECL
+    PASM_LINE_FDECL,
+    PASM_LINE_DATA_BYTE_INT,
+    PASM_LINE_DATA_BYTE_STRING
 };
 
 // calling convention
@@ -49,6 +51,7 @@ struct pasm_line {
     union {
         char *data_cptr;
         struct pasm_fdecl data_fdecl;
+        int data_int;
     };
 };
 
@@ -66,6 +69,7 @@ struct pasm_line PasmLineEmpty() {
     pl.lineType = PASM_LINE_UNDEFINED;
     pl.data_cptr = (char *)0;
     pl.data_fdecl = PasmFdeclEmpty();
+    pl.data_int = 0;
     return pl;
 }
 
@@ -134,6 +138,14 @@ void PasmLinePrint(struct pasm_line pl) {
                 LOGGER.Min("    "); PasmTypePrint(pl.data_fdecl.params[i]);
             }
         }
+        break;
+        case PASM_LINE_DATA_BYTE_STRING:
+        LOGGER.Min("PASM_LINE_DATA_BYTE_STRING\n");
+        LOGGER.Min("  %s\n", pl.data_cptr);
+        break;
+        case PASM_LINE_DATA_BYTE_INT:
+        LOGGER.Min("PASM_LINE_DATA_BYTE_INT\n");
+        LOGGER.Min("  %d\n", pl.data_int);
         break;
     }
 }
@@ -317,7 +329,26 @@ void HandleLine(char *line) {
             StretchyBufferPush(pasm_lines, pline);
 
         } else if (directive == "db") {
-            // TODO(Noah): Implement.
+            pasm_line pline = PasmLineEmpty();
+            
+            // TODO(Noah): Add more types of byte literals.
+            //   Ex) Add negative integers.
+            std::string strLiteral = "";
+            if (*line == '"') {
+                pline.lineType = PASM_LINE_DATA_BYTE_STRING;
+                line++; // skip over the "
+                while (*line != '"') {
+                    strLiteral += *line++;
+                }
+                pline.data_cptr = MEMORY_ARENA.StdStringAlloc(strLiteral); 
+            } else {
+                pline.lineType = PASM_LINE_DATA_BYTE_INT;
+                // An integer
+                SillyStringRemove0xA(line);
+                pline.data_int = SillyStringToUINT(line);
+            }
+
+            StretchyBufferPush(pasm_lines, pline);  
         }
     } else if (SillyStringStartsWith(line, "label_")) {
         while (*line++ != '_');
