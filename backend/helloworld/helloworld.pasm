@@ -3,8 +3,8 @@
 
 .section code
 label_main:
-  call ppl_console_print(msg)
-  call ppl_exit()
+call ppl_console_print(msg)
+call ppl_exit()
 
 .section data
 label_msg:
@@ -17,3 +17,4 @@ label_msg:
 ;   anything that is not a command starts with .
 ;   labels start with label_, end with :
 ;   things are whitespace sensitive.
+;   there are 32 general purpose registers named r0 - r31.

@@ -114,6 +114,39 @@ unsigned int SillyStringToUINT(char *str)
 	return result;
 }
 
+// Return true if the string can be represented as a number,
+// returns false otherwise. decimalFlag is set to true if the 
+// represented number is a decimal as opposed to an integer.
+bool SillyStringIsNumber(char *str, bool &decimalFlag) {
+    if (*str == 0) 
+        return false;
+    unsigned int strLength = SillyStringLength(str);
+    if (str[0] == '.' || str[strLength - 1] == '.')
+        return false;
+    for (int i = 0; i < strLength; i++) {
+        char c = str[i];
+        switch(c) {
+            case '0':
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+            case '6':
+            case '7':
+            case '8':
+            case '9':
+            break;
+            case '.':
+            decimalFlag = true;
+            break;
+            default:
+            return false;
+        }
+    } 
+    return true;
+}
+
 // NOTE(Noah): Stretchy buffers adapated from the cryptic C code of https://nothings.org/stb/stretchy_buffer.txt
 // Stretchy buffers basically work like so: A block of memory is allocated to store the current count, total element size,
 // plus all the elements. The array pointer that was passed in originally is modified in place with the new element pointer,

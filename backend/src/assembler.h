@@ -13,7 +13,8 @@ enum pasm_line_type {
     PASM_LINE_LABEL,
     PASM_LINE_FDECL,
     PASM_LINE_DATA_BYTE_INT,
-    PASM_LINE_DATA_BYTE_STRING
+    PASM_LINE_DATA_BYTE_STRING,
+    PASM_LINE_FCALL
 };
 
 // calling convention
@@ -43,7 +44,48 @@ struct pasm_fdecl {
     enum pasm_cc callingConvention;
     enum pasm_type returnType;
     char *name;
-    enum pasm_type *params; // stretchy buffer.
+    enum pasm_type *params; // Stretchy buffer.
+};
+
+enum pasm_fparam_type {
+    PASM_FPARAM_LABEL = 0,
+    PASM_FPARAM_INT,
+    PASM_FPARAM_REGISTER
+};
+
+enum pasm_register {
+    PASM_R0 = 0, PASM_R1,
+    PASM_R2, PASM_R3,
+    PASM_R4, PASM_R5,
+    PASM_R6, PASM_R7,
+    PASM_R8, PASM_R9,
+    PASM_R10, PASM_R11,
+    PASM_R12, PASM_R13,
+    PASM_R14, PASM_R15,
+    PASM_R16, PASM_R17,
+    PASM_R18, PASM_R19,
+    PASM_R20, PASM_R21,
+    PASM_R22, PASM_R23,
+    PASM_R24, PASM_R25,
+    PASM_R26, PASM_R27,
+    PASM_R28, PASM_R29,
+    PASM_R30, PASM_R31,
+};
+
+// Function params
+struct pasm_fparam {
+    enum pasm_fparam_type type;
+    union {
+        char *data_cptr;
+        int data_int;
+        enum pasm_register data_register;
+    };
+};
+
+// Function call.
+struct pasm_fcall {
+    char *name;
+    struct pasm_fparam *params; // Stretchy buffer.
 };
 
 struct pasm_line {
@@ -51,9 +93,17 @@ struct pasm_line {
     union {
         char *data_cptr;
         struct pasm_fdecl data_fdecl;
+        struct pasm_fcall data_fcall;
         int data_int;
     };
 };
+
+struct pasm_fcall PasmFcallEmpty() {
+    struct pasm_fcall pfcall;
+    pfcall.name = NULL;
+    pfcall.params = NULL;
+    return pfcall;
+}
 
 struct pasm_fdecl PasmFdeclEmpty() {
     struct pasm_fdecl pfdecl;
@@ -69,6 +119,7 @@ struct pasm_line PasmLineEmpty() {
     pl.lineType = PASM_LINE_UNDEFINED;
     pl.data_cptr = (char *)0;
     pl.data_fdecl = PasmFdeclEmpty();
+    pl.data_fcall = PasmFcallEmpty();
     pl.data_int = 0;
     return pl;
 }
@@ -147,7 +198,52 @@ void PasmLinePrint(struct pasm_line pl) {
         LOGGER.Min("PASM_LINE_DATA_BYTE_INT\n");
         LOGGER.Min("  %d\n", pl.data_int);
         break;
+        case PASM_LINE_FCALL:
+        {
+            LOGGER.Min("PASM_LINE_FCALL\n");
+            LOGGER.Min("  name:%s\n", pl.data_fcall.name);
+            LOGGER.Min("  params:\n");
+            for (int i = 0; i < StretchyBufferCount(pl.data_fcall.params); i++) {
+                //LOGGER.Min("    "); PasmTypePrint(pl.data_fdecl.params[i]);
+                struct pasm_fparam fparam = pl.data_fcall.params[i];
+                switch(fparam.type) {
+                    case PASM_FPARAM_INT:
+                    LOGGER.Min("    PASM_FPARAM_INt\n");
+                    LOGGER.Min("      %d\n", fparam.data_int);
+                    break;
+                    case PASM_FPARAM_LABEL:
+                    LOGGER.Min("    PASM_FPARAM_LABEL\n");
+                    LOGGER.Min("      %s\n", fparam.data_cptr);
+                    break;
+                    case PASM_FPARAM_REGISTER:
+                    LOGGER.Min("    PASM_FPARAM_REGISTER\n");
+                    LOGGER.Min("      r%d\n", (int)fparam.data_register);
+                    break;
+                }
+            }
+        }
+        break;
     }
+}
+
+// NOTE(Noah): I could not dislike this function more.
+// Anything else please. Be it regex, maps, whatever. You name it.
+// But this? This is like your siblings wet fart on a thursday morning.
+//
+// return true if str is equal to any one of the 32 general purpose
+// registers. Ex) "r20", "r31"...
+// If the function returns true, reg will be set to the corresponding
+// register.
+bool SillyStringGetRegister(char *str, enum pasm_register &reg) {
+    if (str[0] != 'r') {
+        return false;
+    }
+    unsigned int num = SillyStringToUINT(str + 1);    
+    if (num >= 0 && num < 32) {
+        reg = (enum pasm_register)((int)PASM_R0 + num);
+        return true;
+    }
+    return false;
 }
 
 void HandleLine(char *line);
@@ -158,6 +254,7 @@ struct pasm_line *pasm_lines = NULL; // stretchy buffer.
 int pasm_main(int argc, char **argv) {
 
     // StretchyBufferInit(pasm_lines);
+    pasm_lines = NULL;
 
     if (argc < 3) {
         LOGGER.Error("Not enough arguments");
@@ -214,6 +311,8 @@ int pasm_main(int argc, char **argv) {
         struct pasm_line pline = pasm_lines[i];
         if (pline.lineType == PASM_LINE_FDECL) {
             StretchyBufferFree(pline.data_fdecl.params);
+        } else if (pline.lineType == PASM_LINE_FCALL) {
+            StretchyBufferFree(pline.data_fcall.params);
         }
     }
 
@@ -350,6 +449,8 @@ void HandleLine(char *line) {
 
             StretchyBufferPush(pasm_lines, pline);  
         }
+    } else if (*line == ';') {
+        // Do nothing!!! Yay :)
     } else if (SillyStringStartsWith(line, "label_")) {
         while (*line++ != '_');
         // line should now point to after the underscore.
@@ -362,6 +463,61 @@ void HandleLine(char *line) {
         pline.lineType = PASM_LINE_LABEL;
         pline.data_cptr = pstr;
         StretchyBufferPush(pasm_lines, pline);
+    } else {
+        // We can now make the assumption that we are deadling
+        // with a full-blown assembly command. So it's got the
+        // pneumonic and everything.
+        if (SillyStringStartsWith(line, "call")) {
+            pasm_line pline = PasmLineEmpty();
+            pline.lineType = PASM_LINE_FCALL;
+            
+            while (*line++ != ' ');
+            // Now check the name for the function.
+            std::string fname = "";
+            while(*line != '(') fname += *line++;
+            pline.data_fcall.name = MEMORY_ARENA.StdStringAlloc(fname);
+
+            line++; // skip past the '('
+
+            // Now we have to check for the parameters.
+            while(*line != ')') {
+                while (*line == ',' || *line == ' ') { line++; }
+                
+                // Function params are either going to be an immediate
+                //   which would be a number of a label.
+                // OR, function params are going to be a register.
+                std::string param = "";
+                while(*line != ',' && *line != ')') {
+                    param += *line++;
+                }
+
+                struct pasm_fparam fparam;
+                bool _dflag;
+                enum pasm_register _reg;
+                if (SillyStringGetRegister(
+                    (char *)param.c_str(), _reg)) 
+                {
+                    fparam.type = PASM_FPARAM_REGISTER;
+                    fparam.data_register = _reg;
+                } else if (SillyStringIsNumber((char *)param.c_str(),
+                    _dflag)) 
+                {
+                    fparam.type = PASM_FPARAM_INT;
+                    fparam.data_int = SillyStringToUINT(
+                        (char *)param.c_str());
+                } else {
+                    // We know it's a label.
+                    fparam.type = PASM_FPARAM_LABEL;
+                    fparam.data_cptr = MEMORY_ARENA.StringAlloc(
+                        (char *)param.c_str()
+                    );
+                }
+                StretchyBufferPush(pline.data_fcall.params, fparam);
+                            
+            }
+
+            StretchyBufferPush(pasm_lines, pline);
+        }
     }
 
 }
