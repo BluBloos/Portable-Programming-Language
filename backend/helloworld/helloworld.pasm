@@ -1,10 +1,10 @@
 .extern p_decl void ppl_console_print(int64)
-.extern p_decl void ppl_exit()
+.extern p_decl void ppl_exit(int32)
 
 .section code
 label_main:
 call ppl_console_print(msg)
-call ppl_exit()
+call ppl_exit(0)
 
 .section data
 label_msg:

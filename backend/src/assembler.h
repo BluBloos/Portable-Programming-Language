@@ -124,6 +124,11 @@ struct pasm_line PasmLineEmpty() {
     return pl;
 }
 
+struct pasm_func_table {
+    char *key;
+    struct pasm_fdecl value;
+};
+
 // TODO(Noah): See. Crap like this, in PPL, can be made MUCH more clean.
 // This type of code is prone to error big time.
 void PasmTypePrint(enum pasm_type ptype) {
@@ -246,6 +251,19 @@ bool SillyStringGetRegister(char *str, enum pasm_register &reg) {
     return false;
 }
 
+// Deallocs the lines in the stretchy buffer lines.
+void DeallocPasmLines(struct pasm_line *lines) {
+    for (int i = 0; i < StretchyBufferCount(lines); i++) {
+        struct pasm_line pline = lines[i];
+        if (pline.lineType == PASM_LINE_FDECL) {
+            StretchyBufferFree(pline.data_fdecl.params);
+        } else if (pline.lineType == PASM_LINE_FCALL) {
+            StretchyBufferFree(pline.data_fcall.params);
+        }
+    }
+    StretchyBufferFree(lines);
+}
+
 void HandleLine(char *line);
 struct pasm_line *pasm_lines = NULL; // stretchy buffer.
 
@@ -303,20 +321,11 @@ int pasm_main(int argc, char **argv) {
 
     }
 
-    for (int i = 0; i < StretchyBufferCount(pasm_lines); i++) {
-        PasmLinePrint(pasm_lines[i]);
-    }
-
-    for (int i = 0; i < StretchyBufferCount(pasm_lines); i++) {
-        struct pasm_line pline = pasm_lines[i];
-        if (pline.lineType == PASM_LINE_FDECL) {
-            StretchyBufferFree(pline.data_fdecl.params);
-        } else if (pline.lineType == PASM_LINE_FCALL) {
-            StretchyBufferFree(pline.data_fcall.params);
+    if (VERBOSE) {
+        for (int i = 0; i < StretchyBufferCount(pasm_lines); i++) {
+            PasmLinePrint(pasm_lines[i]);
         }
     }
-
-    StretchyBufferFree(pasm_lines);
 
     return 0;
 

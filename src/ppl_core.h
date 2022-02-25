@@ -18,8 +18,12 @@
 // #include <time.h>
 #include <stdarg.h>
 #include <unistd.h>
-//#include <x86intrin.h>
+// #include <x86intrin.h>
 #include <dirent.h>
+#define STB_DS_IMPLEMENTATION
+#define STBDS_NO_SHORT_NAMES
+#include <stb_ds.h>
+// TODO(Noah): Remove dependency on unordered_map.
 #include <unordered_map>
 #ifdef PLATFORM_WINDOWS
 #include <Windows.h>
@@ -147,6 +151,15 @@ bool SillyStringIsNumber(char *str, bool &decimalFlag) {
     return true;
 }
 
+// TODO(Noah): Sometime this function throws an error when we are in the debugger. And it seems to happen 
+// after some amount of time passes.
+void SillyStringRemove0xA(char* l) {
+    for (char *pStr = l; *pStr != 0; pStr++) {
+        if (*pStr == '\n') 
+            *pStr = 0;
+    }
+}
+
 // NOTE(Noah): Stretchy buffers adapated from the cryptic C code of https://nothings.org/stb/stretchy_buffer.txt
 // Stretchy buffers basically work like so: A block of memory is allocated to store the current count, total element size,
 // plus all the elements. The array pointer that was passed in originally is modified in place with the new element pointer,
@@ -187,6 +200,8 @@ static void StretchyBuffer_Growf(void **arr, int increment, int itemsize)
       StretchyBuffer_GetBufferSize(*arr) = m;
    }
 }
+// end of Stretchy buffer things
+
 /* SILLY THINGS */
 
 #ifdef PLATFORM_WINDOWS
@@ -215,14 +230,46 @@ static void StretchyBuffer_Growf(void **arr, int increment, int itemsize)
     }
 #endif
 
-// TODO(Noah): Sometime this function throws an error when we are in the debugger. And it seems to happen 
-// after some amount of time passes.
-void SillyStringRemove0xA(char* l) {
-    for (char *pStr = l; *pStr != 0; pStr++) {
-        if (*pStr == '\n') 
-            *pStr = 0;
+class PFileWriter {
+public:
+    FILE *handle;
+    unsigned int indentation;
+    bool freshNewline;
+    PFileWriter(FILE *handle) : handle(handle), indentation(0), freshNewline(true) {}
+    PFileWriter(char *file) : indentation(0), freshNewline(true) {
+        handle = fopen(file, "w");
     }
-}
+    ~PFileWriter() { fclose(handle); }
+    void IncreaseIndenation(unsigned int amount) { indentation += amount; }
+    void DecreaseIndentation(unsigned int amount) { indentation -= amount; }
+    // TODO(Noah): Make this take in a char *fmt string and ... variadic arguments.
+    void write(char *str) {
+        int n = 0 ;
+        std::string currentWrite = "";        
+        while (n < strlen(str)) {
+            char c = str[n];
+            if (c == '\n') {
+                fprintf(handle, "%s", currentWrite.c_str());
+                currentWrite = "";
+                fprintf(handle, "\n");
+                freshNewline = true;
+            } else {
+                if (freshNewline) {
+                    std::string sillyWhitespace = ""; 
+                    int i = 0;
+                    while(i++ < indentation) {sillyWhitespace += ' ';}
+                    fprintf(handle, "%s", sillyWhitespace.c_str());
+                }
+                currentWrite += c;
+                freshNewline = false;
+            }
+            n += 1;
+        }
+        if (currentWrite != "") {
+            fprintf(handle, "%s", currentWrite.c_str());
+        }
+    }   
+};
 
 /* OTHER COMPILATION UNITS */
 #include <lexer.h>
@@ -234,7 +281,9 @@ void SillyStringRemove0xA(char* l) {
 #include <grammer.h>
 #include <syntax.h>
 #include <tree.h>
+// backend things :P
 #include <assembler.h>
+#include <x86_64.h>
 /* OTHER COMPILATION UNITS */
 
 #endif

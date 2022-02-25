@@ -1,4 +1,5 @@
-ppl_exit: 
+global ppl_exit
+ppl_exit:
     ; rcx = return value
     mov rax, 0x2000001 ; exit
     mov rdi, rcx
@@ -6,3 +7,5 @@ ppl_exit:
 
     ; NOTE(Noah): I don't even think this function
     ; needs to return...
+    ;
+    ; hell yeahhhh

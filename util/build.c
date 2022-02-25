@@ -130,6 +130,14 @@ int DoCommand(const char *l) {
 	} else if (0  == strcmp(l, "ah") || 0 ==strcmp(l, "asmhello")) {
 
         int r = passembler("backend/helloworld/helloworld.pasm", "macOS");
+        r |= pasm_x86_64(pasm_lines, "bin/helloworld.x86_64", MAC_OS);
+
+        r |= CallSystem("nasm -f macho64 bin/helloworld.x86_64");
+        r |= CallSystem("nasm -o bin/exit.o -f macho64 backend/pstdlib/macOS/console/exit.s");
+        r |= CallSystem("nasm -o bin/print.o -f macho64 backend/pstdlib/macOS/console/print.s");
+        r |= CallSystem("ld -o bin/helloworld -static bin/helloworld.o bin/exit.o bin/print.o");
+        r |= CallSystem("bin/helloworld");
+
         return r;
 
     } else if (0  == strcmp(l, "p") || 0 ==strcmp(l, "preparser")) {
