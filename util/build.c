@@ -131,7 +131,7 @@ int DoCommand(const char *l) {
 
         int r = passembler("backend/helloworld/helloworld.pasm", "macOS");
         r |= pasm_x86_64(pasm_lines, "bin/helloworld.x86_64", MAC_OS);
-
+        DeallocPasmLines(pasm_lines);
         r |= CallSystem("nasm -f macho64 bin/helloworld.x86_64");
         r |= CallSystem("nasm -o bin/exit.o -f macho64 backend/pstdlib/macOS/console/exit.s");
         r |= CallSystem("nasm -o bin/print.o -f macho64 backend/pstdlib/macOS/console/print.s");
