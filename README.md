@@ -2,13 +2,17 @@
 
 <div>
   <p align="center">
-  <img src="https://user-images.githubusercontent.com/38915815/147722834-1602909f-fcbc-49bf-8ec3-6a0bd33ef3ec.png" />  
+    <img src="https://user-images.githubusercontent.com/38915815/155840268-844e6655-2554-4ac0-bacb-4d789f980b58.png" />
+   
+
+  </p>
+  <p align="center">
+    <img src="https://github.com/BluBloos/Portable-Programming-Language/workflows/macOS%20build/badge.svg"></img>
+    <img src="https://github.com/BluBloos/Portable-Programming-Language/workflows/Ubuntu%20build/badge.svg"></img>
+    <img src="https://github.com/BluBloos/Portable-Programming-Language/workflows/Windows%20build/badge.svg"></img>
   </p>
 </div>
 
-![](https://github.com/BluBloos/Portable-Programming-Language/workflows/macOS%20build/badge.svg)
-![](https://github.com/BluBloos/Portable-Programming-Language/workflows/Ubuntu%20build/badge.svg)
-![](https://github.com/BluBloos/Portable-Programming-Language/workflows/Windows%20build/badge.svg)
 
 # Portable Programming Language
 
