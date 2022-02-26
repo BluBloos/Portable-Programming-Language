@@ -112,13 +112,13 @@ int DoCommand(const char *l) {
 
 	if (0 == strcmp(l, "b") || 0 == strcmp(l, "build")) {
         
-        int r = CallSystem("g++ -std=c++11 -g src/ppl.cpp -I src/ -I backend/src/ -o bin/ppl -Wno-writable-strings -Wno-write-strings");
+        int r = CallSystem("g++ -std=c++11 -g src/ppl.cpp -I vendor/ -I src/ -I backend/src/ -o bin/ppl -Wno-writable-strings -Wno-write-strings");
         if (r == 0) {
             printf("PPL compiler built to bin/ppl\n");
             printf("Usage: ppl <inFile> -o <outFile> -t <TARGET> [options]\n");
         }
 
-        r = CallSystem("g++ -std=c++11 -g backend/src/assembler.cpp -I src/ -I backend/src/ -o bin/pplasm -Wno-writable-strings \
+        r = CallSystem("g++ -std=c++11 -g backend/src/assembler.cpp -I vendor/ -I src/ -I backend/src/ -o bin/pplasm -Wno-writable-strings \
             -Wno-write-strings");
         if (r == 0) {
             printf("PPL assembler built to bin/pplasm\n");

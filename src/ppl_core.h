@@ -25,6 +25,7 @@
 #include <stb_ds.h>
 // TODO(Noah): Remove dependency on unordered_map.
 #include <unordered_map>
+#include <math.h>
 #ifdef PLATFORM_WINDOWS
 #include <Windows.h>
 #endif
