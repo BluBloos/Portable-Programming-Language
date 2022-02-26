@@ -1,3 +1,5 @@
+#ifndef PPL_CORE_H
+#define PPL_CORE_H
 // Common include for all files.
 
 #if defined(_WIN32)
@@ -13,12 +15,15 @@
 #include <stdlib.h>
 #include <string>
 #include <cstring>
-#include <vector>
 // #include <time.h>
 #include <stdarg.h>
 #include <unistd.h>
-//#include <x86intrin.h>
+// #include <x86intrin.h>
 #include <dirent.h>
+#define STB_DS_IMPLEMENTATION
+#define STBDS_NO_SHORT_NAMES
+#include <stb_ds.h>
+// TODO(Noah): Remove dependency on unordered_map.
 #include <unordered_map>
 #ifdef PLATFORM_WINDOWS
 #include <Windows.h>
@@ -30,6 +35,10 @@ typedef unsigned int uint32;
 #define INTERNAL static
 #define PERSISTENT static
 #define Assert(b) (b) ? (void)0 : (LOGGER.Error("Assertion failure!"), abort())
+#define SafeSubtract(Value, Subtractor) Value = (Value >= Subtractor) ? Value - Subtractor: 0
+#define ColorError "\033[0;33m"
+#define ColorHighlight "\033[0;36m"
+#define ColorNormal "\033[0m"
 
 enum target_platform {
     MAC_OS,
@@ -54,6 +63,9 @@ bool VERBOSE = true;
 
 /* SILLY THINGS */
 char __silly_buff[256];
+
+// Uses printf syntax to format a string, but it returns as a paramter the pointer to the null-terminated
+// string. Be warned that every call to this function destroys the result of the last call to this function.
 char *SillyStringFmt(char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
@@ -62,7 +74,7 @@ char *SillyStringFmt(char *fmt, ...) {
     return __silly_buff;
 }
 
-// Checking if a starts with b, returns with appropriate boolean value.
+// Returns true if a starts with b, false otherwise.
 bool SillyStringStartsWith(const char *a, const char *b) {
     char *pStrA = (char *)a;
     char *pStrB = (char *)b;
@@ -73,6 +85,7 @@ bool SillyStringStartsWith(const char *a, const char *b) {
     return (*pStrB == 0);
 }
 
+// Returns true if the character c is inside the SillyString a.
 bool SillyStringCharIn(const char *a, char c) {
     for (char *pStr = (char *)a; *pStr != 0; pStr++) {
         if (*pStr == c)
@@ -81,7 +94,182 @@ bool SillyStringCharIn(const char *a, char c) {
     return false;
 }
 
+// Returns the length of the silly string.
+unsigned int SillyStringLength(char *str) {
+    unsigned int r = 0;
+    while (*str++ != 0) { r++; }
+    return r;
+}
+
+// Parses the silly string as an unsigned integer, and returns the interpreted value.
+// if the string does not represent an unsigned integer, the behaviour of this function is
+// undefined.
+unsigned int SillyStringToUINT(char *str)
+{
+	unsigned int result = 0;
+	unsigned int strLength = SillyStringLength(str);
+	unsigned int placeValue = (int)powf(10.0f, (strLength - 1.0f) );
+	for (unsigned int x = 0; x < strLength; x++)
+	{
+		result += (SafeSubtract(*str, '0')) * placeValue;
+		str++;
+		placeValue = placeValue / 10;
+	}
+	return result;
+}
+
+// Return true if the string can be represented as a number,
+// returns false otherwise. decimalFlag is set to true if the 
+// represented number is a decimal as opposed to an integer.
+bool SillyStringIsNumber(char *str, bool &decimalFlag) {
+    if (*str == 0) 
+        return false;
+    unsigned int strLength = SillyStringLength(str);
+    if (str[0] == '.' || str[strLength - 1] == '.')
+        return false;
+    for (int i = 0; i < strLength; i++) {
+        char c = str[i];
+        switch(c) {
+            case '0':
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+            case '6':
+            case '7':
+            case '8':
+            case '9':
+            break;
+            case '.':
+            decimalFlag = true;
+            break;
+            default:
+            return false;
+        }
+    } 
+    return true;
+}
+
+// TODO(Noah): Sometime this function throws an error when we are in the debugger. And it seems to happen 
+// after some amount of time passes.
+void SillyStringRemove0xA(char* l) {
+    for (char *pStr = l; *pStr != 0; pStr++) {
+        if (*pStr == '\n') 
+            *pStr = 0;
+    }
+}
+
+// NOTE(Noah): Stretchy buffers adapated from the cryptic C code of https://nothings.org/stb/stretchy_buffer.txt
+// Stretchy buffers basically work like so: A block of memory is allocated to store the current count, total element size,
+// plus all the elements. The array pointer that was passed in originally is modified in place with the new element pointer,
+// which is offset by 2 in the allocated block (just after the count and total element size).
+// 
+// All stretchy buffers must begin as a null pointer.
+
+// Inits the stretchy buffer.
+#define StretchyBufferInit(a)             (StretchyBuffer_Grow(a,1))
+// Frees the strechy buffer. Warning: the array a will be a dangling pointer after this call.
+#define StretchyBufferFree(a)             ((a) ? free(StretchyBuffer_GetMetadataPtr(a)), 0 : 0)
+// Pushes a new element to the stretchy buffer.
+#define StretchyBufferPush(a,v)           (StretchyBuffer_MaybeGrow(a,1), (a)[StretchyBuffer_GetCount(a)++] = (v))
+// Returns a reference to the count of the stretchy buffer.
+#define StretchyBufferCount(a)            ((a) ? StretchyBuffer_GetCount(a) : 0)
+// Returns a reference to the last element of the stretchy buffer.
+#define StretchyBufferLast(a)             ((a)[StretchyBuffer_GetCount(a)-1])
+
+// Returns and deletes the last element from inside the stretchy buffer.
+#define StretchyBufferPop(a)              ((a)[StretchyBuffer_GetCount(a)--]) 
+
+#define StretchyBuffer_GetMetadataPtr(a)  ((int *) (a) - 2)
+#define StretchyBuffer_GetBufferSize(a)   StretchyBuffer_GetMetadataPtr(a)[0]
+#define StretchyBuffer_GetCount(a)        StretchyBuffer_GetMetadataPtr(a)[1]
+
+#define StretchyBuffer_NeedGrow(a,n)      ((a) == 0 || StretchyBuffer_GetCount(a) + n >= StretchyBuffer_GetBufferSize(a))
+#define StretchyBuffer_MaybeGrow(a,n)     (StretchyBuffer_NeedGrow(a,(n)) ? StretchyBuffer_Grow(a,n) : (void)0)
+#define StretchyBuffer_Grow(a,n)          StretchyBuffer_Growf((void **) &(a), (n), sizeof(*(a)))
+
+static void StretchyBuffer_Growf(void **arr, int increment, int itemsize)
+{
+   int m = *arr ? 2 * StretchyBuffer_GetBufferSize(*arr) + increment : increment + 1;
+   void *p = realloc(*arr ? StretchyBuffer_GetMetadataPtr(*arr) : 0, itemsize * m + sizeof(int) * 2);
+   Assert(p);
+   if (p) {
+      if (!*arr) ((int *) p)[1] = 0;
+      *arr = (void *) ((int *) p + 2);
+      StretchyBuffer_GetBufferSize(*arr) = m;
+   }
+}
+// end of Stretchy buffer things
+
 /* SILLY THINGS */
+
+#ifdef PLATFORM_WINDOWS
+    // TODO(Noah): Make faster and less "dumb". Make compliant with the behaviour of getline so that in the
+    // future, when someone who is not me tries to call getline, it works as expected.
+    void getline(char **l, size_t *n, FILE *streamIn) {
+
+        size_t nVal = 0;    
+        std::string str = "";
+
+        char c = fgetc(streamIn);    
+        while (c != EOF) {
+            str += c;
+            if (c == '\n') {
+                break;
+            }    
+            c = fgetc(streamIn);
+        }
+
+        if (*l == NULL) {
+            // Allocate a buffer to store the line.
+            unsigned int memSize = (str.size() + 1) * sizeof(char);
+            *l = (char *)malloc(memSize);
+            memcpy(*l, str.c_str(), memSize); // this will include the null-terminator.
+        }
+    }
+#endif
+
+class PFileWriter {
+public:
+    FILE *handle;
+    unsigned int indentation;
+    bool freshNewline;
+    PFileWriter(FILE *handle) : handle(handle), indentation(0), freshNewline(true) {}
+    PFileWriter(char *file) : indentation(0), freshNewline(true) {
+        handle = fopen(file, "w");
+    }
+    ~PFileWriter() { fclose(handle); }
+    void IncreaseIndenation(unsigned int amount) { indentation += amount; }
+    void DecreaseIndentation(unsigned int amount) { indentation -= amount; }
+    // TODO(Noah): Make this take in a char *fmt string and ... variadic arguments.
+    void write(char *str) {
+        int n = 0 ;
+        std::string currentWrite = "";        
+        while (n < strlen(str)) {
+            char c = str[n];
+            if (c == '\n') {
+                fprintf(handle, "%s", currentWrite.c_str());
+                currentWrite = "";
+                fprintf(handle, "\n");
+                freshNewline = true;
+            } else {
+                if (freshNewline) {
+                    std::string sillyWhitespace = ""; 
+                    int i = 0;
+                    while(i++ < indentation) {sillyWhitespace += ' ';}
+                    fprintf(handle, "%s", sillyWhitespace.c_str());
+                }
+                currentWrite += c;
+                freshNewline = false;
+            }
+            n += 1;
+        }
+        if (currentWrite != "") {
+            fprintf(handle, "%s", currentWrite.c_str());
+        }
+    }   
+};
 
 /* OTHER COMPILATION UNITS */
 #include <lexer.h>
@@ -93,4 +281,9 @@ bool SillyStringCharIn(const char *a, char c) {
 #include <grammer.h>
 #include <syntax.h>
 #include <tree.h>
+// backend things :P
+#include <assembler.h>
+#include <x86_64.h>
 /* OTHER COMPILATION UNITS */
+
+#endif

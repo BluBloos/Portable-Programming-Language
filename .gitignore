@@ -14,3 +14,4 @@ tests/*
 !tests/preparse/
 !tests/grammer
 JOURNAL.md
+.DS_Store

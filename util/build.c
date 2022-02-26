@@ -13,10 +13,17 @@
 /* ------- TESTS.CPP ------- */
 // Standard for any compilation unit of this project.
 // NOTE(Noah): ppl.h on Windows is the parallel platforms library....I HATE EVERYTHING.
-#include <ppl_util.h>
+#include <ppl_core.h>
 void ptest_Preparser(char *inFilePath, int &errors);
 void ptest_Grammer(char *inFilePath, int&errors);
-/* ------- TESTS.CPP ------- */
+/* ------- TESTS.CPaP ------- */
+
+void CheckErrors(int errors) {
+    if (errors > 0)
+        LOGGER.Error("Completed with %d error(s)", errors);
+    else
+        LOGGER.Success("Completed with 0 errors.");
+}
 
 void PrintHelp();
 int DoCommand(const char *l);
@@ -45,7 +52,7 @@ int main(int argc, char **argv) {
             getline(&l, &pos, stdin);
             printf(ColorNormal);
             fflush(stdout);
-            RemoveEndline(l);
+            SillyStringRemove0xA(l);
             DoCommand(l);
             free(l); // a call to getline, if given l=NULL, will alloc a buffer. So we must free it.
         }
@@ -67,13 +74,14 @@ char *GetInFile() {
     getline(&inFile, &pos, stdin);
     printf(ColorNormal);
     fflush(stdout);
-    RemoveEndline(inFile);
+    SillyStringRemove0xA(inFile);
     return inFile;
 }
 
 void PrintHelp() {
     printf(ColorHighlight "\n=== Common Commands ===\n" ColorNormal);
-    printf("build           (b)                 - Build.\n");
+    printf("build           (b)                 - Build all cli tools.\n");
+    printf("asmhello        (ah)                - Test pplasm assembler on backend/helloworld.\n");
     printf("preparser       (p)                 - Test preparser on single unit.\n");
     printf("preparser_all   (pall)              - Test preparser on all units in tests/preparse/.\n");
     printf("regex_gen       (re)                - Test LoadGrammer() for building custom regex trees.\n");
@@ -104,14 +112,35 @@ int DoCommand(const char *l) {
 
 	if (0 == strcmp(l, "b") || 0 == strcmp(l, "build")) {
         
-        int r = CallSystem("g++ -std=c++11 -g src/ppl.cpp -I src/ -o bin/ppl -Wno-writable-strings -Wno-write-strings");
+        int r = CallSystem("g++ -std=c++11 -g src/ppl.cpp -I src/ -I backend/src/ -o bin/ppl -Wno-writable-strings -Wno-write-strings");
         if (r == 0) {
             printf("PPL compiler built to bin/ppl\n");
             printf("Usage: ppl <inFile> -o <outFile> -t <TARGET> [options]\n");
         }
+
+        r = CallSystem("g++ -std=c++11 -g backend/src/assembler.cpp -I src/ -I backend/src/ -o bin/pplasm -Wno-writable-strings \
+            -Wno-write-strings");
+        if (r == 0) {
+            printf("PPL assembler built to bin/pplasm\n");
+            printf("Usage: pplasm <inFile> <TARGET>\n");
+        }
+
         return r;
 
-	} else if (0  == strcmp(l, "p") || 0 ==strcmp(l, "preparser")) {
+	} else if (0  == strcmp(l, "ah") || 0 ==strcmp(l, "asmhello")) {
+
+        int r = passembler("backend/helloworld/helloworld.pasm", "macOS");
+        r |= pasm_x86_64(pasm_lines, "bin/helloworld.x86_64", MAC_OS);
+        DeallocPasmLines(pasm_lines);
+        r |= CallSystem("nasm -f macho64 bin/helloworld.x86_64");
+        r |= CallSystem("nasm -o bin/exit.o -f macho64 backend/pstdlib/macOS/console/exit.s");
+        r |= CallSystem("nasm -o bin/print.o -f macho64 backend/pstdlib/macOS/console/print.s");
+        r |= CallSystem("ld -o bin/helloworld -static bin/helloworld.o bin/exit.o bin/print.o");
+        r |= CallSystem("bin/helloworld");
+
+        return r;
+
+    } else if (0  == strcmp(l, "p") || 0 ==strcmp(l, "preparser")) {
         
         printf("NOTE: cwd is set to tests/preparse/\n");
         char *inFile = GetInFile();

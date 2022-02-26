@@ -43,13 +43,12 @@ class RawFileReader {
     unsigned int internalBufferSize;
     unsigned int buffCharCount;
     RawFileReader(FILE *file) : internalFile(file) {
-
         if (internalFile != NULL) {
             int r = fseek(internalFile, 0L, SEEK_END); Assert(r == 0);
             fileByteCount = ftell(internalFile); // ftell is the number of bytes from the beginning of the file.
             Assert(fileByteCount != -1L);
             r = fseek(internalFile, 0L, SEEK_SET); Assert(r == 0);
-            // NOTE(Noah): This is actually HIGHLY inefficient because we are multiplying the size of files by 4 when
+            // TODO(Noah): This is actually HIGHLY inefficient because we are multiplying the size of files by 4 when
             // representing in internal memory...
             internalBufferSize = fileByteCount;
             internalBuffer = (UNICODE_CPOINT *)malloc(internalBufferSize * sizeof(UNICODE_CPOINT));
@@ -57,7 +56,6 @@ class RawFileReader {
             buffCharCount = 0;
             lastChar = fgetc(file);
         }
-        
     }
     ~RawFileReader() {
         // NOTE(Noah): I do think destructors and OOP are a nice way for me to do memory management :)
@@ -192,7 +190,7 @@ struct token Token(enum token_type type, uint64 num, unsigned int line) {
     return t;
 }
 
-
+// TODO(Noah): Change the TokenContainer to use StretchyBuffers.
 class TokenContainer {
     public:
     TokenContainer() {

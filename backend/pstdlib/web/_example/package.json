@@ -1,0 +1,14 @@
+{
+  "name": "web",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "wat2wasm helloworld.wat -o helloworld.wasm && node server.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.2"
+  }
+}
