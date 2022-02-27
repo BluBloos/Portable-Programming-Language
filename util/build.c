@@ -81,7 +81,8 @@ char *GetInFile() {
 void PrintHelp() {
     printf(ColorHighlight "\n=== Common Commands ===\n" ColorNormal);
     printf("build           (b)                 - Build all cli tools.\n");
-    printf("asmhello        (ah)                - Test pplasm assembler on backend/helloworld.\n");
+    printf("asmhello        (ah)                - Integration test of pplasm assembler on backend/helloworld.\n");
+    printf("asmparse        (ap)                - Test pplasm parsing capability on backend/helloworld.\n");
     printf("preparser       (p)                 - Test preparser on single unit.\n");
     printf("preparser_all   (pall)              - Test preparser on all units in tests/preparse/.\n");
     printf("regex_gen       (re)                - Test LoadGrammer() for building custom regex trees.\n");
@@ -127,9 +128,23 @@ int DoCommand(const char *l) {
 
         return r;
 
-	} else if (0  == strcmp(l, "ah") || 0 ==strcmp(l, "asmhello")) {
+	} else if (0  == strcmp(l, "ap") || 0 ==strcmp(l, "asmparse")) {
 
-        int r = passembler("backend/helloworld/helloworld.pasm", "macOS");
+        printf("NOTE: cwd is set to backend/tests/\n");
+        char *inFile = GetInFile();
+        char *inFilePath = SillyStringFmt("backend/tests/%s", inFile);
+        Timer timer = Timer("asmparse");
+        LOGGER.InitFileLogging("w");
+        int errors = 0;
+        int r = passembler(inFilePath, "macOS");
+        errors = (r != 0 );
+        CheckErrors(errors);
+        timer.TimerEnd();
+        return (errors > 0);
+
+    } else if (0  == strcmp(l, "ah") || 0 ==strcmp(l, "asmhello")) {
+
+        int r = passembler("backend/tests/helloworld.pasm", "macOS");
         r |= pasm_x86_64(pasm_lines, "bin/helloworld.x86_64", MAC_OS);
         DeallocPasmLines(pasm_lines);
         r |= CallSystem("nasm -f macho64 bin/helloworld.x86_64");

@@ -14,7 +14,8 @@ enum pasm_line_type {
     PASM_LINE_FDECL,
     PASM_LINE_DATA_BYTE_INT,
     PASM_LINE_DATA_BYTE_STRING,
-    PASM_LINE_FCALL
+    PASM_LINE_FCALL,
+    PASM_LINE_FDEF
 };
 
 // calling convention
@@ -23,7 +24,7 @@ enum pasm_cc {
     PASM_CC_CDECL
 };
 
-// TODO(Noah): I'm pretty sure it is feasible to have 128 bit floats
+// TODO(Noah): I'm pretty sure it's feasible to have 128-bit floats
 // Also, what about the SIMD registers (if they even are registers)?
 enum pasm_type {
     PASM_VOID = 0,
@@ -88,12 +89,24 @@ struct pasm_fcall {
     struct pasm_fparam *params; // Stretchy buffer.
 };
 
+struct pasm_fnparam {
+    enum pasm_type type;
+    char *name;
+};
+
+struct pasm_fdef {
+    char *name;
+    enum pasm_type returnType;
+    struct pasm_fnparam *params; // Stretchy buffer.
+};
+
 struct pasm_line {
     enum pasm_line_type lineType;
     union {
         char *data_cptr;
         struct pasm_fdecl data_fdecl;
         struct pasm_fcall data_fcall;
+        struct pasm_fdef data_fdef;
         int data_int;
     };
 };
@@ -127,6 +140,25 @@ struct pasm_line PasmLineEmpty() {
 struct pasm_func_table {
     char *key;
     struct pasm_fdecl value;
+};
+
+char *pasmGprTable[] = {
+    "rax", "rbx",
+    "rcx", "rdx",
+    "rsp", "rbp",
+    "rsi", "rdi",
+    "r8", "r9",
+    "r10", "r11",
+    "r12", "r13",
+    "r14", "r15"
+};
+
+// p assembly function call param order.
+int pasmfcallpo[] = {
+    2, // rcx
+    3, // rdx
+    8, // r8
+    9 // r9
 };
 
 // TODO(Noah): See. Crap like this, in PPL, can be made MUCH more clean.
@@ -195,6 +227,19 @@ void PasmLinePrint(struct pasm_line pl) {
             }
         }
         break;
+        case PASM_LINE_FDEF:
+        {
+            LOGGER.Min("PASM_LINE_FDEF\n");
+            LOGGER.Min("  name:%s\n", pl.data_fdef.name);
+            LOGGER.Min("  returnType:"); PasmTypePrint(pl.data_fdef.returnType);
+            LOGGER.Min("  params:\n");
+            for (int i = 0; i < StretchyBufferCount(pl.data_fdef.params); i++) {
+                struct pasm_fnparam fnparam = pl.data_fdef.params[i];
+                LOGGER.Min("    type:"); PasmTypePrint(fnparam.type);
+                LOGGER.Min("    name:%s\n", fnparam.name);
+            }
+        }
+        break;
         case PASM_LINE_DATA_BYTE_STRING:
         LOGGER.Min("PASM_LINE_DATA_BYTE_STRING\n");
         LOGGER.Min("  %s\n", pl.data_cptr);
@@ -255,10 +300,18 @@ bool SillyStringGetRegister(char *str, enum pasm_register &reg) {
 void DeallocPasmLines(struct pasm_line *lines) {
     for (int i = 0; i < StretchyBufferCount(lines); i++) {
         struct pasm_line pline = lines[i];
-        if (pline.lineType == PASM_LINE_FDECL) {
+        switch(pline.lineType) {
+            case PASM_LINE_FDECL:
             StretchyBufferFree(pline.data_fdecl.params);
-        } else if (pline.lineType == PASM_LINE_FCALL) {
+            break;
+            case PASM_LINE_FCALL:
             StretchyBufferFree(pline.data_fcall.params);
+            break;
+            case PASM_LINE_FDEF:
+            StretchyBufferFree(pline.data_fdef.params);
+            break;
+            default:
+            break;
         }
     }
     StretchyBufferFree(lines);
@@ -357,6 +410,36 @@ enum pasm_type SillyStringGetPasmType(char *typeStr) {
     return PASM_VOID;
 }
 
+/* Takes in a pointer to a silly string that is assumed to start at
+   a type. The type will be parsed and returned, with the
+   underlying silly string being advanced. */
+enum pasm_type HandleType(char **pline) {
+    char *line = *pline;
+    enum pasm_type ptype = PASM_VOID;
+    std::string type = "";
+    while (*line != ' ') {
+        type += *line++;
+    }
+    ptype = SillyStringGetPasmType((char *)type.c_str());
+    if(VERBOSE) { 
+        PasmTypePrint(ptype);
+    }
+    *pline = line;
+    return ptype;
+}
+
+/* Takes in a pointer to a silly string that is assumed to start at some
+   generic word. Also takes in a terminating character. The function will
+   parse the generic word, terminating at cTerm. The underlying silly string
+   will be advanced. */
+char *HandleUntil(char **pline, char cTerm) {
+    char *line = *pline;
+    std::string name = "";
+    while(*line != cTerm) name += *line++;
+    *pline = line;
+    return MEMORY_ARENA.StdStringAlloc(name);
+}
+
 void HandleLine(char *line) {
     
     // NOTE(Noah): For right now, we are literally just going to echo the lines of all source files.
@@ -365,6 +448,7 @@ void HandleLine(char *line) {
     LOGGER.Min("%s", line);
 
     if (*line == '.') { // Found a directive.
+        
         line++; // skip over the '.'
         std::string directive = "";
         // go up until the space.
@@ -372,51 +456,75 @@ void HandleLine(char *line) {
             directive += *line++;
         }
         line++; // skip over the ' ' 
+        
         if (directive == "section") {
+            
             pasm_line pline = PasmLineEmpty();
             pline.lineType = (*line == 'c') ? PASM_LINE_SECTION_CODE :
                 PASM_LINE_SECTION_DATA;
             StretchyBufferPush(pasm_lines, pline);
-        } 
-        // NOTE(Noah): I suppose the only thing that will ever be extern
-        // is that we are trying to define a function that someone who is 
-        // not us can call.
-        else if (directive == "extern") {
+
+        } else if (directive == "def") {
+
+            pasm_line pline = PasmLineEmpty();
+            pline.lineType = PASM_LINE_FDEF;
+            // NOTE(Noah): calling convention is always pdecl.
+            pline.data_fdef.returnType = HandleType(&line);
+            line++; // Skip over ' '
+            pline.data_fdef.name = HandleUntil(&line, '(');
+            line++; // Skip over '('
+
+            // Now we have to check for the parameters.
+            while(*line != ')') {
+                while (*line == ',' || *line == ' ') { line++; }
+                std::string _type = "";
+                while(*line != ' ') {
+                    _type += *line++;
+                }
+                enum pasm_type ptype = SillyStringGetPasmType(
+                    (char *)_type.c_str());
+
+                line++; // skip past ' '
+
+                // Parse param name.
+                std::string pname = "";
+                while(*line != ',' && *line != ')') {
+                    pname += *line++;
+                }
+
+                struct pasm_fnparam fnparam;
+                fnparam.name = MEMORY_ARENA.StdStringAlloc(pname);
+                fnparam.type = ptype;
+
+                StretchyBufferPush(pline.data_fdef.params, fnparam);
+                // *line++; // skip over ','
+                // *line++; // skip over ' '                
+            }
+
+            StretchyBufferPush(pasm_lines, pline);
+
+            
+        } else if (directive == "extern") {
 
             pasm_line pline = PasmLineEmpty();
             pline.lineType = PASM_LINE_FDECL;    
 
             // First thing to check is the calling convention.
-            enum pasm_cc ecc = (*line == 'p') ? PASM_CC_PDECL : 
+            {
+                enum pasm_cc ecc = (*line == 'p') ? PASM_CC_PDECL : 
                 PASM_CC_CDECL;
-            while (*line++ != ' '); // Skip over until whitespace.
-            if (ecc == PASM_CC_PDECL && VERBOSE) {
-                LOGGER.Log("p_decl");
-            } else {
-                LOGGER.Log("c_decl");
+                while (*line++ != ' '); // Skip over until whitespace.
+                if (ecc == PASM_CC_PDECL && VERBOSE) {
+                    LOGGER.Log("p_decl");
+                } else {
+                    LOGGER.Log("c_decl");
+                }
+                pline.data_fdecl.callingConvention = ecc;
             }
-            pline.data_fdecl.callingConvention = ecc;
 
-            // Now check the return type.
-            enum pasm_type ptype = PASM_VOID;
-            std::string type = "";
-            while (*line != ' ') type += *line++;
-            ptype = SillyStringGetPasmType((char *)type.c_str());
-            if(VERBOSE) { 
-                PasmTypePrint(ptype);
-            }
-            pline.data_fdecl.returnType = ptype;
-
+            pline.data_fdecl.returnType = HandleType(&line);
             line++; // Skip over ' '
-
-            // Now check the name for the function.
-            std::string fname = "";
-            while(*line != '(') fname += *line++;
-            if (VERBOSE) {
-                LOGGER.Min("fname: %s\n", fname.c_str());
-            }
-            pline.data_fdecl.name = MEMORY_ARENA.StdStringAlloc(fname);
-
+            pline.data_fdecl.name = HandleUntil(&line, '(');
             line++; // Skip over '('
 
             // Now we have to check for the parameters.
@@ -437,8 +545,8 @@ void HandleLine(char *line) {
             StretchyBufferPush(pasm_lines, pline);
 
         } else if (directive == "db") {
+
             pasm_line pline = PasmLineEmpty();
-            
             // TODO(Noah): Add more types of byte literals.
             //   Ex) Add negative integers.
             std::string strLiteral = "";
@@ -455,12 +563,16 @@ void HandleLine(char *line) {
                 SillyStringRemove0xA(line);
                 pline.data_int = SillyStringToUINT(line);
             }
-
             StretchyBufferPush(pasm_lines, pline);  
+            
         }
+
     } else if (*line == ';') {
+
         // Do nothing!!! Yay :)
+
     } else if (SillyStringStartsWith(line, "label_")) {
+
         while (*line++ != '_');
         // line should now point to after the underscore.
         std::string label = "";
@@ -472,6 +584,7 @@ void HandleLine(char *line) {
         pline.lineType = PASM_LINE_LABEL;
         pline.data_cptr = pstr;
         StretchyBufferPush(pasm_lines, pline);
+
     } else {
         // We can now make the assumption that we are deadling
         // with a full-blown assembly command. So it's got the
@@ -479,13 +592,9 @@ void HandleLine(char *line) {
         if (SillyStringStartsWith(line, "call")) {
             pasm_line pline = PasmLineEmpty();
             pline.lineType = PASM_LINE_FCALL;
-            
+    
             while (*line++ != ' ');
-            // Now check the name for the function.
-            std::string fname = "";
-            while(*line != '(') fname += *line++;
-            pline.data_fcall.name = MEMORY_ARENA.StdStringAlloc(fname);
-
+            pline.data_fcall.name = HandleUntil(&line, '(');
             line++; // skip past the '('
 
             // Now we have to check for the parameters.

@@ -1,21 +1,3 @@
-char *gprTable[] = {
-    "rax", "rbx",
-    "rcx", "rdx",
-    "rsp", "rbp",
-    "rsi", "rdi",
-    "r8", "r9",
-    "r10", "r11",
-    "r12", "r13",
-    "r14", "r15"
-};
-
-int fcallParamOrder[] = {
-    2, // rcx
-    3, // rdx
-    8, // r8
-    9 // r9
-};
-
 // This function will write x86_64 assembly source to outFilePath
 // by translating the in-memory representation of PASM (ppl assembly)
 // as stored in source. Source is a stretchy buffer. 
@@ -50,9 +32,9 @@ int pasm_x86_64(struct pasm_line *source,
             case PASM_LINE_SECTION_DATA:
             fileWriter.write("section .data\n");
             break;
-            case PASM_LINE_LABEL:
+            case PASM_LINE_FDEF:
             {
-                char *fname = pline.data_cptr;
+                char *fname = pline.data_fdef.name;
                 if (tplat == MAC_OS && 
                     SillyStringStartsWith("main", fname) ) 
                 {
@@ -61,6 +43,9 @@ int pasm_x86_64(struct pasm_line *source,
                     fileWriter.write(SillyStringFmt("%s:\n", fname));
                 }
             }
+            break;
+            case PASM_LINE_LABEL:
+            fileWriter.write(SillyStringFmt("%s:\n", pline.data_cptr));
             break;
             case PASM_LINE_FCALL:
             {
@@ -95,7 +80,7 @@ int pasm_x86_64(struct pasm_line *source,
                 // we also do not check to see if the func has any more than 4 parameters...
                 for (int i = 0; i < StretchyBufferCount(fcall.params); i++) {
                     struct pasm_fparam fparam = fcall.params[i];
-                    char *cReg = gprTable[fcallParamOrder[i]];
+                    char *cReg = pasmGprTable[pasmfcallpo[i]];
                     switch(fparam.type) {
                         case PASM_FPARAM_LABEL:
                         fileWriter.write(SillyStringFmt("mov %s, %s\n", cReg, fparam.data_cptr));
@@ -105,7 +90,7 @@ int pasm_x86_64(struct pasm_line *source,
                         break;
                         case PASM_FPARAM_REGISTER:
                         fileWriter.write(SillyStringFmt("mov %s, %s\n", cReg,
-                            gprTable[(int)fparam.data_register]));
+                            pasmGprTable[(int)fparam.data_register]));
                         break;
                     }
 
