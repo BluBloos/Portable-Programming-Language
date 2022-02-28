@@ -15,7 +15,8 @@ enum pasm_line_type {
     PASM_LINE_DATA_BYTE_INT,
     PASM_LINE_DATA_BYTE_STRING,
     PASM_LINE_FCALL,
-    PASM_LINE_FDEF
+    PASM_LINE_FDEF,
+    PASM_LINE_SAVE
 };
 
 // calling convention
@@ -107,6 +108,7 @@ struct pasm_line {
         struct pasm_fdecl data_fdecl;
         struct pasm_fcall data_fcall;
         struct pasm_fdef data_fdef;
+        enum pasm_register *data_save; // Stretchy buffer.
         int data_int;
     };
 };
@@ -216,6 +218,14 @@ void PasmLinePrint(struct pasm_line pl) {
         LOGGER.Min("PASM_LINE_LABEL\n");
         LOGGER.Min("  %s\n", pl.data_cptr);
         break;
+        case PASM_LINE_SAVE: 
+        {
+            LOGGER.Min("PASM_LINE_SAVE\n");
+            for (int i = 0; i < StretchyBufferCount(pl.data_save); i++) {
+                LOGGER.Min("  r%d\n", (int)pl.data_save[i]);
+            }
+        }
+        break;
         case PASM_LINE_FDECL:
         {
             LOGGER.Min("PASM_LINE_FDECL\n");
@@ -310,6 +320,8 @@ void DeallocPasmLines(struct pasm_line *lines) {
             case PASM_LINE_FDEF:
             StretchyBufferFree(pline.data_fdef.params);
             break;
+            case PASM_LINE_SAVE:
+            StretchyBufferFree(pline.data_save);
             default:
             break;
         }
@@ -421,17 +433,14 @@ enum pasm_type HandleType(char **pline) {
         type += *line++;
     }
     ptype = SillyStringGetPasmType((char *)type.c_str());
-    if(VERBOSE) { 
-        PasmTypePrint(ptype);
-    }
     *pline = line;
     return ptype;
 }
 
 /* Takes in a pointer to a silly string that is assumed to start at some
    generic word. Also takes in a terminating character. The function will
-   parse the generic word, terminating at cTerm. The underlying silly string
-   will be advanced. */
+   parse the generic word (terminating at cTerm), and return it. 
+   The underlying silly string will be advanced. */
 char *HandleUntil(char **pline, char cTerm) {
     char *line = *pline;
     std::string name = "";
@@ -441,11 +450,6 @@ char *HandleUntil(char **pline, char cTerm) {
 }
 
 void HandleLine(char *line) {
-    
-    // NOTE(Noah): For right now, we are literally just going to echo the lines of all source files.
-    // And we know that all lines contain the null-terminator, so we are going to use the Min version
-    // of the log function.
-    LOGGER.Min("%s", line);
 
     if (*line == '.') { // Found a directive.
         
@@ -514,11 +518,6 @@ void HandleLine(char *line) {
                 enum pasm_cc ecc = (*line == 'p') ? PASM_CC_PDECL : 
                 PASM_CC_CDECL;
                 while (*line++ != ' '); // Skip over until whitespace.
-                if (ecc == PASM_CC_PDECL && VERBOSE) {
-                    LOGGER.Log("p_decl");
-                } else {
-                    LOGGER.Log("c_decl");
-                }
                 pline.data_fdecl.callingConvention = ecc;
             }
 
@@ -536,7 +535,6 @@ void HandleLine(char *line) {
                 }
                 enum pasm_type ptype = SillyStringGetPasmType(
                     (char *)_type.c_str());
-                if (VERBOSE) PasmTypePrint(ptype);
                 StretchyBufferPush(pline.data_fdecl.params, ptype);
                 // *line++; // skip over ','
                 // *line++; // skip over ' '                
@@ -590,17 +588,15 @@ void HandleLine(char *line) {
         // with a full-blown assembly command. So it's got the
         // pneumonic and everything.
         if (SillyStringStartsWith(line, "call")) {
+
             pasm_line pline = PasmLineEmpty();
             pline.lineType = PASM_LINE_FCALL;
-    
             while (*line++ != ' ');
             pline.data_fcall.name = HandleUntil(&line, '(');
             line++; // skip past the '('
-
             // Now we have to check for the parameters.
             while(*line != ')') {
                 while (*line == ',' || *line == ' ') { line++; }
-                
                 // Function params are either going to be an immediate
                 //   which would be a number of a label.
                 // OR, function params are going to be a register.
@@ -608,7 +604,6 @@ void HandleLine(char *line) {
                 while(*line != ',' && *line != ')') {
                     param += *line++;
                 }
-
                 struct pasm_fparam fparam;
                 bool _dflag;
                 enum pasm_register _reg;
@@ -630,11 +625,29 @@ void HandleLine(char *line) {
                         (char *)param.c_str()
                     );
                 }
-                StretchyBufferPush(pline.data_fcall.params, fparam);
-                            
+                StretchyBufferPush(pline.data_fcall.params, fparam);               
             }
-
             StretchyBufferPush(pasm_lines, pline);
+
+        } else  if (SillyStringStartsWith(line, "save")) {
+
+            pasm_line pline = PasmLineEmpty();
+            pline.lineType = PASM_LINE_SAVE;
+            while (*line++ != ' '); // Skip over whitespace.
+            line++; // Skip over '['
+            while(*line != ']') {
+                while (*line == ',' || *line == ' ') { line++; }
+                std::string reg = "";
+                while(*line != ',' && *line != ']') {
+                    reg += *line++;
+                }
+                enum pasm_register _reg;
+                SillyStringGetRegister(
+                    (char *)reg.c_str(), _reg);        
+                StretchyBufferPush(pline.data_save, _reg);
+            }
+            StretchyBufferPush(pasm_lines, pline);
+
         }
     }
 
