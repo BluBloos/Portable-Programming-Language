@@ -17,6 +17,7 @@ enum pasm_line_type {
     PASM_LINE_FCALL,
     PASM_LINE_FDEF,
     PASM_LINE_SAVE,
+    PASM_LINE_RESTORE,
     PASM_LINE_BRANCH,
     PASM_LINE_RET
 };
@@ -227,6 +228,14 @@ void PasmLinePrint(struct pasm_line pl) {
         LOGGER.Min("PASM_LINE_BRANCH\n");
         LOGGER.Min("  %s\n", pl.data_cptr);
         break;
+        case PASM_LINE_RESTORE: 
+        {
+            LOGGER.Min("PASM_LINE_RESTORE\n");
+            for (int i = 0; i < StretchyBufferCount(pl.data_save); i++) {
+                LOGGER.Min("  r%d\n", (int)pl.data_save[i]);
+            }
+        }
+        break;
         case PASM_LINE_SAVE: 
         {
             LOGGER.Min("PASM_LINE_SAVE\n");
@@ -330,6 +339,7 @@ void DeallocPasmLines(struct pasm_line *lines) {
             StretchyBufferFree(pline.data_fdef.params);
             break;
             case PASM_LINE_SAVE:
+            case PASM_LINE_RESTORE:
             StretchyBufferFree(pline.data_save);
             default:
             break;
@@ -614,10 +624,13 @@ void HandleLine(char *line) {
             }
             StretchyBufferPush(pasm_lines, pline);
 
-        } else  if (SillyStringStartsWith(line, "save")) {
+        } else  if (
+            SillyStringStartsWith(line, "save") ||
+            SillyStringStartsWith(line, "restore")
+        ) {
 
             pasm_line pline = PasmLineEmpty();
-            pline.lineType = PASM_LINE_SAVE;
+            pline.lineType = (*line == 's') ? PASM_LINE_SAVE : PASM_LINE_RESTORE;
             while (*line++ != ' '); // Skip over whitespace.
             line++; // Skip over '['
             while(*line != ']') {
