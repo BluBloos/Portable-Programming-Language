@@ -137,6 +137,7 @@ int DoCommand(const char *l) {
         LOGGER.InitFileLogging("w");
         int errors = 0;
         int r = passembler(inFilePath, "macOS");
+        DeallocPasmLines(pasm_lines);
         errors = (r != 0 );
         CheckErrors(errors);
         timer.TimerEnd();
