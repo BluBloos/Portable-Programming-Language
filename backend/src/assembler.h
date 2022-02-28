@@ -19,7 +19,8 @@ enum pasm_line_type {
     PASM_LINE_SAVE,
     PASM_LINE_RESTORE,
     PASM_LINE_BRANCH,
-    PASM_LINE_RET
+    PASM_LINE_RET,
+    PASM_LINE_MOV
 };
 
 // calling convention
@@ -104,6 +105,12 @@ struct pasm_fdef {
     struct pasm_fnparam *params; // Stretchy buffer.
 };
 
+struct pasm_fptriad {
+    struct pasm_fparam param1;
+    struct pasm_fparam param2;
+    struct pasm_fparam param3;
+};
+
 struct pasm_line {
     enum pasm_line_type lineType;
     union {
@@ -113,6 +120,7 @@ struct pasm_line {
         struct pasm_fdef data_fdef;
         enum pasm_register *data_save; // Stretchy buffer.
         int data_int;
+        struct pasm_fptriad data_fptriad;
     };
 };
 
@@ -206,6 +214,23 @@ void PasmTypePrint(enum pasm_type ptype) {
     }
 }
 
+void PasmFparamPrint(struct pasm_fparam fparam) {
+    switch(fparam.type) {
+        case PASM_FPARAM_INT:
+        LOGGER.Min("  PASM_FPARAM_INT\n");
+        LOGGER.Min("    %d\n", fparam.data_int);
+        break;
+        case PASM_FPARAM_LABEL:
+        LOGGER.Min("  PASM_FPARAM_LABEL\n");
+        LOGGER.Min("    %s\n", fparam.data_cptr);
+        break;
+        case PASM_FPARAM_REGISTER:
+        LOGGER.Min("  PASM_FPARAM_REGISTER\n");
+        LOGGER.Min("    r%d\n", (int)fparam.data_register);
+        break;
+    }
+}
+
 void PasmLinePrint(struct pasm_line pl) {
     switch(pl.lineType) {
         case PASM_LINE_UNDEFINED:
@@ -276,28 +301,21 @@ void PasmLinePrint(struct pasm_line pl) {
         LOGGER.Min("PASM_LINE_DATA_BYTE_INT\n");
         LOGGER.Min("  %d\n", pl.data_int);
         break;
+        case PASM_LINE_MOV:
+        {
+            LOGGER.Min("PASM_LINE_MOV\n");
+            PasmFparamPrint(pl.data_fptriad.param1);
+            PasmFparamPrint(pl.data_fptriad.param2);
+        }
+        break;
         case PASM_LINE_FCALL:
         {
             LOGGER.Min("PASM_LINE_FCALL\n");
             LOGGER.Min("  name:%s\n", pl.data_fcall.name);
             LOGGER.Min("  params:\n");
             for (int i = 0; i < StretchyBufferCount(pl.data_fcall.params); i++) {
-                //LOGGER.Min("    "); PasmTypePrint(pl.data_fdecl.params[i]);
                 struct pasm_fparam fparam = pl.data_fcall.params[i];
-                switch(fparam.type) {
-                    case PASM_FPARAM_INT:
-                    LOGGER.Min("    PASM_FPARAM_INt\n");
-                    LOGGER.Min("      %d\n", fparam.data_int);
-                    break;
-                    case PASM_FPARAM_LABEL:
-                    LOGGER.Min("    PASM_FPARAM_LABEL\n");
-                    LOGGER.Min("      %s\n", fparam.data_cptr);
-                    break;
-                    case PASM_FPARAM_REGISTER:
-                    LOGGER.Min("    PASM_FPARAM_REGISTER\n");
-                    LOGGER.Min("      r%d\n", (int)fparam.data_register);
-                    break;
-                }
+                PasmFparamPrint(fparam);
             }
         }
         break;
@@ -480,6 +498,25 @@ std::string HandleStdStringUntil(char **pline, char *cTerm) {
     return name;
 }
 
+/* Generate a pasm_fparam from a silly string. */
+struct pasm_fparam PasmFparamFromSillyString(char *ss) {
+    struct pasm_fparam fparam;
+    bool _dflag;
+    enum pasm_register _reg;
+    if (SillyStringGetRegister(ss, _reg)) {
+        fparam.type = PASM_FPARAM_REGISTER;
+        fparam.data_register = _reg;
+    } else if (SillyStringIsNumber(ss, _dflag)) {
+        fparam.type = PASM_FPARAM_INT;
+        fparam.data_int = SillyStringToUINT(ss);
+    } else {
+        // We know it's a label.
+        fparam.type = PASM_FPARAM_LABEL;
+        fparam.data_cptr = MEMORY_ARENA.StringAlloc(ss);
+    }
+    return fparam;
+}
+
 void HandleLine(char *line) {
 
     if (*line == '.') { // Found a directive.
@@ -599,27 +636,8 @@ void HandleLine(char *line) {
                 //   which would be a number of a label.
                 // OR, function params are going to be a register.
                 std::string param = HandleStdStringUntil(&line, ",)");
-                struct pasm_fparam fparam;
-                bool _dflag;
-                enum pasm_register _reg;
-                if (SillyStringGetRegister(
-                    (char *)param.c_str(), _reg)) 
-                {
-                    fparam.type = PASM_FPARAM_REGISTER;
-                    fparam.data_register = _reg;
-                } else if (SillyStringIsNumber((char *)param.c_str(),
-                    _dflag)) 
-                {
-                    fparam.type = PASM_FPARAM_INT;
-                    fparam.data_int = SillyStringToUINT(
-                        (char *)param.c_str());
-                } else {
-                    // We know it's a label.
-                    fparam.type = PASM_FPARAM_LABEL;
-                    fparam.data_cptr = MEMORY_ARENA.StringAlloc(
-                        (char *)param.c_str()
-                    );
-                }
+                struct pasm_fparam fparam = PasmFparamFromSillyString(
+                    (char *)param.c_str());
                 StretchyBufferPush(pline.data_fcall.params, fparam);               
             }
             StretchyBufferPush(pasm_lines, pline);
@@ -656,6 +674,21 @@ void HandleLine(char *line) {
             
             pasm_line pline = PasmLineEmpty();
             pline.lineType = PASM_LINE_RET;
+            StretchyBufferPush(pasm_lines, pline);
+
+        } else if (SillyStringStartsWith(line, "mov")) {
+
+            pasm_line pline = PasmLineEmpty();
+            pline.lineType = PASM_LINE_MOV;
+            while (*line++ != ' '); // Skip over whitespace.
+            std::string param1 = HandleStdStringUntil(&line, ",");
+            struct pasm_fparam fparam1 = PasmFparamFromSillyString((char *)param1.c_str());
+            line++; // skip past ','
+            while (*line++ != ' '); // Skip over whitespace.
+            SillyStringRemove0xA(line);
+            struct pasm_fparam fparam2 = PasmFparamFromSillyString(line);
+            pline.data_fptriad.param1 = fparam1;
+            pline.data_fptriad.param2 = fparam2;
             StretchyBufferPush(pasm_lines, pline);
 
         }
