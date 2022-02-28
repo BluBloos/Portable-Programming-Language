@@ -16,7 +16,8 @@ enum pasm_line_type {
     PASM_LINE_DATA_BYTE_STRING,
     PASM_LINE_FCALL,
     PASM_LINE_FDEF,
-    PASM_LINE_SAVE
+    PASM_LINE_SAVE,
+    PASM_LINE_BRANCH
 };
 
 // calling convention
@@ -216,6 +217,10 @@ void PasmLinePrint(struct pasm_line pl) {
         break;
         case PASM_LINE_LABEL:
         LOGGER.Min("PASM_LINE_LABEL\n");
+        LOGGER.Min("  %s\n", pl.data_cptr);
+        break;
+        case PASM_LINE_BRANCH:
+        LOGGER.Min("PASM_LINE_BRANCH\n");
         LOGGER.Min("  %s\n", pl.data_cptr);
         break;
         case PASM_LINE_SAVE: 
@@ -619,6 +624,15 @@ void HandleLine(char *line) {
                     (char *)reg.c_str(), _reg);        
                 StretchyBufferPush(pline.data_save, _reg);
             }
+            StretchyBufferPush(pasm_lines, pline);
+
+        } else if (SillyStringStartsWith(line, "br")) {
+
+            pasm_line pline = PasmLineEmpty();
+            pline.lineType = PASM_LINE_BRANCH;
+            while (*line++ != ' '); // Skip over whitespace.
+            SillyStringRemove0xA(line);
+            pline.data_cptr = MEMORY_ARENA.StringAlloc(line);
             StretchyBufferPush(pasm_lines, pline);
 
         }
