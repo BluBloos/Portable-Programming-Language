@@ -45,6 +45,9 @@ int pasm_x86_64(struct pasm_line *source,
     for (int i = 0 ; i < StretchyBufferCount(source); i++) {
         struct pasm_line pline = source[i];
         switch(pline.lineType) {
+            case PASM_LINE_RET:
+            fileWriter.write("ret\n");
+            break;
             case PASM_LINE_FDECL: 
             {
                 char *fname = pline.data_fdecl.name;
