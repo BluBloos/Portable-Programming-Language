@@ -20,7 +20,12 @@ enum pasm_line_type {
     PASM_LINE_RESTORE,
     PASM_LINE_BRANCH,
     PASM_LINE_RET,
-    PASM_LINE_MOV
+    // TODO(Noah): For instructions such as MOV, SUB, etc, 
+    // we might want to do some semantic checking. Because as of
+    // right now, our parsing supports for invalid assembly grammers.
+    PASM_LINE_MOV,
+    PASM_LINE_SUB,
+    PASM_LINE_ADD
 };
 
 // calling convention
@@ -302,8 +307,22 @@ void PasmLinePrint(struct pasm_line pl) {
         LOGGER.Min("  %d\n", pl.data_int);
         break;
         case PASM_LINE_MOV:
+        case PASM_LINE_SUB:
+        case PASM_LINE_ADD:
         {
-            LOGGER.Min("PASM_LINE_MOV\n");
+            switch(pl.lineType) {
+                case PASM_LINE_MOV:
+                LOGGER.Min("PASM_LINE_MOV\n");
+                break;
+                case PASM_LINE_SUB:
+                LOGGER.Min("PASM_LINE_SUB\n");
+                break;
+                case PASM_LINE_ADD:
+                LOGGER.Min("PASM_LINE_ADD\n");
+                break;
+                default:
+                break;
+            }
             PasmFparamPrint(pl.data_fptriad.param1);
             PasmFparamPrint(pl.data_fptriad.param2);
         }
@@ -676,10 +695,25 @@ void HandleLine(char *line) {
             pline.lineType = PASM_LINE_RET;
             StretchyBufferPush(pasm_lines, pline);
 
-        } else if (SillyStringStartsWith(line, "mov")) {
-
+        } else if (SillyStringStartsWith(line, "mov") ||
+            SillyStringStartsWith(line, "sub") ||
+            SillyStringStartsWith(line, "add")) 
+        {
             pasm_line pline = PasmLineEmpty();
-            pline.lineType = PASM_LINE_MOV;
+            switch(*line) {
+                case 'm':
+                pline.lineType = PASM_LINE_MOV;
+                break;
+                case 's':
+                pline.lineType = PASM_LINE_SUB;
+                break;
+                case 'a':
+                pline.lineType = PASM_LINE_ADD;
+                break;
+                default:
+                pline.lineType = PASM_LINE_UNDEFINED;
+                break;
+            }
             while (*line++ != ' '); // Skip over whitespace.
             std::string param1 = HandleStdStringUntil(&line, ",");
             struct pasm_fparam fparam1 = PasmFparamFromSillyString((char *)param1.c_str());
