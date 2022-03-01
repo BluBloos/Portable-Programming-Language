@@ -19,6 +19,7 @@ enum pasm_line_type {
     PASM_LINE_SAVE,
     PASM_LINE_RESTORE,
     PASM_LINE_BRANCH,
+    PASM_LINE_BRANCH_GT,
     PASM_LINE_RET,
     // TODO(Noah): For instructions such as MOV, SUB, etc, 
     // we might want to do some semantic checking. Because as of
@@ -113,7 +114,7 @@ struct pasm_fdef {
 struct pasm_fptriad {
     struct pasm_fparam param1;
     struct pasm_fparam param2;
-    struct pasm_fparam param3;
+    char *param3;
 };
 
 struct pasm_line {
@@ -236,6 +237,17 @@ void PasmFparamPrint(struct pasm_fparam fparam) {
     }
 }
 
+void PasmCCPrint(enum pasm_cc cc) {
+    switch(cc) {
+        case PASM_CC_PDECL:
+        LOGGER.Min("PASM_CC_PDECL\n");
+        break;
+        case PASM_CC_CDECL:
+        LOGGER.Min("PASM_CC_CDECL\n");
+        break;
+    }
+}
+
 void PasmLinePrint(struct pasm_line pl) {
     switch(pl.lineType) {
         case PASM_LINE_UNDEFINED:
@@ -278,6 +290,7 @@ void PasmLinePrint(struct pasm_line pl) {
         {
             LOGGER.Min("PASM_LINE_FDECL\n");
             LOGGER.Min("  name:%s\n", pl.data_fdecl.name);
+            LOGGER.Min("  callingConvention:"); PasmCCPrint(pl.data_fdecl.callingConvention);
             LOGGER.Min("  returnType:"); PasmTypePrint(pl.data_fdecl.returnType);
             LOGGER.Min("  params:\n");
             for (int i = 0; i < StretchyBufferCount(pl.data_fdecl.params); i++) {
@@ -326,6 +339,12 @@ void PasmLinePrint(struct pasm_line pl) {
             PasmFparamPrint(pl.data_fptriad.param1);
             PasmFparamPrint(pl.data_fptriad.param2);
         }
+        break;
+        case PASM_LINE_BRANCH_GT:
+        LOGGER.Min("PASM_LINE_BRANCH_GT\n");
+        PasmFparamPrint(pl.data_fptriad.param1);
+        PasmFparamPrint(pl.data_fptriad.param2);
+        LOGGER.Min("  param3:%s\n", pl.data_fptriad.param3);
         break;
         case PASM_LINE_FCALL:
         {
@@ -687,6 +706,26 @@ void HandleLine(char *line) {
             while (*line++ != ' '); // Skip over whitespace.
             SillyStringRemove0xA(line);
             pline.data_cptr = MEMORY_ARENA.StringAlloc(line);
+            StretchyBufferPush(pasm_lines, pline);
+
+        } else if (SillyStringStartsWith(line, "bgt")) {
+
+            pasm_line pline = PasmLineEmpty();
+            pline.lineType = PASM_LINE_BRANCH_GT;
+            while (*line++ != ' '); // Skip over whitespace.
+            std::string param1 = HandleStdStringUntil(&line, ",");
+            struct pasm_fparam fparam1 = PasmFparamFromSillyString((char *)param1.c_str());
+            line++; // skip past ','
+            while (*line++ != ' '); // Skip over whitespace.
+            std::string param2 = HandleStdStringUntil(&line, ",");
+            struct pasm_fparam fparam2 = PasmFparamFromSillyString((char *)param2.c_str());
+            line++; // skip past ','
+            while (*line++ != ' '); // Skip over whitespace.
+            SillyStringRemove0xA(line);
+            char *fparam3 = MEMORY_ARENA.StringAlloc(line);
+            pline.data_fptriad.param1 = fparam1;
+            pline.data_fptriad.param2 = fparam2;
+            pline.data_fptriad.param3 = fparam3;
             StretchyBufferPush(pasm_lines, pline);
 
         } else if (SillyStringStartsWith(line, "ret")) {
