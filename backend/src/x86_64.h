@@ -1,17 +1,20 @@
 /* TODO(Noah):
+
 - Resolve stack variables.
 - Adjust call to check first if function is defined as a definition, then 
   check for an external function.
 - Actually do the proper work to care about the type of the parameter being
   passed. Like, is it int32, int64? Which one is it?
-- Implement return instruction.
+
 - Implement restore instruction.
-- Implement branch instruction.
 - Implement add instruction.
 - Implement sub instruction.
 - Implement mov instruction.
 - Implement branch_gt instruction. 
 - Implement save instruction.
+
+- Implement branch instruction.
+
 */
 
 char *pasmGprTable[] = {
@@ -45,6 +48,9 @@ int pasm_x86_64(struct pasm_line *source,
     for (int i = 0 ; i < StretchyBufferCount(source); i++) {
         struct pasm_line pline = source[i];
         switch(pline.lineType) {
+            case PASM_LINE_BRANCH:
+            fileWriter.write(SillyStringFmt("jmp %s\n", pline.data_cptr));
+            break;
             case PASM_LINE_RET:
             fileWriter.write("ret\n");
             break;
