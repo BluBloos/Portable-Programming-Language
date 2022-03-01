@@ -156,28 +156,19 @@ struct pasm_line PasmLineEmpty() {
     return pl;
 }
 
-struct pasm_func_table {
+struct pasm_fdecl_table {
     char *key;
     struct pasm_fdecl value;
 };
 
-char *pasmGprTable[] = {
-    "rax", "rbx",
-    "rcx", "rdx",
-    "rsp", "rbp",
-    "rsi", "rdi",
-    "r8", "r9",
-    "r10", "r11",
-    "r12", "r13",
-    "r14", "r15"
+struct pasm_fdef_table {
+    char *key;
+    struct pasm_fdef value;
 };
 
-// p assembly function call param order.
-int pasmfcallpo[] = {
-    2, // rcx
-    3, // rdx
-    8, // r8
-    9 // r9
+struct pasm_label_table {
+    char *key;
+    int value;
 };
 
 // TODO(Noah): See. Crap like this, in PPL, can be made MUCH more clean.
@@ -380,8 +371,16 @@ bool SillyStringGetRegister(char *str, enum pasm_register &reg) {
     return false;
 }
 
-// Deallocs the lines in the stretchy buffer lines.
-void DeallocPasmLines(struct pasm_line *lines) {
+void HandleLine(char *line);
+struct pasm_line *pasm_lines = NULL; // stretchy buffer.
+
+struct pasm_fdecl_table *fdecl_table = NULL; // empty stb hashmap.
+struct pasm_fdef_table *fdef_table = NULL; // empty stb hashmap.
+struct pasm_label_table *label_table = NULL; // empty stb hashmap.
+
+// Deallocs all resources allocated by pasm_main
+void DeallocPasm() {
+    struct pasm_line *lines = pasm_lines;
     for (int i = 0; i < StretchyBufferCount(lines); i++) {
         struct pasm_line pline = lines[i];
         switch(pline.lineType) {
@@ -402,10 +401,11 @@ void DeallocPasmLines(struct pasm_line *lines) {
         }
     }
     StretchyBufferFree(lines);
+    // NOTE(Noah): Read this as "stb datastructures hashmap free".
+    stbds_hmfree(fdecl_table);
+    stbds_hmfree(fdef_table);
+    stbds_hmfree(label_table);
 }
-
-void HandleLine(char *line);
-struct pasm_line *pasm_lines = NULL; // stretchy buffer.
 
 // USAGE:
 // pplasm <inFile> <targetPlatform> 
@@ -461,12 +461,12 @@ int pasm_main(int argc, char **argv) {
 
     }
 
-    if (VERBOSE) {
+    if (VERBOSE) {   
         for (int i = 0; i < StretchyBufferCount(pasm_lines); i++) {
             PasmLinePrint(pasm_lines[i]);
         }
     }
-
+    
     return 0;
 
 }
@@ -595,6 +595,7 @@ void HandleLine(char *line) {
                 StretchyBufferPush(pline.data_fdef.params, fnparam);               
             }
             StretchyBufferPush(pasm_lines, pline);
+            stbds_hmput(fdef_table, pline.data_fdef.name, pline.data_fdef);
             
         } else if (directive == "extern") {
 
@@ -620,6 +621,7 @@ void HandleLine(char *line) {
                 StretchyBufferPush(pline.data_fdecl.params, ptype);              
             }
             StretchyBufferPush(pasm_lines, pline);
+            stbds_hmput(fdecl_table, pline.data_fdecl.name, pline.data_fdecl);
 
         } else if (directive == "db") {
 
@@ -655,6 +657,7 @@ void HandleLine(char *line) {
         pline.lineType = PASM_LINE_LABEL;
         pline.data_cptr = pstr;
         StretchyBufferPush(pasm_lines, pline);
+        stbds_hmput(label_table, pline.data_cptr, 1);
 
     } else {
         // We can now make the assumption that we are deadling

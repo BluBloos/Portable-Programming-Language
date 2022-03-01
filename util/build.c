@@ -81,7 +81,7 @@ char *GetInFile() {
 void PrintHelp() {
     printf(ColorHighlight "\n=== Common Commands ===\n" ColorNormal);
     printf("build           (b)                 - Build all cli tools.\n");
-    printf("asmhello        (ah)                - Integration test of pplasm assembler on backend/helloworld.\n");
+    printf("pasm_x86_64     (ax64)              - Integration test of pplasm assembler for x86_64 target.\n");
     printf("asmparse        (ap)                - Test pplasm parsing capability on backend/helloworld.\n");
     printf("preparser       (p)                 - Test preparser on single unit.\n");
     printf("preparser_all   (pall)              - Test preparser on all units in tests/preparse/.\n");
@@ -134,27 +134,34 @@ int DoCommand(const char *l) {
         char *inFile = GetInFile();
         char *inFilePath = SillyStringFmt("backend/tests/%s", inFile);
         Timer timer = Timer("asmparse");
-        LOGGER.InitFileLogging("w");
         int errors = 0;
         int r = passembler(inFilePath, "macOS");
-        DeallocPasmLines(pasm_lines);
+        DeallocPasm();
         errors = (r != 0 );
         CheckErrors(errors);
         timer.TimerEnd();
         return (errors > 0);
 
-    } else if (0  == strcmp(l, "ah") || 0 ==strcmp(l, "asmhello")) {
+    } else if (0  == strcmp(l, "ax64") || 0 ==strcmp(l, "pasm_x86_64")) {
 
-        int r = passembler("backend/tests/helloworld.pasm", "macOS");
-        r |= pasm_x86_64(pasm_lines, "bin/helloworld.x86_64", MAC_OS);
-        DeallocPasmLines(pasm_lines);
-        r |= CallSystem("nasm -f macho64 bin/helloworld.x86_64");
+        printf("NOTE: cwd is set to backend/tests/\n");
+        char *inFile = GetInFile();
+        char *inFilePath = SillyStringFmt("backend/tests/%s", inFile);
+        Timer timer = Timer("pasm");
+        int errors = 0;
+        int r = passembler(inFilePath, "macOS");
+        r |= pasm_x86_64(pasm_lines, "bin/out.x86_64", MAC_OS);
+        DeallocPasm();
+        r |= CallSystem("nasm -f macho64 bin/out.x86_64");
+        // TODO(Noah): Implement linking with more libraries.
         r |= CallSystem("nasm -o bin/exit.o -f macho64 backend/pstdlib/macOS/console/exit.s");
         r |= CallSystem("nasm -o bin/print.o -f macho64 backend/pstdlib/macOS/console/print.s");
-        r |= CallSystem("ld -o bin/helloworld -static bin/helloworld.o bin/exit.o bin/print.o");
-        r |= CallSystem("bin/helloworld");
-
-        return r;
+        r |= CallSystem("ld -o bin/out -static bin/out.o bin/exit.o bin/print.o");
+        r |= CallSystem("bin/out");
+        errors = (r != 0 );
+        CheckErrors(errors);
+        timer.TimerEnd();
+        return (errors > 0);
 
     } else if (0  == strcmp(l, "p") || 0 ==strcmp(l, "preparser")) {
         

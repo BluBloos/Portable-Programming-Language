@@ -1,3 +1,38 @@
+/* TODO(Noah):
+- Resolve stack variables.
+- Adjust call to check first if function is defined as a definition, then 
+  check for an external function.
+- Actually do the proper work to care about the type of the parameter being
+  passed. Like, is it int32, int64? Which one is it?
+- Implement return instruction.
+- Implement restore instruction.
+- Implement branch instruction.
+- Implement add instruction.
+- Implement sub instruction.
+- Implement mov instruction.
+- Implement branch_gt instruction. 
+- Implement save instruction.
+*/
+
+char *pasmGprTable[] = {
+    "rax", "rbx",
+    "rcx", "rdx",
+    "rsp", "rbp",
+    "rsi", "rdi",
+    "r8", "r9",
+    "r10", "r11",
+    "r12", "r13",
+    "r14", "r15"
+};
+
+// p assembly function call param order.
+int pasmfcallpo[] = {
+    2, // rcx
+    3, // rdx
+    8, // r8
+    9 // r9
+};
+
 // This function will write x86_64 assembly source to outFilePath
 // by translating the in-memory representation of PASM (ppl assembly)
 // as stored in source. Source is a stretchy buffer. 
@@ -6,16 +41,6 @@ int pasm_x86_64(struct pasm_line *source,
     
     int pasm_x86_64_result = 0;
     PFileWriter fileWriter = PFileWriter(outFilePath);
-    pasm_func_table *ftable = NULL; // empty stb hashmap.
-
-    // Commit to pass #1 and build the map of function names
-    // that are defined externally.
-    for (int i = 0 ; i < StretchyBufferCount(source); i++) {
-        struct pasm_line pline = source[i];
-        if (pline.lineType == PASM_LINE_FDECL) {
-            stbds_hmput(ftable, pline.data_fdecl.name, pline.data_fdecl);
-        }
-    }
 
     for (int i = 0 ; i < StretchyBufferCount(source); i++) {
         struct pasm_line pline = source[i];
@@ -56,17 +81,17 @@ int pasm_x86_64(struct pasm_line *source,
                 char *fname = fcall.name;
                 // TODO(Noah): Figure out why stbds_hmgeti is NOT FUCKING WORKING.
                 // Like. You gotta love libraries man...
-                if ( false && (stbds_hmgeti(ftable, fname)) == -1 ) {
+                if ( false && (stbds_hmgeti(fdecl_table, fname)) == -1 ) {
                     // Error!
                     LOGGER.Error(
                         "PASM_LINE_CALL trying to call %s, \
-                        but this func is not defined in ftable", fname);
+                        but this func is not defined in fdecl_table", fname);
 
-                    for (int i=0; i < stbds_hmlen(ftable); ++i) {
-                        LOGGER.Min("%s ", ftable[i].key);
+                    for (int i=0; i < stbds_hmlen(fdecl_table); ++i) {
+                        LOGGER.Min("%s ", fdecl_table[i].key);
                         struct pasm_line pline = PasmLineEmpty();
                         pline.lineType = PASM_LINE_FDECL;
-                        pline.data_fdecl = ftable[i].value;
+                        pline.data_fdecl = fdecl_table[i].value;
                         PasmLinePrint(pline);
                     }
 
@@ -74,7 +99,7 @@ int pasm_x86_64(struct pasm_line *source,
                     goto pasm_x86_64_end;
                 }
                 
-                struct pasm_fdecl fdecl = stbds_hmget(ftable, fname); 
+                struct pasm_fdecl fdecl = stbds_hmget(fdecl_table, fname); 
                 // TODO(Noah): Implement different calling conventions. Right now
                 // we only implement just 1.
                 // we also do not check to see if the func has any more than 4 parameters...
@@ -113,7 +138,5 @@ int pasm_x86_64(struct pasm_line *source,
     }
 
     pasm_x86_64_end:
-    // NOTE(Noah): Read this as "stb datastructures hashmap free".
-    stbds_hmfree(ftable);
     return pasm_x86_64_result;
 }
