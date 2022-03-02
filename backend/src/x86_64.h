@@ -6,14 +6,14 @@
 - Actually do the proper work to care about the type of the parameter being
   passed. Like, is it int32, int64? Which one is it?
 
-- Implement restore instruction.
+
 - Implement add instruction.
 - Implement sub instruction.
 - Implement mov instruction.
-- Implement branch_gt instruction. 
-- Implement save instruction.
+- Implement branch_gt instruction.
 
-- Implement branch instruction.
+- Implement save instruction.
+- Implement restore instruction.
 
 */
 
@@ -45,9 +45,27 @@ int pasm_x86_64(struct pasm_line *source,
     int pasm_x86_64_result = 0;
     PFileWriter fileWriter = PFileWriter(outFilePath);
 
+    
+
     for (int i = 0 ; i < StretchyBufferCount(source); i++) {
         struct pasm_line pline = source[i];
         switch(pline.lineType) {
+            case PASM_LINE_SAVE:
+            {
+                for (int i = 0; i < StretchyBufferCount(pline.data_save); i++) {
+                    char *cReg = pasmGprTable[(int)pline.data_save[i]];
+                    fileWriter.write(SillyStringFmt("push %s\n", cReg));
+                }
+            }
+            break;
+            case PASM_LINE_RESTORE:
+            {
+                for (int i = 0; i < StretchyBufferCount(pline.data_save); i++) {
+                    char *cReg = pasmGprTable[(int)pline.data_save[i]];
+                    fileWriter.write(SillyStringFmt("pop %s\n", cReg));
+                }
+            }
+            break;
             case PASM_LINE_BRANCH:
             fileWriter.write(SillyStringFmt("jmp %s\n", pline.data_cptr));
             break;
