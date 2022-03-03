@@ -62,7 +62,8 @@ struct pasm_fdecl {
 enum pasm_fparam_type {
     PASM_FPARAM_LABEL = 0,
     PASM_FPARAM_INT,
-    PASM_FPARAM_REGISTER
+    PASM_FPARAM_REGISTER,
+    PASM_FPARAM_STACKVAR
 };
 
 enum pasm_register {
@@ -84,10 +85,16 @@ enum pasm_register {
     PASM_R30, PASM_R31,
 };
 
+struct pasm_stackvar {
+    int addr;
+    char *name;
+};
+
 // Function params
 struct pasm_fparam {
     enum pasm_fparam_type type;
     union {
+        struct pasm_stackvar data_sv;
         char *data_cptr;
         int data_int;
         enum pasm_register data_register;
@@ -224,6 +231,11 @@ void PasmFparamPrint(struct pasm_fparam fparam) {
         case PASM_FPARAM_REGISTER:
         LOGGER.Min("  PASM_FPARAM_REGISTER\n");
         LOGGER.Min("    r%d\n", (int)fparam.data_register);
+        break;
+        case PASM_FPARAM_STACKVAR:
+        LOGGER.Min("  PASM_FPARAM_STACKVAR\n");
+        LOGGER.Min("    name:%s\n", fparam.data_sv.name);
+        LOGGER.Min("    addr:%d\n", fparam.data_sv.addr);
         break;
     }
 }
@@ -378,6 +390,10 @@ struct pasm_fdecl_table *fdecl_table = NULL; // empty stb hashmap.
 struct pasm_fdef_table *fdef_table = NULL; // empty stb hashmap.
 struct pasm_label_table *label_table = NULL; // empty stb hashmap.
 
+// For defining stack variables.
+// strings are not managed by the this table. Just a ref to an already existing string.
+struct pasm_stackvar *_sv_table = NULL; // stretchy buffer.
+
 // Deallocs all resources allocated by pasm_main
 void DeallocPasm() {
     struct pasm_line *lines = pasm_lines;
@@ -405,6 +421,37 @@ void DeallocPasm() {
     stbds_hmfree(fdecl_table);
     stbds_hmfree(fdef_table);
     stbds_hmfree(label_table);
+}
+
+/* Given a fnparam that is of type PASM_FPARAM_LABEL,
+   check if this label corresponds with a stack variable.
+   If it does, adjust the fnparam to be PASM_FPARAM_STACKVAR
+   and set data_sv accordingly. */
+void StackVarFromFplabel(struct pasm_fparam *fparam) {
+    // TODO(Noah): check if the label is in the label table.
+    //
+    // we start by going right to see if this is a local var.
+    bool exists = false;
+    struct pasm_stackvar sv;
+    int j = StretchyBufferCount(_sv_table) - 1;
+    while (StretchyBufferCount(_sv_table) && 
+        !SillyStringStartsWith(_sv_table[j].name, 
+            "0scope")) 
+    {
+        if (SillyStringEquals(fparam->data_cptr, 
+            _sv_table[j].name)) 
+        {
+            exists = true;
+            sv = _sv_table[j];    
+            break;
+        }   
+        j--;
+    }
+    if (exists) {
+        fparam->type = PASM_FPARAM_STACKVAR;
+        fparam->data_sv = sv;
+    }
+
 }
 
 // USAGE:
@@ -461,12 +508,91 @@ int pasm_main(int argc, char **argv) {
 
     }
 
-    if (VERBOSE) {   
+    if (VERBOSE) {
+        // say that it is pass #1
+        LOGGER.Min(ColorHighlight);
+        LOGGER.Min("pass #1\n");
+        LOGGER.Min(ColorNormal);  
         for (int i = 0; i < StretchyBufferCount(pasm_lines); i++) {
             PasmLinePrint(pasm_lines[i]);
         }
     }
-    
+
+    // go thru all the lines again for a second pass, resolving labels -> stack vars
+    // Need to do in another pass because global labels take precedence over local
+    // vars.
+    for (int i = 0; i < StretchyBufferCount(pasm_lines); i++) {
+        // TODO(Noah): Implement the resolving of local vars
+        // as stack variables.
+        //
+        // otherwise right now, we just care to implement function params.
+        struct pasm_line pl = pasm_lines[i];
+        switch(pl.lineType) {
+            case PASM_LINE_FDEF:
+            {
+                // NOTE(Noah): this type of solution for scoping should work good for our
+                // top-level function scopes and stuff. It should also be extensible 
+                // for local vars and continuous lower-level scopes.
+                //     
+                // delete the current scope.
+                while(StretchyBufferCount(_sv_table) && 
+                    !SillyStringStartsWith(StretchyBufferLast(_sv_table).name, "0scope")) {
+                    StretchyBufferPop(_sv_table);
+                }
+                
+                // create a new scope by simply reusing the old "0scope" elem.
+                // or if there is no prior scope, actually create the "0scope" elem.
+                if (StretchyBufferCount(_sv_table) == 0) {
+                    struct pasm_stackvar sv; sv.name = "0scope";
+                    StretchyBufferPush(_sv_table, sv);
+                }
+
+                // now we go through the named params of FDEF and put them on the stack.
+                for (int j = 0; j < StretchyBufferCount(pl.data_fdef.params); j++) {
+                    struct pasm_fnparam fnparam = pl.data_fdef.params[j];
+                    struct pasm_stackvar sv;
+                    sv.name = fnparam.name;
+                    // TODO(Noah): Implement other sizings than 64-bit.
+                    sv.addr = -16 - j * 8;
+                    StretchyBufferPush(_sv_table, sv); 
+                }
+            }
+            break;
+            case PASM_LINE_ADD:
+            case PASM_LINE_SUB:
+            case PASM_LINE_MOV:
+            case PASM_LINE_BRANCH_GT:
+            {
+                // All of these use the fptriad, so we can do this just fine.
+                struct pasm_fptriad fptriad = pl.data_fptriad;
+                if (fptriad.param1.type == PASM_FPARAM_LABEL) {
+                    StackVarFromFplabel(&pasm_lines[i].data_fptriad.param1);
+                }
+                if (fptriad.param2.type == PASM_FPARAM_LABEL) {
+                    StackVarFromFplabel(&pasm_lines[i].data_fptriad.param2);
+                }
+            }
+            break;
+            // TODO(Noah): Resolve stack vars here.
+            case PASM_LINE_FCALL:
+            break;
+            default:
+            break;
+        }
+        
+    }
+
+    if (VERBOSE) {
+        // say that it is pass #1
+        LOGGER.Min(ColorHighlight);
+        LOGGER.Min("pass #2\n");
+        LOGGER.Min(ColorNormal);  
+        for (int i = 0; i < StretchyBufferCount(pasm_lines); i++) {
+            PasmLinePrint(pasm_lines[i]);
+        }
+    }
+
+    StretchyBufferFree(_sv_table);
     return 0;
 
 }

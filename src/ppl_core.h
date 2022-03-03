@@ -75,16 +75,7 @@ char *SillyStringFmt(char *fmt, ...) {
     return __silly_buff;
 }
 
-// Returns true if a starts with b, false otherwise.
-bool SillyStringStartsWith(const char *a, const char *b) {
-    char *pStrA = (char *)a;
-    char *pStrB = (char *)b;
-    for (; *pStrA != 0 && *pStrB != 0; (pStrA++, pStrB++)) {
-        if (*pStrA != *pStrB)
-            break;
-    }
-    return (*pStrB == 0);
-}
+
 
 // Returns true if the character c is inside the SillyString a.
 bool SillyStringCharIn(const char *a, char c) {
@@ -96,10 +87,27 @@ bool SillyStringCharIn(const char *a, char c) {
 }
 
 // Returns the length of the silly string.
-unsigned int SillyStringLength(char *str) {
+unsigned int SillyStringLength(const char *str) {
     unsigned int r = 0;
     while (*str++ != 0) { r++; }
     return r;
+}
+
+// Returns true if a starts with b, false otherwise.
+bool SillyStringStartsWith(const char *a, const char *b) {
+    char *pStrA = (char *)a;
+    char *pStrB = (char *)b;
+    for (; *pStrA != 0 && *pStrB != 0; (pStrA++, pStrB++)) {
+        if (*pStrA != *pStrB)
+            break;
+    }
+    return (*pStrB == 0);
+}
+
+bool SillyStringEquals(const char *a, const char *b) {
+    bool r = SillyStringLength(a) == SillyStringLength(b);
+    if (!r) return false;
+    return SillyStringStartsWith(a, b); 
 }
 
 // Parses the silly string as an unsigned integer, and returns the interpreted value.
