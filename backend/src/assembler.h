@@ -460,6 +460,7 @@ int pasm_main(int argc, char **argv) {
 
     // StretchyBufferInit(pasm_lines);
     pasm_lines = NULL;
+    _sv_table = NULL;
 
     if (argc < 3) {
         LOGGER.Error("Not enough arguments");
