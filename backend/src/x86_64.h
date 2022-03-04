@@ -34,6 +34,36 @@ int pasmfcallpo[] = {
     9 // r9
 };
 
+/* Write using a PFileWriter the x86 assembly for the stack variable. */
+void FileWriter_WriteStackVar(PFileWriter &fileWriter, struct pasm_stackvar sv) {
+    switch(sv.type) {
+        case PASM_INT8:
+        case PASM_UINT8:
+        fileWriter.write("BYTE ");
+        break;
+        case PASM_INT16:
+        case PASM_UINT16:
+        fileWriter.write("WORD "); // word on x86_64 is 16 bits?
+        break;
+        case PASM_INT32:
+        case PASM_UINT32:
+        fileWriter.write("DWORD ");
+        break;
+        case PASM_INT64:
+        case PASM_UINT64:
+        fileWriter.write("QWORD ");
+        break;
+        default:
+        break;
+    }
+    if (sv.addr >= 0) {
+        fileWriter.write(SillyStringFmt("[rbp + %d]", sv.addr));
+    } else {
+        fileWriter.write(SillyStringFmt("[rbp %d]", sv.addr));
+    }
+    
+}
+
 // This function will write x86_64 assembly source to outFilePath
 // by translating the in-memory representation of PASM (ppl assembly)
 // as stored in source. Source is a stretchy buffer. 
@@ -46,83 +76,65 @@ int pasm_x86_64(struct pasm_line *source,
     for (int i = 0 ; i < StretchyBufferCount(source); i++) {
         struct pasm_line pline = source[i];
         switch(pline.lineType) {
+            case PASM_LINE_ADD:
+            case PASM_LINE_SUB:
             case PASM_LINE_MOV:
             {
-                // The first and last of these things are params.
-                // params can be any of:
-                // - int, label, register, stack label
-                // 
-                // semantically, what are the only valid first param types?
-                // register.
-                // - We also note that because of CISC, it could be the case 
-                // that there are more valid locations than just a register.
-                // 
-                // TODO(Noah): Implement a semantic checking layer. Right now we assume
-                // that the first param is going to be a register. If not, this line
-                // evaluates to nothing.
+                bool add_sub_Flag = false;
+                switch(pline.lineType) {
+                    case PASM_LINE_ADD:
+                    fileWriter.write("add ");
+                    add_sub_Flag = true;
+                    break;
+                    case PASM_LINE_SUB:
+                    fileWriter.write("sub ");
+                    add_sub_Flag = true;
+                    break;
+                    case PASM_LINE_MOV:
+                    fileWriter.write("mov ");
+                    break;
+                    default:
+                    break;
+                }
+                bool firstParamValid = false;                
                 if (pline.data_fptriad.param1.type == PASM_FPARAM_REGISTER) {
+                    firstParamValid = true;
                     char *cReg1 = 
                         pasmGprTable[(int)pline.data_fptriad.param1.data_register];
+                    fileWriter.write(SillyStringFmt("%s, ", cReg1));
+                } else if (pline.data_fptriad.param1.type == PASM_FPARAM_STACKVAR) {
+                    firstParamValid = true;
+                    FileWriter_WriteStackVar(fileWriter, 
+                        pline.data_fptriad.param1.data_sv);
+                    fileWriter.write(", ");
+                }
+                if (firstParamValid) {
                     switch(pline.data_fptriad.param2.type) {
                         case PASM_FPARAM_REGISTER:
                         {
                             char *cReg2 = 
                                 pasmGprTable[(int)pline.data_fptriad.param2.data_register];
-                            fileWriter.write(SillyStringFmt("mov %s, %s\n", cReg1, 
-                                cReg2));
+                            fileWriter.write(SillyStringFmt("%s\n", cReg2));
                         }
                         break;
                         case PASM_FPARAM_INT:
-                        fileWriter.write(SillyStringFmt("mov %s, %d\n", cReg1, 
-                                pline.data_fptriad.param2.data_int));
+                        fileWriter.write(SillyStringFmt("%d\n", 
+                            pline.data_fptriad.param2.data_int));
                         break;
-                        // TODO(Noah): And so what we do is we have this full-pass prior.
-                        // The pass goes thru and finds that when there is a function def,
-                        // we enter into a context.
-                        // then, while we are inside this context (scope), for all labels not in the
-                        // label table, we evaluate against the context. If we get a match,
-                        // we change the PASM_FPARAM from LABEL to STACKVAR.
-                        // while in the context, there also might be local vars created as well.
-                        // these local vars get put inside the context as well. And can make it such that
-                        // the label eval to the local var.
-                        //
-                        // what type of data do we even get inside the stack var?
-                        // basically, we need to know the address of the stack variable.
-                        // since these variables are always inside the context, they are relative
-                        // to ebp. ebp+ for function params, and ebp- for locally created vars.
-                        // AND, because we do it this way, we can account for diverse sized 
-                        // variables on the stack. Yknow, maybe I throw an int32 on there. And then
-                        // maybe we chuck an int8, int64. Heck, int16? Why not.
                         case PASM_FPARAM_STACKVAR:
-                        {
-                            // Suppose that things are pushed onto the stack.
-                            // then we do a call into the function.
-                            // there is going to exist rbp. rbp points to the old
-                            // rpb, then next in memory is the return addr,
-                            // and finally, we will have the params of the function.
-                            // order of params depends on how we called the function
-                            // in the first place.
-                            //
-                            // long story short, to get to the first param, we do
-                            // [ebp + 8], presuming that each param is of a dword
-                            // size...
-                            //
-                            // So. Maybe we do something like this...
-                            struct pasm_stackvar sv = pline.data_fptriad.param2.data_sv;
-                            fileWriter.write(SillyStringFmt("mov %s, [rbp %d]\n", cReg1,
-                                sv.addr));
-                        }
+                        FileWriter_WriteStackVar(fileWriter, 
+                            pline.data_fptriad.param2.data_sv);
+                        fileWriter.write("\n");
                         break;
                         case PASM_FPARAM_LABEL:
                         {
                             char *label = pline.data_fptriad.param2.data_cptr;
                             // TODO(Noah): Add checking for if in label_table.
-                            fileWriter.write(SillyStringFmt("mov %s, %s\n", cReg1, 
-                                label));
+                            fileWriter.write(SillyStringFmt("%s\n", label));
                         }
                         break;
                     }
-                }
+                }       
             }
             break;
             case PASM_LINE_SAVE:
@@ -208,16 +220,21 @@ int pasm_x86_64(struct pasm_line *source,
                 for (int i = 0; i < StretchyBufferCount(fcall.params); i++) {
                     struct pasm_fparam fparam = fcall.params[i];
                     char *cReg = pasmGprTable[pasmfcallpo[i]];
+                    fileWriter.write(SillyStringFmt("mov %s, ", cReg));
                     switch(fparam.type) {
                         case PASM_FPARAM_LABEL:
-                        fileWriter.write(SillyStringFmt("mov %s, %s\n", cReg, fparam.data_cptr));
+                        fileWriter.write(SillyStringFmt("%s\n", fparam.data_cptr));
                         break;
                         case PASM_FPARAM_INT:
-                        fileWriter.write(SillyStringFmt("mov %s, %d\n", cReg, fparam.data_int));
+                        fileWriter.write(SillyStringFmt("%d\n", fparam.data_int));
                         break;
                         case PASM_FPARAM_REGISTER:
-                        fileWriter.write(SillyStringFmt("mov %s, %s\n", cReg,
+                        fileWriter.write(SillyStringFmt("%s\n", cReg,
                             pasmGprTable[(int)fparam.data_register]));
+                        break;
+                        case PASM_FPARAM_STACKVAR:
+                        FileWriter_WriteStackVar(fileWriter, fparam.data_sv);
+                        fileWriter.write("\n");
                         break;
                     }
 

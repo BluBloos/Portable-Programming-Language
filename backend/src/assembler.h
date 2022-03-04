@@ -88,6 +88,7 @@ enum pasm_register {
 struct pasm_stackvar {
     int addr;
     char *name;
+    enum pasm_type type;
 };
 
 // Function params
@@ -423,9 +424,9 @@ void DeallocPasm() {
     stbds_hmfree(label_table);
 }
 
-/* Given a fnparam that is of type PASM_FPARAM_LABEL,
+/* Given a fparam that is of type PASM_FPARAM_LABEL,
    check if this label corresponds with a stack variable.
-   If it does, adjust the fnparam to be PASM_FPARAM_STACKVAR
+   If it does, adjust the fparam to be PASM_FPARAM_STACKVAR
    and set data_sv accordingly. */
 void StackVarFromFplabel(struct pasm_fparam *fparam) {
     // TODO(Noah): check if the label is in the label table.
@@ -552,9 +553,10 @@ int pasm_main(int argc, char **argv) {
                 for (int j = 0; j < StretchyBufferCount(pl.data_fdef.params); j++) {
                     struct pasm_fnparam fnparam = pl.data_fdef.params[j];
                     struct pasm_stackvar sv;
+                    sv.type = fnparam.type;
                     sv.name = fnparam.name;
                     // TODO(Noah): Implement other sizings than 64-bit.
-                    sv.addr = -16 - j * 8;
+                    sv.addr = 16 + j * 8;
                     StretchyBufferPush(_sv_table, sv); 
                 }
             }
@@ -574,8 +576,15 @@ int pasm_main(int argc, char **argv) {
                 }
             }
             break;
-            // TODO(Noah): Resolve stack vars here.
             case PASM_LINE_FCALL:
+            {
+                for (int j = 0; j < StretchyBufferCount(pl.data_fcall.params); j++) {
+                    struct pasm_fparam fparam = pl.data_fcall.params[j];
+                    if (fparam.type == PASM_FPARAM_LABEL) {
+                        StackVarFromFplabel(&pasm_lines[i].data_fcall.params[j]);
+                    }
+                }
+            }
             break;
             default:
             break;
