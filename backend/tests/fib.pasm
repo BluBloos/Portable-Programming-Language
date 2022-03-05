@@ -25,7 +25,7 @@
 ; are passed via the stack.
 .def int32 fib(int32 n)
 
-save [r3]
+save [r3] ; If we do not specify the size of reg, it is 64.
 
 label_fib_if:
 bgt n, 1, fib_else
@@ -34,10 +34,11 @@ br fib_end
 label_fib_else:
 sub n, 1
 call fib(n)
-mov r3, r2
+; We must specify what size of registers.
+mov r3_32, r2_32
 sub n, 1
 call fib(n)
-add r2, r3
+add r2_32, r3_32
 br fib_end
 
 label_fib_end:
@@ -46,7 +47,7 @@ ret
 
 .def int32 main()
 call fib(7)
-call ppl_exit(r2)
+call ppl_exit(r2_32)
 
 ; so maybe to avoid the botching of registers that I can forsee, we do the
 ; following. We still always return in r2. So everyone agrees on this. 

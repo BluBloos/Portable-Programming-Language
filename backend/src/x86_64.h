@@ -1,29 +1,28 @@
 /* TODO(Noah):
 
-- Resolve stack variables.
-- Adjust call to check first if function is defined as a definition, then 
-  check for an external function.
-- Actually do the proper work to care about the type of the parameter being
-  passed. Like, is it int32, int64? Which one is it?
 
-
-- Implement add instruction.
-- Implement sub instruction.
 - Implement branch_gt instruction.
 
-- Implement mov instruction.
+- Adjust call to check first if function is defined as a definition, then 
+  check for an external function.
+- Also adjust call to do the proper pushing onto the stack.
 
 */
 
-char *pasmGprTable[] = {
-    "rax", "rbx",
-    "rcx", "rdx",
-    "rsp", "rbp",
-    "rsi", "rdi",
-    "r8", "r9",
-    "r10", "r11",
-    "r12", "r13",
-    "r14", "r15"
+char *pasm_x64_GprTable[] = {
+    "rax", "rbx", "rcx", "rdx",
+    "rsp", "rbp", "rsi", "rdi",
+    "r8", "r9", "r10", "r11",
+    "r12", "r13", "r14", "r15",
+    "", "", "", "", // TODO(Noah): Implement more registers?
+    "", "", "", "",
+    "", "", "", "",
+    "", "", "", "",
+    "eax", "ebx", "ecx", "edx",
+    "esp", "ebp", "esi", "edi",
+    "r8d", "r9d", "r10d", "r11d",
+    "r12d", "r13d", "r14d", "r15d"
+    // TODO(Noah): Implement 16 bit and 8 bit registers.
 };
 
 // p assembly function call param order.
@@ -100,7 +99,7 @@ int pasm_x86_64(struct pasm_line *source,
                 if (pline.data_fptriad.param1.type == PASM_FPARAM_REGISTER) {
                     firstParamValid = true;
                     char *cReg1 = 
-                        pasmGprTable[(int)pline.data_fptriad.param1.data_register];
+                        pasm_x64_GprTable[(int)pline.data_fptriad.param1.data_register];
                     fileWriter.write(SillyStringFmt("%s, ", cReg1));
                 } else if (pline.data_fptriad.param1.type == PASM_FPARAM_STACKVAR) {
                     firstParamValid = true;
@@ -113,7 +112,7 @@ int pasm_x86_64(struct pasm_line *source,
                         case PASM_FPARAM_REGISTER:
                         {
                             char *cReg2 = 
-                                pasmGprTable[(int)pline.data_fptriad.param2.data_register];
+                                pasm_x64_GprTable[(int)pline.data_fptriad.param2.data_register];
                             fileWriter.write(SillyStringFmt("%s\n", cReg2));
                         }
                         break;
@@ -137,10 +136,12 @@ int pasm_x86_64(struct pasm_line *source,
                 }       
             }
             break;
+            // NOTE(Noah): Save and restore instructions always just save/restore 
+            // the entire 64 bit register.
             case PASM_LINE_SAVE:
             {
                 for (int i = 0; i < StretchyBufferCount(pline.data_save); i++) {
-                    char *cReg = pasmGprTable[(int)pline.data_save[i]];
+                    char *cReg = pasm_x64_GprTable[(int)pline.data_save[i]];
                     fileWriter.write(SillyStringFmt("push %s\n", cReg));
                 }
             }
@@ -148,7 +149,7 @@ int pasm_x86_64(struct pasm_line *source,
             case PASM_LINE_RESTORE:
             {
                 for (int i = 0; i < StretchyBufferCount(pline.data_save); i++) {
-                    char *cReg = pasmGprTable[(int)pline.data_save[i]];
+                    char *cReg = pasm_x64_GprTable[(int)pline.data_save[i]];
                     fileWriter.write(SillyStringFmt("pop %s\n", cReg));
                 }
             }
@@ -217,10 +218,8 @@ int pasm_x86_64(struct pasm_line *source,
                 // TODO(Noah): Implement different calling conventions. Right now
                 // we only implement just 1.
                 // we also do not check to see if the func has any more than 4 parameters...
-                for (int i = 0; i < StretchyBufferCount(fcall.params); i++) {
+                /* for (int i = 0; i < StretchyBufferCount(fcall.params); i++) {
                     struct pasm_fparam fparam = fcall.params[i];
-                    char *cReg = pasmGprTable[pasmfcallpo[i]];
-                    fileWriter.write(SillyStringFmt("mov %s, ", cReg));
                     switch(fparam.type) {
                         case PASM_FPARAM_LABEL:
                         fileWriter.write(SillyStringFmt("%s\n", fparam.data_cptr));
@@ -230,7 +229,7 @@ int pasm_x86_64(struct pasm_line *source,
                         break;
                         case PASM_FPARAM_REGISTER:
                         fileWriter.write(SillyStringFmt("%s\n", cReg,
-                            pasmGprTable[(int)fparam.data_register]));
+                            pasm_x64_GprTable[(int)fparam.data_register]));
                         break;
                         case PASM_FPARAM_STACKVAR:
                         FileWriter_WriteStackVar(fileWriter, fparam.data_sv);
@@ -238,7 +237,7 @@ int pasm_x86_64(struct pasm_line *source,
                         break;
                     }
 
-                }
+                } */
                 // Call the function
                 fileWriter.write(SillyStringFmt("call %s\n", fcall.name));
             }

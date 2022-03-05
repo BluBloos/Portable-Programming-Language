@@ -36,7 +36,7 @@ typedef unsigned int uint32;
 #define INTERNAL static
 #define PERSISTENT static
 #define Assert(b) (b) ? (void)0 : (LOGGER.Error("Assertion failure!"), abort())
-#define SafeSubtract(Value, Subtractor) Value = (Value >= Subtractor) ? Value - Subtractor: 0
+#define SafeSubtract(Value, Subtractor) ((Value >= Subtractor) ? Value - Subtractor: 0)
 #define ColorError "\033[0;33m"
 #define ColorHighlight "\033[0;36m"
 #define ColorNormal "\033[0m"
@@ -118,7 +118,7 @@ unsigned int SillyStringToUINT(char *str)
 	unsigned int result = 0;
 	unsigned int strLength = SillyStringLength(str);
 	unsigned int placeValue = (int)powf(10.0f, (strLength - 1.0f) );
-	for (unsigned int x = 0; x < strLength; x++)
+    for (unsigned int x = 0; x < strLength; x++)
 	{
 		result += (SafeSubtract(*str, '0')) * placeValue;
 		str++;

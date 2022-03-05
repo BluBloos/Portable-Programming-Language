@@ -67,22 +67,41 @@ enum pasm_fparam_type {
 };
 
 enum pasm_register {
-    PASM_R0 = 0, PASM_R1,
-    PASM_R2, PASM_R3,
-    PASM_R4, PASM_R5,
-    PASM_R6, PASM_R7,
-    PASM_R8, PASM_R9,
-    PASM_R10, PASM_R11,
-    PASM_R12, PASM_R13,
-    PASM_R14, PASM_R15,
-    PASM_R16, PASM_R17,
-    PASM_R18, PASM_R19,
-    PASM_R20, PASM_R21,
-    PASM_R22, PASM_R23,
-    PASM_R24, PASM_R25,
-    PASM_R26, PASM_R27,
-    PASM_R28, PASM_R29,
-    PASM_R30, PASM_R31,
+    PASM_R0 = 0, PASM_R1, PASM_R2, PASM_R3,
+    PASM_R4, PASM_R5, PASM_R6, PASM_R7,
+    PASM_R8, PASM_R9, PASM_R10, PASM_R11,
+    PASM_R12, PASM_R13, PASM_R14, PASM_R15,
+    PASM_R16, PASM_R17, PASM_R18, PASM_R19,
+    PASM_R20, PASM_R21, PASM_R22, PASM_R23,
+    PASM_R24, PASM_R25, PASM_R26, PASM_R27,
+    PASM_R28, PASM_R29, PASM_R30, PASM_R31,
+
+    PASM_R0_32, PASM_R1_32, PASM_R2_32, PASM_R3_32,
+    PASM_R4_32, PASM_R5_32, PASM_R6_32, PASM_R7_32,
+    PASM_R8_32, PASM_R9_32, PASM_R10_32, PASM_R11_32,
+    PASM_R12_32, PASM_R13_32, PASM_R14_32, PASM_R15_32,
+    PASM_R16_32, PASM_R17_32, PASM_R18_32, PASM_R19_32,
+    PASM_R20_32, PASM_R21_32, PASM_R22_32, PASM_R23_32,
+    PASM_R24_32, PASM_R25_32, PASM_R26_32, PASM_R27_32,
+    PASM_R28_32, PASM_R29_32, PASM_R30_32, PASM_R31_32,
+
+    PASM_R0_16, PASM_R1_16, PASM_R2_16, PASM_R3_16,
+    PASM_R4_16, PASM_R5_16, PASM_R6_16, PASM_R7_16,
+    PASM_R8_16, PASM_R9_16, PASM_R10_16, PASM_R11_16,
+    PASM_R12_16, PASM_R13_16, PASM_R14_16, PASM_R15_16,
+    PASM_R16_16, PASM_R17_16, PASM_R18_16, PASM_R19_16,
+    PASM_R20_16, PASM_R21_16, PASM_R22_16, PASM_R23_16,
+    PASM_R24_16, PASM_R25_16, PASM_R26_16, PASM_R27_16,
+    PASM_R28_16, PASM_R29_16, PASM_R30_16, PASM_R31_16,
+
+    PASM_R0_8, PASM_R1_8, PASM_R2_8, PASM_R3_8,
+    PASM_R4_8, PASM_R5_8, PASM_R6_8, PASM_R7_8,
+    PASM_R8_8, PASM_R9_8, PASM_R10_8, PASM_R11_8,
+    PASM_R12_8, PASM_R13_8, PASM_R14_8, PASM_R15_8,
+    PASM_R16_8, PASM_R17_8, PASM_R18_8, PASM_R19_8,
+    PASM_R20_8, PASM_R21_8, PASM_R22_8, PASM_R23_8,
+    PASM_R24_8, PASM_R25_8, PASM_R26_8, PASM_R27_8,
+    PASM_R28_8, PASM_R29_8, PASM_R30_8, PASM_R31_8,
 };
 
 struct pasm_stackvar {
@@ -231,7 +250,11 @@ void PasmFparamPrint(struct pasm_fparam fparam) {
         break;
         case PASM_FPARAM_REGISTER:
         LOGGER.Min("  PASM_FPARAM_REGISTER\n");
-        LOGGER.Min("    r%d\n", (int)fparam.data_register);
+        {
+            unsigned int reg = (int)fparam.data_register % 32;
+            unsigned int bitness = ((int)fparam.data_register / 32);
+            LOGGER.Min("    r%d_%d\n", reg, bitness);
+        }
         break;
         case PASM_FPARAM_STACKVAR:
         LOGGER.Min("  PASM_FPARAM_STACKVAR\n");
@@ -376,11 +399,27 @@ bool SillyStringGetRegister(char *str, enum pasm_register &reg) {
     if (str[0] != 'r') {
         return false;
     }
-    unsigned int num = SillyStringToUINT(str + 1);    
+    str++; // skip past the 'r'.
+    std::string regNum = "";
+    char *pStr = str;
+    for (; *pStr != 0 && *pStr != '_'; pStr++) {
+        regNum += *pStr;
+    }
+    unsigned int num = SillyStringToUINT((char *)regNum.c_str());    
     if (num >= 0 && num < 32) {
         reg = (enum pasm_register)((int)PASM_R0 + num);
-        return true;
+        if (*pStr == 0) {
+            // Good to go. The register is 64 bit.
+            return true;
+        } else {
+            pStr++; // Skip past the underscore.
+            unsigned int num2 = SillyStringToUINT(pStr);
+            unsigned int offset = 3 - log2(num2 / 8);
+            reg = (enum pasm_register)((unsigned int)reg + offset * 32);
+            return true;
+        }
     }
+
     return false;
 }
 
