@@ -458,9 +458,9 @@ void DeallocPasm() {
     }
     StretchyBufferFree(lines);
     // NOTE(Noah): Read this as "stb datastructures hashmap free".
-    stbds_hmfree(fdecl_table);
-    stbds_hmfree(fdef_table);
-    stbds_hmfree(label_table);
+    stbds_shfree(fdecl_table);
+    stbds_shfree(fdef_table);
+    stbds_shfree(label_table);
 }
 
 /* Given a fparam that is of type PASM_FPARAM_LABEL,
@@ -770,7 +770,7 @@ void HandleLine(char *line) {
                 StretchyBufferPush(pline.data_fdef.params, fnparam);               
             }
             StretchyBufferPush(pasm_lines, pline);
-            stbds_hmput(fdef_table, pline.data_fdef.name, pline.data_fdef);
+            stbds_shput(fdef_table, pline.data_fdef.name, pline.data_fdef);
             
         } else if (directive == "extern") {
 
@@ -796,7 +796,7 @@ void HandleLine(char *line) {
                 StretchyBufferPush(pline.data_fdecl.params, ptype);              
             }
             StretchyBufferPush(pasm_lines, pline);
-            stbds_hmput(fdecl_table, pline.data_fdecl.name, pline.data_fdecl);
+            stbds_shput(fdecl_table, pline.data_fdecl.name, pline.data_fdecl);
 
         } else if (directive == "db") {
 
@@ -832,7 +832,7 @@ void HandleLine(char *line) {
         pline.lineType = PASM_LINE_LABEL;
         pline.data_cptr = pstr;
         StretchyBufferPush(pasm_lines, pline);
-        stbds_hmput(label_table, pline.data_cptr, 1);
+        stbds_shput(label_table, pline.data_cptr, 1);
 
     } else {
         // We can now make the assumption that we are deadling
@@ -957,4 +957,7 @@ int passembler(char *inFilePath, char *targetPlatform) {
     argv[2] = targetPlatform;
     return pasm_main(3, argv);
 }
+
+
+
 #endif

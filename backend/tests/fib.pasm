@@ -19,10 +19,11 @@
 ; NOTE(Noah): Internal function calls such as this
 ; use the pdecl calling convention.
 ; In pdcel, r0 and r1 are reserved.
-; r2 is used for function returns.
-; parameters are passed with general purpose registers, starting with r2.
-; but this is only true for the first four parameters. Any more, and things
-; are passed via the stack.
+;     Edit: What are they reserved for? For now,
+;     the compiler.
+; to avoid the botching of registers that I can forsee, we do the
+; following. We still always return in r2. So everyone agrees on this. 
+; but when passing parameters, things should always happen via the stack.
 .def int32 fib(int32 n)
 
 save [r3] ; If we do not specify the size of reg, it is 64.
@@ -49,6 +50,4 @@ ret
 call fib(7)
 call ppl_exit(r2_32)
 
-; so maybe to avoid the botching of registers that I can forsee, we do the
-; following. We still always return in r2. So everyone agrees on this. 
-; but when passing parameters, things should always happen via the stack.
+
