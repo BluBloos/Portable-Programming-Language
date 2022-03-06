@@ -61,7 +61,7 @@ Support for different setups is still "rough around the edges". No guarentees.
 The project uses an interactive build system. Run the following command to launch said system.
 
 ```bash
-build.sh
+./build.sh
 ```
 
 The interactive build system begins by printing a list of all available commands, then waits for susequent user input.
