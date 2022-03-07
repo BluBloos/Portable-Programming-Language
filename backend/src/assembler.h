@@ -589,13 +589,14 @@ int pasm_main(int argc, char **argv) {
                 }
 
                 // now we go through the named params of FDEF and put them on the stack.
-                for (int j = 0; j < StretchyBufferCount(pl.data_fdef.params); j++) {
+                int n = StretchyBufferCount(pl.data_fdef.params);
+                for (int j = 0; j < n; j++) {
                     struct pasm_fnparam fnparam = pl.data_fdef.params[j];
                     struct pasm_stackvar sv;
                     sv.type = fnparam.type;
                     sv.name = fnparam.name;
                     // TODO(Noah): Implement other sizings than 64-bit.
-                    sv.addr = 16 + j * 8;
+                    sv.addr = 16 + 8 * (n - 1) - (j * 8);
                     StretchyBufferPush(_sv_table, sv); 
                 }
             }

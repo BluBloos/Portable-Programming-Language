@@ -1,9 +1,6 @@
 /* TODO(Noah):
 - Implement branch_gt instruction.
 
-- Ensure that parameters addrs are correct, given the order that they 
-  are pushed onto the stack.
-
 */
 
 char *pasm_x64_GprTable[] = {
