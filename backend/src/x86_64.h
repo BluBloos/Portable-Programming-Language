@@ -1,5 +1,9 @@
 /* TODO(Noah):
-- Implement branch_gt instruction.
+
+- Need to seriously consider the unsigned and signedness of things as they relate
+to jump instructions, and so forth.
+
+- Now we need to figure out if fib actually works.
 
 */
 
@@ -54,7 +58,26 @@ void FileWriter_WriteStackVar(PFileWriter &fileWriter, struct pasm_stackvar sv) 
     } else {
         fileWriter.write(SillyStringFmt("[rbp %d]", sv.addr));
     }
-    
+}
+
+/* Write using a PFileWriter the x86 assembly for the fparam. */
+void FileWriter_WriteParam(PFileWriter &fileWriter, struct pasm_fparam param) {
+    switch(param.type) {
+        case PASM_FPARAM_INT:
+        fileWriter.write(SillyStringFmt("%d", param.data_int));
+        break;
+        case PASM_FPARAM_LABEL:
+        // TODO(Noah): Add checking for if in label_table.
+        fileWriter.write(SillyStringFmt("%s", param.data_cptr));
+        break;
+        case PASM_FPARAM_REGISTER:
+        fileWriter.write(SillyStringFmt("%s", 
+            pasm_x64_GprTable[(int)param.data_register]));
+        break;
+        case PASM_FPARAM_STACKVAR:
+        FileWriter_WriteStackVar(fileWriter, param.data_sv);
+        break;
+    }
 }
 
 // NOTE(Noah): For this func below, this is an interesting case. We seem
@@ -97,26 +120,9 @@ int FileWriter_WriteFunParamPassing(PFileWriter &fileWriter,
             // stackBytesPushed += 8;
             break;
         }
-        switch(fparam.type) {
-            case PASM_FPARAM_LABEL:
-            fileWriter.write(SillyStringFmt("mov %s, %s\n", reg, fparam.data_cptr));
-            break;
-            case PASM_FPARAM_INT:
-            fileWriter.write(SillyStringFmt("mov %s, %d\n", reg, fparam.data_int));
-            break;
-            case PASM_FPARAM_REGISTER:
-            // NOTE(Noah): This is redundant in the output binary, but for code
-            // readability / cleaness we do this.
-            fileWriter.write(SillyStringFmt("mov %s, %s\n", reg, 
-                pasm_x64_GprTable[(int)fparam.data_register]));
-            break;
-            case PASM_FPARAM_STACKVAR:
-            fileWriter.write(SillyStringFmt("mov %s, ", reg));
-            FileWriter_WriteStackVar(fileWriter, fparam.data_sv);
-            fileWriter.write("\n");
-            break;
-        }
-
+        fileWriter.write(SillyStringFmt("mov %s, ", reg));
+        FileWriter_WriteParam(fileWriter, fparam);
+        fileWriter.write("\n");
         // NOTE(Noah): In x64 we can only push 64 bit registers
         // onto the stack.
         // https://stackoverflow.com/questions/43435764/64-bit-mode-does-not-support-32-bit-push-and-pop-instructions
@@ -138,6 +144,18 @@ int pasm_x86_64(struct pasm_line *source,
     for (int i = 0 ; i < StretchyBufferCount(source); i++) {
         struct pasm_line pline = source[i];
         switch(pline.lineType) {
+            case PASM_LINE_BRANCH_GT:
+            {
+                // NOTE(Noah): cmp does a subtraction op to set the flags.
+                fileWriter.write("cmp ");
+                FileWriter_WriteParam(fileWriter, pline.data_fptriad.param1);
+                fileWriter.write(", ");
+                FileWriter_WriteParam(fileWriter, pline.data_fptriad.param2);
+                // NOTE(Noah): jg is signed.
+                fileWriter.write(SillyStringFmt("\njg %s\n", 
+                    pline.data_fptriad.param3));
+            }
+            break;
             case PASM_LINE_ADD:
             case PASM_LINE_SUB:
             case PASM_LINE_MOV:
@@ -171,31 +189,8 @@ int pasm_x86_64(struct pasm_line *source,
                     fileWriter.write(", ");
                 }
                 if (firstParamValid) {
-                    switch(pline.data_fptriad.param2.type) {
-                        case PASM_FPARAM_REGISTER:
-                        {
-                            char *cReg2 = 
-                                pasm_x64_GprTable[(int)pline.data_fptriad.param2.data_register];
-                            fileWriter.write(SillyStringFmt("%s\n", cReg2));
-                        }
-                        break;
-                        case PASM_FPARAM_INT:
-                        fileWriter.write(SillyStringFmt("%d\n", 
-                            pline.data_fptriad.param2.data_int));
-                        break;
-                        case PASM_FPARAM_STACKVAR:
-                        FileWriter_WriteStackVar(fileWriter, 
-                            pline.data_fptriad.param2.data_sv);
-                        fileWriter.write("\n");
-                        break;
-                        case PASM_FPARAM_LABEL:
-                        {
-                            char *label = pline.data_fptriad.param2.data_cptr;
-                            // TODO(Noah): Add checking for if in label_table.
-                            fileWriter.write(SillyStringFmt("%s\n", label));
-                        }
-                        break;
-                    }
+                    FileWriter_WriteParam(fileWriter, pline.data_fptriad.param2);   
+                    fileWriter.write("\n"); 
                 }       
             }
             break;
