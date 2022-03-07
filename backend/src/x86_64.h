@@ -4,8 +4,6 @@
 - Ensure that parameters addrs are correct, given the order that they 
   are pushed onto the stack.
 
-- Right now, fib.pasm does not implement the proper setup of rbp for .def fib.
-  Get this working.
 */
 
 char *pasm_x64_GprTable[] = {
@@ -226,7 +224,7 @@ int pasm_x86_64(struct pasm_line *source,
             fileWriter.write(SillyStringFmt("jmp %s\n", pline.data_cptr));
             break;
             case PASM_LINE_RET:
-            fileWriter.write("ret\n");
+            fileWriter.write("mov rsp, rbp\npop rbp\nret\n");
             break;
             case PASM_LINE_FDECL: 
             {
@@ -250,6 +248,7 @@ int pasm_x86_64(struct pasm_line *source,
                 } else {
                     fileWriter.write(SillyStringFmt("%s:\n", fname));
                 }
+                fileWriter.write("push rbp\nmov rbp, rsp\n");
             }
             break;
             case PASM_LINE_LABEL:
