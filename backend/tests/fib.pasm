@@ -27,6 +27,7 @@
 .def int32 fib(int32 n)
 
 save [r3] ; If we do not specify the size of reg, it is 64.
+mov r2_32, n
 
 label_fib_if:
 bgt n, 1, fib_else
@@ -40,7 +41,6 @@ mov r3_32, r2_32
 sub n, 1
 call fib(n)
 add r2_32, r3_32
-br fib_end
 
 label_fib_end:
 restore [r3]
