@@ -5,6 +5,7 @@
     NOTE: Many things I copy-and-pasted! :)
 */
 
+// TODO(Noah): For the windows platform, the interactive build system seems to be delayed when you enter commands...
 
 #ifndef PATH_MAX
 #define PATH_MAX 1024

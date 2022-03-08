@@ -216,7 +216,17 @@ static void StretchyBuffer_Growf(void **arr, int increment, int itemsize)
 #ifdef PLATFORM_WINDOWS
     // TODO(Noah): Make faster and less "dumb". Make compliant with the behaviour of getline so that in the
     // future, when someone who is not me tries to call getline, it works as expected.
-    void getline(char **l, size_t *n, FILE *streamIn) {
+    ssize_t getline(char **l, size_t *n, FILE *streamIn) {
+
+        /*
+            https://man7.org/linux/man-pages/man3/getline.3.html
+            On success, return the number of characters read, including the delimiter character, but not
+            including the terminating null byte ('\0'). This value can be
+            used to handle embedded null bytes in the line read.
+
+            return -1 on failure to read a line (including end-of-file condition).
+            In the event of a failure, errno is set to indicate the error.
+        */
 
         size_t nVal = 0;    
         std::string str = "";
@@ -235,6 +245,12 @@ static void StretchyBuffer_Growf(void **arr, int increment, int itemsize)
             unsigned int memSize = (str.size() + 1) * sizeof(char);
             *l = (char *)malloc(memSize);
             memcpy(*l, str.c_str(), memSize); // this will include the null-terminator.
+        }
+
+        if (c == EOF) {
+            return -1;
+        } else {
+            return (ssize_t)str.size();
         }
     }
 #endif
