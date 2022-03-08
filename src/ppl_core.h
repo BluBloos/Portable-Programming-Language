@@ -36,7 +36,7 @@ typedef unsigned int uint32;
 #define INTERNAL static
 #define PERSISTENT static
 #define Assert(b) (b) ? (void)0 : (LOGGER.Error("Assertion failure!"), abort())
-#define SafeSubtract(Value, Subtractor) Value = (Value >= Subtractor) ? Value - Subtractor: 0
+#define SafeSubtract(Value, Subtractor) ((Value >= Subtractor) ? Value - Subtractor: 0)
 #define ColorError "\033[0;33m"
 #define ColorHighlight "\033[0;36m"
 #define ColorNormal "\033[0m"
@@ -75,16 +75,7 @@ char *SillyStringFmt(char *fmt, ...) {
     return __silly_buff;
 }
 
-// Returns true if a starts with b, false otherwise.
-bool SillyStringStartsWith(const char *a, const char *b) {
-    char *pStrA = (char *)a;
-    char *pStrB = (char *)b;
-    for (; *pStrA != 0 && *pStrB != 0; (pStrA++, pStrB++)) {
-        if (*pStrA != *pStrB)
-            break;
-    }
-    return (*pStrB == 0);
-}
+
 
 // Returns true if the character c is inside the SillyString a.
 bool SillyStringCharIn(const char *a, char c) {
@@ -96,10 +87,27 @@ bool SillyStringCharIn(const char *a, char c) {
 }
 
 // Returns the length of the silly string.
-unsigned int SillyStringLength(char *str) {
+unsigned int SillyStringLength(const char *str) {
     unsigned int r = 0;
     while (*str++ != 0) { r++; }
     return r;
+}
+
+// Returns true if a starts with b, false otherwise.
+bool SillyStringStartsWith(const char *a, const char *b) {
+    char *pStrA = (char *)a;
+    char *pStrB = (char *)b;
+    for (; *pStrA != 0 && *pStrB != 0; (pStrA++, pStrB++)) {
+        if (*pStrA != *pStrB)
+            break;
+    }
+    return (*pStrB == 0);
+}
+
+bool SillyStringEquals(const char *a, const char *b) {
+    bool r = SillyStringLength(a) == SillyStringLength(b);
+    if (!r) return false;
+    return SillyStringStartsWith(a, b); 
 }
 
 // Parses the silly string as an unsigned integer, and returns the interpreted value.
@@ -110,7 +118,7 @@ unsigned int SillyStringToUINT(char *str)
 	unsigned int result = 0;
 	unsigned int strLength = SillyStringLength(str);
 	unsigned int placeValue = (int)powf(10.0f, (strLength - 1.0f) );
-	for (unsigned int x = 0; x < strLength; x++)
+    for (unsigned int x = 0; x < strLength; x++)
 	{
 		result += (SafeSubtract(*str, '0')) * placeValue;
 		str++;

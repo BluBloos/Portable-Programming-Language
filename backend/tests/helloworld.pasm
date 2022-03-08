@@ -2,7 +2,7 @@
 .extern p_decl void ppl_exit(int32)
 
 .section code
-label_main:
+.def int32 main()
 call ppl_console_print(msg)
 call ppl_exit(0)
 

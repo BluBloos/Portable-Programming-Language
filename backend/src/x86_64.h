@@ -1,20 +1,136 @@
-char *gprTable[] = {
-    "rax", "rbx",
-    "rcx", "rdx",
-    "rsp", "rbp",
-    "rsi", "rdi",
-    "r8", "r9",
-    "r10", "r11",
-    "r12", "r13",
-    "r14", "r15"
+/* TODO(Noah):
+
+- Need to seriously consider the unsigned and signedness of things as they relate
+to jump instructions, and so forth.
+
+- Now we need to figure out if fib actually works.
+
+*/
+
+char *pasm_x64_GprTable[] = {
+    "rax", "rbx", "rcx", "rdx",
+    "rsp", "rbp", "rsi", "rdi",
+    "r8", "r9", "r10", "r11",
+    "r12", "r13", "r14", "r15",
+    "", "", "", "", // TODO(Noah): Implement more registers?
+    "", "", "", "",
+    "", "", "", "",
+    "", "", "", "",
+    "eax", "ebx", "ecx", "edx",
+    "esp", "ebp", "esi", "edi",
+    "r8d", "r9d", "r10d", "r11d",
+    "r12d", "r13d", "r14d", "r15d"
+    // TODO(Noah): Implement 16 bit and 8 bit registers.
 };
 
-int fcallParamOrder[] = {
+// p assembly function call param order.
+int pasmfcallpo[] = {
     2, // rcx
     3, // rdx
     8, // r8
     9 // r9
 };
+
+/* Write using a PFileWriter the x86 assembly for the stack variable. */
+void FileWriter_WriteStackVar(PFileWriter &fileWriter, struct pasm_stackvar sv) {
+    switch(sv.type) {
+        case PASM_INT8:
+        case PASM_UINT8:
+        fileWriter.write("BYTE ");
+        break;
+        case PASM_INT16:
+        case PASM_UINT16:
+        fileWriter.write("WORD "); // word on x86_64 is 16 bits?
+        break;
+        case PASM_INT32:
+        case PASM_UINT32:
+        fileWriter.write("DWORD ");
+        break;
+        case PASM_INT64:
+        case PASM_UINT64:
+        fileWriter.write("QWORD ");
+        break;
+        default:
+        break;
+    }
+    if (sv.addr >= 0) {
+        fileWriter.write(SillyStringFmt("[rbp + %d]", sv.addr));
+    } else {
+        fileWriter.write(SillyStringFmt("[rbp %d]", sv.addr));
+    }
+}
+
+/* Write using a PFileWriter the x86 assembly for the fparam. */
+void FileWriter_WriteParam(PFileWriter &fileWriter, struct pasm_fparam param) {
+    switch(param.type) {
+        case PASM_FPARAM_INT:
+        fileWriter.write(SillyStringFmt("%d", param.data_int));
+        break;
+        case PASM_FPARAM_LABEL:
+        // TODO(Noah): Add checking for if in label_table.
+        fileWriter.write(SillyStringFmt("%s", param.data_cptr));
+        break;
+        case PASM_FPARAM_REGISTER:
+        fileWriter.write(SillyStringFmt("%s", 
+            pasm_x64_GprTable[(int)param.data_register]));
+        break;
+        case PASM_FPARAM_STACKVAR:
+        FileWriter_WriteStackVar(fileWriter, param.data_sv);
+        break;
+    }
+}
+
+// NOTE(Noah): For this func below, this is an interesting case. We seem
+// to have found a valid example for Polymorphism, but with structs.
+// So this function does a thing, and there exists two structs. The thing depends 
+// on just 1 param that is common to both structs. So this function can handle both,
+// and not change anything to handle both. It is merely a language barrier that impedes
+// the "clean" implementation of polymorphism. Below, I implement a small "hack" to get done 
+// what needs to be done.
+//
+// This func returns the amount of bytes that were pushed to the stack.
+// this is so that subsequent code can do the good job of restoring the 
+// stack.
+int FileWriter_WriteFunParamPassing(PFileWriter &fileWriter, 
+    enum pasm_type *types, struct pasm_fnparam *_types, struct pasm_fparam *params) 
+{
+    int stackBytesPushed = 0;
+    for (int i = 0; i < StretchyBufferCount(params); i++) {
+        struct pasm_fparam fparam = params[i];
+        enum pasm_type type = (_types != NULL) ? _types[i].type : types[i];
+        char *reg;
+        switch(type) {
+            case PASM_INT8:
+            case PASM_UINT8:
+            // TODO(Noah): Implement.
+            break;
+            case PASM_INT16:
+            case PASM_UINT16:
+            // TODO(Noah): Implement.
+            break;
+            case PASM_INT32:
+            case PASM_UINT32:
+            reg = pasm_x64_GprTable[32];
+            // stackBytesPushed += 4;
+            break;
+            case PASM_INT64:
+            case PASM_UINT64:
+            default:
+            reg = pasm_x64_GprTable[0]; // default value
+            // stackBytesPushed += 8;
+            break;
+        }
+        fileWriter.write(SillyStringFmt("mov %s, ", reg));
+        FileWriter_WriteParam(fileWriter, fparam);
+        fileWriter.write("\n");
+        // NOTE(Noah): In x64 we can only push 64 bit registers
+        // onto the stack.
+        // https://stackoverflow.com/questions/43435764/64-bit-mode-does-not-support-32-bit-push-and-pop-instructions
+        fileWriter.write(SillyStringFmt("push rax\n"));
+        stackBytesPushed += 8;
+    }
+    return stackBytesPushed;
+}
 
 // This function will write x86_64 assembly source to outFilePath
 // by translating the in-memory representation of PASM (ppl assembly)
@@ -24,20 +140,84 @@ int pasm_x86_64(struct pasm_line *source,
     
     int pasm_x86_64_result = 0;
     PFileWriter fileWriter = PFileWriter(outFilePath);
-    pasm_func_table *ftable = NULL; // empty stb hashmap.
-
-    // Commit to pass #1 and build the map of function names
-    // that are defined externally.
-    for (int i = 0 ; i < StretchyBufferCount(source); i++) {
-        struct pasm_line pline = source[i];
-        if (pline.lineType == PASM_LINE_FDECL) {
-            stbds_hmput(ftable, pline.data_fdecl.name, pline.data_fdecl);
-        }
-    }
 
     for (int i = 0 ; i < StretchyBufferCount(source); i++) {
         struct pasm_line pline = source[i];
         switch(pline.lineType) {
+            case PASM_LINE_BRANCH_GT:
+            {
+                // NOTE(Noah): cmp does a subtraction op to set the flags.
+                fileWriter.write("cmp ");
+                FileWriter_WriteParam(fileWriter, pline.data_fptriad.param1);
+                fileWriter.write(", ");
+                FileWriter_WriteParam(fileWriter, pline.data_fptriad.param2);
+                // NOTE(Noah): jg is signed.
+                fileWriter.write(SillyStringFmt("\njg %s\n", 
+                    pline.data_fptriad.param3));
+            }
+            break;
+            case PASM_LINE_ADD:
+            case PASM_LINE_SUB:
+            case PASM_LINE_MOV:
+            {
+                bool add_sub_Flag = false;
+                switch(pline.lineType) {
+                    case PASM_LINE_ADD:
+                    fileWriter.write("add ");
+                    add_sub_Flag = true;
+                    break;
+                    case PASM_LINE_SUB:
+                    fileWriter.write("sub ");
+                    add_sub_Flag = true;
+                    break;
+                    case PASM_LINE_MOV:
+                    fileWriter.write("mov ");
+                    break;
+                    default:
+                    break;
+                }
+                bool firstParamValid = false;                
+                if (pline.data_fptriad.param1.type == PASM_FPARAM_REGISTER) {
+                    firstParamValid = true;
+                    char *cReg1 = 
+                        pasm_x64_GprTable[(int)pline.data_fptriad.param1.data_register];
+                    fileWriter.write(SillyStringFmt("%s, ", cReg1));
+                } else if (pline.data_fptriad.param1.type == PASM_FPARAM_STACKVAR) {
+                    firstParamValid = true;
+                    FileWriter_WriteStackVar(fileWriter, 
+                        pline.data_fptriad.param1.data_sv);
+                    fileWriter.write(", ");
+                }
+                if (firstParamValid) {
+                    FileWriter_WriteParam(fileWriter, pline.data_fptriad.param2);   
+                    fileWriter.write("\n"); 
+                }       
+            }
+            break;
+            // NOTE(Noah): Save and restore instructions always just save/restore 
+            // the entire 64 bit register.
+            case PASM_LINE_SAVE:
+            {
+                for (int i = 0; i < StretchyBufferCount(pline.data_save); i++) {
+                    char *cReg = pasm_x64_GprTable[(int)pline.data_save[i]];
+                    fileWriter.write(SillyStringFmt("push %s\n", cReg));
+                }
+            }
+            break;
+            case PASM_LINE_RESTORE:
+            {
+                for (int i = 0; i < StretchyBufferCount(pline.data_save); i++) {
+                    char *cReg = pasm_x64_GprTable[(int)pline.data_save[i]];
+                    fileWriter.write(SillyStringFmt("pop %s\n", cReg));
+                }
+            }
+            break;
+            case PASM_LINE_BRANCH:
+            fileWriter.write(SillyStringFmt("jmp %s\n", pline.data_cptr));
+            break;
+            case PASM_LINE_RET:
+            fileWriter.write("mov rsp, rbp\npop rbp\nret\n");
+            break;
             case PASM_LINE_FDECL: 
             {
                 char *fname = pline.data_fdecl.name;
@@ -50,9 +230,9 @@ int pasm_x86_64(struct pasm_line *source,
             case PASM_LINE_SECTION_DATA:
             fileWriter.write("section .data\n");
             break;
-            case PASM_LINE_LABEL:
+            case PASM_LINE_FDEF:
             {
-                char *fname = pline.data_cptr;
+                char *fname = pline.data_fdef.name;
                 if (tplat == MAC_OS && 
                     SillyStringStartsWith("main", fname) ) 
                 {
@@ -60,58 +240,50 @@ int pasm_x86_64(struct pasm_line *source,
                 } else {
                     fileWriter.write(SillyStringFmt("%s:\n", fname));
                 }
+                fileWriter.write("push rbp\nmov rbp, rsp\n");
             }
+            break;
+            case PASM_LINE_LABEL:
+            fileWriter.write(SillyStringFmt("%s:\n", pline.data_cptr));
             break;
             case PASM_LINE_FCALL:
             {
                 struct pasm_fcall fcall = pline.data_fcall;
-                // Before we call the function, we have to setup the params.
-                // and before we can do anything, we need to know the header definition
-                // of the function that we are calling.
+                
+                // Reading documentation for stbds here: http://nothings.org/stb_ds/
+                // We should be using stbds_shgeti - for a string hash map.
+                // string hash maps come with faculties for storing strings.
+                //
+                // but we do not need to do this as we manage our own strings in 
+                // our own form of permenant storage.
+
+                // Is the function an fdecl, or an fdef?
                 char *fname = fcall.name;
-                // TODO(Noah): Figure out why stbds_hmgeti is NOT FUCKING WORKING.
-                // Like. You gotta love libraries man...
-                if ( false && (stbds_hmgeti(ftable, fname)) == -1 ) {
+                int sbp = 0;
+                if (stbds_shgeti(fdecl_table, fname) != -1) {
+                    // dealing with an fdecl.
+                    struct pasm_fdecl fdecl = stbds_shget(fdecl_table, fname);
+                    sbp = FileWriter_WriteFunParamPassing(fileWriter, fdecl.params, NULL, fcall.params);
+                     
+                } else if (stbds_shgeti(fdef_table, fname) != -1) {
+                    // dealing with an fdef. 
+                    struct pasm_fdef fdef = stbds_shget(fdef_table, fname);
+                    sbp = FileWriter_WriteFunParamPassing(fileWriter, NULL, fdef.params, fcall.params);
+
+                } else {
                     // Error!
                     LOGGER.Error(
                         "PASM_LINE_CALL trying to call %s, \
-                        but this func is not defined in ftable", fname);
-
-                    for (int i=0; i < stbds_hmlen(ftable); ++i) {
-                        LOGGER.Min("%s ", ftable[i].key);
-                        struct pasm_line pline = PasmLineEmpty();
-                        pline.lineType = PASM_LINE_FDECL;
-                        pline.data_fdecl = ftable[i].value;
-                        PasmLinePrint(pline);
-                    }
-
+                        but this func cannot be found in either fdecl_table\
+                        or fdef_table", fname);
                     pasm_x86_64_result = 1;
                     goto pasm_x86_64_end;
                 }
-                
-                struct pasm_fdecl fdecl = stbds_hmget(ftable, fname); 
-                // TODO(Noah): Implement different calling conventions. Right now
-                // we only implement just 1.
-                // we also do not check to see if the func has any more than 4 parameters...
-                for (int i = 0; i < StretchyBufferCount(fcall.params); i++) {
-                    struct pasm_fparam fparam = fcall.params[i];
-                    char *cReg = gprTable[fcallParamOrder[i]];
-                    switch(fparam.type) {
-                        case PASM_FPARAM_LABEL:
-                        fileWriter.write(SillyStringFmt("mov %s, %s\n", cReg, fparam.data_cptr));
-                        break;
-                        case PASM_FPARAM_INT:
-                        fileWriter.write(SillyStringFmt("mov %s, %d\n", cReg, fparam.data_int));
-                        break;
-                        case PASM_FPARAM_REGISTER:
-                        fileWriter.write(SillyStringFmt("mov %s, %s\n", cReg,
-                            gprTable[(int)fparam.data_register]));
-                        break;
-                    }
 
-                }
                 // Call the function
                 fileWriter.write(SillyStringFmt("call %s\n", fcall.name));
+                // Restore the stack.
+                fileWriter.write(SillyStringFmt("add rsp, %d\n", sbp));
             }
             break;
             case PASM_LINE_DATA_BYTE_STRING:
@@ -128,7 +300,5 @@ int pasm_x86_64(struct pasm_line *source,
     }
 
     pasm_x86_64_end:
-    // NOTE(Noah): Read this as "stb datastructures hashmap free".
-    stbds_hmfree(ftable);
     return pasm_x86_64_result;
 }
