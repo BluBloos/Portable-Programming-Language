@@ -47,6 +47,8 @@ This project is still in heavy development. The language is still being designed
 
 At the time of writing, the compiler is not even "complete". Which is to say - it is not possible to take a PPL source file, run the compiler on it, and produce a working executable for the desired target machine. All that is possible at the moment is to run unit and integration tests for components of the compiler. 
 
+See https://github.com/BluBloos/Portable-Programming-Language/wiki for devlogs.
+
 # Steps for Building
 
 The only dependency as of right now is a C++ compiler. 
