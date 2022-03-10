@@ -1,8 +1,7 @@
-; .extern p_dcel void ppl_exit(int32)
-
 extern ExitProcess
-
 global ppl_exit
+section .text
 ppl_exit:
-    mov rcx, DWORD [rsp + 8]    
+    xor rcx, rcx 
+    mov ecx, DWORD [rsp + 8]    
     call ExitProcess
