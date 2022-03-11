@@ -5,6 +5,38 @@
     NOTE: Many things I copy-and-pasted! :)
 */
 
+/* HOW PPL PROGRAMS ARE BUILT
+
+We have the PPL source file.
+|
+|
+| platform independent step
+|
+|
+pasm.
+|
+|
+| many versions / target machine code
+| but independent of platform. 
+|
+|
+Text representation of machine code.
+|
+|
+| platform dependent code!
+|
+|
+binary/bundle for target platform. 
+
+What constitutes the platform dependent code?
+- Custom standard library: we can make the standard lib
+  do different things depending on the platform.
+- Custom entry and exit into program.
+- Custom commands we can run on host machine for general file manipulation (useful
+    when we will need to create bundles)
+    
+HOW PPL PROGRAMS ARE BUILT */
+
 // TODO(Noah): For the windows platform, the interactive build system seems to be delayed when you enter commands...
 
 #ifndef PATH_MAX
@@ -82,7 +114,10 @@ char *GetInFile() {
 void PrintHelp() {
     printf(ColorHighlight "\n=== Common Commands ===\n" ColorNormal);
     printf("build           (b)                 - Build all cli tools.\n");
-    printf("pasm_x86_64     (ax64)              - Integration test of pplasm assembler for x86_64 target.\n");
+    // TODO(Noah): Customize the github workflows to include automated testing of the integration tests, but for specific
+    // platforms.
+    printf("pasm_x86_64     (ax64)              - Integration test of pplasm assembler for x86_64 target (macOS).\n");
+    printf("win_x86_64      (wax64)             - Integration test of pplasm assembler for x86_64 target (Windows).\n");
     printf("asmparse        (ap)                - Test pplasm parsing capability on backend/helloworld.\n");
     printf("preparser       (p)                 - Test preparser on single unit.\n");
     printf("preparser_all   (pall)              - Test preparser on all units in tests/preparse/.\n");
@@ -161,6 +196,34 @@ int DoCommand(const char *l) {
         r |= CallSystem("bin/out");
         errors = (r != 0 );
         CheckErrors(errors);
+        timer.TimerEnd();
+        return (errors > 0);
+
+    } else if (0  == strcmp(l, "wax64") || 0 ==strcmp(l, "win_x86_64")) {
+
+        printf("NOTE: cwd is set to backend/tests/\n");
+        char *inFile = GetInFile();
+        char *inFilePath = SillyStringFmt("backend/tests/%s", inFile);
+        Timer timer = Timer("pasm");
+        int errors = 0;
+        int r = passembler(inFilePath, "macOS"); // TODO(Noah): target independent, remove macOS.
+        r = pasm_x86_64(pasm_lines, "bin/out.x86_64", MAC_OS); // TODO(Noah): target independent, remove macOS.
+        DeallocPasm();
+        r = CallSystem("nasm -o bin\\out.o -f win64 bin/out.x86_64");
+        r = CallSystem("nasm -o bin\\exit.o -f win64 backend/pstdlib/Windows/exit.s");
+        r = CallSystem("nasm -o bin\\stub.o -f win64 backend/pstdlib/Windows/stub.s");
+        r = CallSystem("nasm -o bin\\print.o -f win64 backend/pstdlib/Windows/console/print.s");
+        // TODO(Noah): Remove dependency on Visual Studio linker.
+        r = CallSystem("link /LARGEADDRESSAWARE /subsystem:console /entry:start bin/out.o bin/exit.o bin/stub.o bin/print.o \
+            /OUT:bin/out.exe Kernel32.lib");
+        r = CallSystem("bin/out.exe");
+        errors = (r != 0 );
+        if (errors > 0) {
+            LOGGER.Error("Completed with %d error(s)", errors);
+            LOGGER.Error("Return code: %d", r);
+        } else {
+            LOGGER.Success("Completed with 0 errors.");
+        }
         timer.TimerEnd();
         return (errors > 0);
 

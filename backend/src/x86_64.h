@@ -139,7 +139,9 @@ int pasm_x86_64(struct pasm_line *source,
     char *outFilePath, enum target_platform tplat) {
     
     int pasm_x86_64_result = 0;
-    PFileWriter fileWriter = PFileWriter(outFilePath);
+    PFileWriter fileWriter = PFileWriter(outFilePath); 
+
+    fileWriter.write("extern ppl__stub\n");
 
     for (int i = 0 ; i < StretchyBufferCount(source); i++) {
         struct pasm_line pline = source[i];
@@ -237,6 +239,9 @@ int pasm_x86_64(struct pasm_line *source,
                     SillyStringStartsWith("main", fname) ) 
                 {
                     fileWriter.write("global start\nstart:\n");
+                    // NOTE(Noah): This translation layer may be target independent, but we will always call the stub
+                    // to allow any subsequent layers to link in a meaningful stub.
+                    fileWriter.write("call ppl__stub\n");
                 } else {
                     fileWriter.write(SillyStringFmt("%s:\n", fname));
                 }
