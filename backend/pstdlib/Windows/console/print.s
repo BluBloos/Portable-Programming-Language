@@ -23,15 +23,15 @@ ppl_console_print:
     xor r8, r8
     mov rdx, QWORD [rbp + 16]
     p_while:
-        mov r9, [rdx]
+        mov r9b, BYTE [rdx]
         add rdx, 1
-        cmp r9, 0 
+        cmp r9b, 0 
         je p_while_end
         add r8, 1
         jmp p_while
     p_while_end:
 
-    mov rcx, QWORD [PPL_STDOUT]
+    mov rcx, QWORD [rel PPL_STDOUT]
     mov rdx, QWORD [rbp + 16]
     mov r8, r8 ; nNumberOfBytesToWrite
     xor r9, r9 ; here we set lpNumberOfBytesWritten to NULL
@@ -40,6 +40,7 @@ ppl_console_print:
     ; a full-blown 64 bit value.
     push QWORD 0 
     call WriteFile
+    
 
     mov rsp, rbp ; restore the stack pointer
     pop rbp ; restore the stack frame
