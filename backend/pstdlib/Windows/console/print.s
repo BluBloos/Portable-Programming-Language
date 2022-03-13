@@ -31,16 +31,27 @@ ppl_console_print:
         jmp p_while
     p_while_end:
 
+    ; NOTE(Noah): lpNumberOfBytesWritten must not be NULL when lpOverlapped is NULL.
+
     mov rcx, QWORD [rel PPL_STDOUT]
     mov rdx, QWORD [rbp + 16]
     mov r8, r8 ; nNumberOfBytesToWrite
-    xor r9, r9 ; here we set lpNumberOfBytesWritten to NULL
+    push QWORD 0 ; allocate storage on stack for lpNumberOfBytesWritten
+    mov r9, rbp
+    add r9, -8 ; point lpNumberOfBytesWritten to space alloced on stack
     ; here we set lpOverlapped to NULL
     ; Also note that we make the safe bet of assuming we must push to the stack
     ; a full-blown 64 bit value.
-    push QWORD 0 
+    push QWORD 0
+
+    ; for an explanation of the "register homes", see https://docs.microsoft.com/en-us/cpp/build/stack-usage?view=msvc-170
+    sub rsp, 32 ; r9, r8, rdx, and rcx homes
+
     call WriteFile
-    
+
+    ; return value for WriteFile is true if func succeeds.
+    ; otherwise is zero (false).
+    ; We can use GetLastError to get extended error information.
 
     mov rsp, rbp ; restore the stack pointer
     pop rbp ; restore the stack frame
