@@ -21,4 +21,12 @@ jobs:
       - name: Grammer Test
         run: ./build.sh gall 
         shell: bash
+      - name: Backend Tests 
+        uses: ilammy/msvc-dev-cmd@v1
+        with: 
+          arch: x64
+        shell: cmd
+        run: build.bat wax64
+        run: echo helloworld.pasm
+
 
