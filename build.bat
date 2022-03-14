@@ -6,4 +6,4 @@ mkdir bin
 g++ -std=c++11 -Wno-write-strings -Wno-writable-strings -o bin/build ^
 	-g util/build.c -I src/ -I util/ -I backend/src -I vendor/
 
-"bin\build.exe" %1
+"bin\build.exe" %1 %2

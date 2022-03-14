@@ -10,8 +10,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: Install Dependencies
-        run: choco install mingw
+      - uses: ilammy/setup-nasm@v1
+      - name: Setup
+        shell: bash
+        run: rm /usr/bin/link
       - name: Build PPL
         run: ./build.sh b 
         shell: bash
@@ -21,12 +23,13 @@ jobs:
       - name: Grammer Test
         run: ./build.sh gall 
         shell: bash
-      - name: Backend Tests 
+      - name: Install Visual Studio 
         uses: ilammy/msvc-dev-cmd@v1
         with: 
           arch: x64
+      - name: Backend Tests
         shell: cmd
-        run: build.bat wax64
-        run: echo helloworld.pasm
+        run: build.bat wax64 helloworld.pasm
+
 
 

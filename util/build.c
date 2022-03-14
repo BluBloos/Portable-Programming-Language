@@ -59,7 +59,7 @@ void CheckErrors(int errors) {
 }
 
 void PrintHelp();
-int DoCommand(const char *l);
+int DoCommand(const char *l, const char *l2);
 
 // usage ./build [options]
 int main(int argc, char **argv) {
@@ -73,7 +73,11 @@ int main(int argc, char **argv) {
 
     if (argc > 1) {
         char *l = argv[1];
-        return DoCommand(l);
+        if (argc > 2) {
+            char *l2 = argv[2];
+            return DoCommand(l, l2);
+        }
+        return DoCommand(l, NULL);
     } else {
         // Go into interactive mode.
         PrintHelp();
@@ -86,7 +90,7 @@ int main(int argc, char **argv) {
             printf(ColorNormal);
             fflush(stdout);
             SillyStringRemove0xA(l);
-            DoCommand(l);
+            DoCommand(l, NULL);
             free(l); // a call to getline, if given l=NULL, will alloc a buffer. So we must free it.
         }
     }
@@ -129,7 +133,7 @@ void PrintHelp() {
 
 // Does command then returns the result code.
 // anything non-zero is an error.
-int DoCommand(const char *l) {
+int DoCommand(const char *l, const char *l2) {
 
     /* 
         Basically, what different commands do we want to be able to execute in this build system?
@@ -202,7 +206,14 @@ int DoCommand(const char *l) {
     } else if (0  == strcmp(l, "wax64") || 0 ==strcmp(l, "win_x86_64")) {
 
         printf("NOTE: cwd is set to backend/tests/\n");
-        char *inFile = GetInFile();
+        
+        char *inFile;
+        if (l2 == NULL) {
+            inFile = GetInFile();
+        } else {
+            inFile = (char *)l2;
+        }
+        
         char *inFilePath = SillyStringFmt("backend/tests/%s", inFile);
         Timer timer = Timer("pasm");
         int errors = 0;
