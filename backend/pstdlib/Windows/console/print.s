@@ -1,8 +1,18 @@
+; TODO(Noah): We are going to make ppl_console_print
+;   take in variadic arguments (like the c printf func).
+;   in doing this, we begin with %d.
+;   Algo for converting integer to string:
+;     first check for the sign of the integer, print '-' accordingly.
+;     then do a while loop where we continue to divide by 10, and use 
+;     the remainder as the value to print. Push the remainder (plus '0') on the stack.
+;     The dividing by 10 part reduces the number by 1 place value.
+;     Once we are done we can pop all the characters from the stack to be placed
+;     into the buffer for printing.
+
 ; NOTE(Noah): We note that the names of these functions
 ;   mimic what the qualified name would be in PPL source.
 ;   so if the name in PPL source is ppl::console::print, 
 ;   then the name in asm is ppl_console_print. Cool, right?
-
 
 ; NOTE(Noah): ppl_console_print works by printing to stdout.
 
@@ -57,3 +67,6 @@ ppl_console_print:
     pop rbp ; restore the stack frame
 
     ret
+
+section .data
+ppl_console_print_storage: .skip 256, 0
