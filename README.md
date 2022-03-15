@@ -39,13 +39,13 @@ int main() {
 }
 ```
 
-As is clear, the language is very C-like. For C and Java programmers (and potentially others), there will little to no learning curve.
+As is clear, the language is very C-like. For C and Java programmers (and potentially others), there will be little to no learning curve.
 
 # Foreword
 
-This project is still in heavy development. The language is still being designed, as is the compiler to support the language. 
+This project is still in heavy development...the language is still being designed, as is the compiler to support the language. 
 
-At the time of writing, the compiler is not even "complete". Which is to say - it is not possible to take a PPL source file, run the compiler on it, and produce a working executable for the desired target machine. All that is possible at the moment is to run unit and integration tests for components of the compiler. 
+At the time of writing, the compiler is not "complete". It is not possible to take a PPL source file, run the compiler on it, and produce a working executable for the desired target machine. All that is possible at the moment is to run unit and integration tests for components of the compiler. 
 
 See https://github.com/BluBloos/Portable-Programming-Language/wiki for devlogs.
 
