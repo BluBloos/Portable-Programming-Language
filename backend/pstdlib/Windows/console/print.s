@@ -69,4 +69,4 @@ ppl_console_print:
     ret
 
 section .data
-ppl_console_print_storage: .skip 256, 0
+ppl_console_print_storage: resb 256
