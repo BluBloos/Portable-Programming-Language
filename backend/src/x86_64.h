@@ -1,9 +1,16 @@
 /* TODO(Noah):
 
+Backburner:
 - Need to seriously consider the unsigned and signedness of things as they relate
 to jump instructions, and so forth.
-
 - Now we need to figure out if fib actually works.
+
+For 2022.03.16:
+- Need to implement a variadic function in pasm,
+Ex) .extern p_decl void ppl_console_print(int64, []int64)
+Under the hood: Calling this function means that the last paramter passed is an extra one -> a frame
+pointer to the place in memory just above the first variadic argument. 
+
 
 */
 
