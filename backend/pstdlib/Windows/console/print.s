@@ -21,6 +21,7 @@
 extern WriteFile
 extern PPL_STDOUT
 
+; TODO(Noah): Add in the saving of registers so that things are consistent between calls.
 global ppl_console_print
 ; .extern p_decl void ppl_console_print(int64)
 section .text
@@ -29,22 +30,68 @@ ppl_console_print:
     push rbp ; save the stack frame
     mov rbp, rsp ; save the stack pointer.
 
-    ; Get the length of the string
-    xor r8, r8
+    ; Intialize the pointer to the memory.
+    mov rcx, ppl_console_print_storage
+
+    ; Check the sign of the integer.
+    ; ppl_console_print_if:
+    ; mov rdx, QWORD [rbp + 16]
+    ; cmp rdx, 0
+    ; jge ppl_console_print_endif
+    ; neg rdx
+    ; mov [rcx + 0], '-'
+    ; add rcx, 1
+    ; ppl_console_print_else:
+    ; ppl_console_print_endif:
+
+    ; Get the length of the string while going thru each character, checking for 
+    ; the '%' sign, and outputting the characters to the buffer.
+    xor r8, r8 ; let r8 be the counter.
     mov rdx, QWORD [rbp + 16]
-    p_while:
+    ppl_console_print_while:
+
         mov r9b, BYTE [rdx]
-        add rdx, 1
-        cmp r9b, 0 
-        je p_while_end
+        add rdx, 1 ; Get byte and move string pointer to next byte.
+        
+        cmp r9b, 0  
+        je ppl_console_print_endwhile ; check for valid byte
+        
+        ; Check if the character is equal to '%'
+        ppl_console_print_if2:
+        cmp r9b, '%'
+        jne ppl_console_print_else2
+
+            mov r9b, BYTE [rdx] ; look at next byte
+            inc rdx
+            ; TODO(Noah): Is there a better way to do this? Maybe like, a jump table or something?
+            ppl_console_print_if3: 
+            cmp r9b, '%'
+            jne ppl_console_print_elseif3
+            jmp ppl_console_print_else2
+            ppl_console_print_elseif3:
+            cmp r9b, 'd' ; TODO(Noah): Do we need to execute the cmp instr twice?
+            jne ppl_console_print_endif3
+            add r8, 1
+            mov BYTE [rcx], 'D'
+            inc rcx
+            ppl_console_print_endif3:
+
+        jmp ppl_console_print_endif2
+
+        ppl_console_print_else2:
         add r8, 1
-        jmp p_while
-    p_while_end:
+        mov [rcx], r9b
+        inc rcx
+        ppl_console_print_endif2:
+
+        jmp ppl_console_print_while
+
+    ppl_console_print_endwhile:
 
     ; NOTE(Noah): lpNumberOfBytesWritten must not be NULL when lpOverlapped is NULL.
 
     mov rcx, QWORD [rel PPL_STDOUT]
-    mov rdx, QWORD [rbp + 16]
+    mov rdx, ppl_console_print_storage
     mov r8, r8 ; nNumberOfBytesToWrite
     push QWORD 0 ; allocate storage on stack for lpNumberOfBytesWritten
     mov r9, rbp

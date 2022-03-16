@@ -8,7 +8,7 @@ call ppl_exit(0)
 
 .section data
 label_msg:
-.db "Hello, world!"
+.db "Hello, world!%d"
 .db 10
 .db 0
 
