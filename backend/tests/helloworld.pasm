@@ -1,14 +1,16 @@
-.extern p_decl void ppl_console_print(int64)
+.extern p_decl void ppl_console_print(int64, []int64)
 .extern p_decl void ppl_exit(int32)
 
 .section code
 .def int32 main()
-call ppl_console_print(msg)
+call ppl_console_print(msg, -10)
 call ppl_exit(0)
 
 .section data
 label_msg:
-.db "Hello, world!%d"
+.db "Hello, world!"
+.db 10
+.db "Number type of thing: %d"
 .db 10
 .db 0
 

@@ -1,14 +1,3 @@
-; TODO(Noah): We are going to make ppl_console_print
-;   take in variadic arguments (like the c printf func).
-;   in doing this, we begin with %d.
-;   Algo for converting integer to string:
-;     first check for the sign of the integer, print '-' accordingly.
-;     then do a while loop where we continue to divide by 10, and use 
-;     the remainder as the value to print. Push the remainder (plus '0') on the stack.
-;     The dividing by 10 part reduces the number by 1 place value.
-;     Once we are done we can pop all the characters from the stack to be placed
-;     into the buffer for printing.
-
 ; NOTE(Noah): We note that the names of these functions
 ;   mimic what the qualified name would be in PPL source.
 ;   so if the name in PPL source is ppl::console::print, 
@@ -33,21 +22,11 @@ ppl_console_print:
     ; Intialize the pointer to the memory.
     mov rcx, ppl_console_print_storage
 
-    ; Check the sign of the integer.
-    ; ppl_console_print_if:
-    ; mov rdx, QWORD [rbp + 16]
-    ; cmp rdx, 0
-    ; jge ppl_console_print_endif
-    ; neg rdx
-    ; mov [rcx + 0], '-'
-    ; add rcx, 1
-    ; ppl_console_print_else:
-    ; ppl_console_print_endif:
-
     ; Get the length of the string while going thru each character, checking for 
     ; the '%' sign, and outputting the characters to the buffer.
     xor r8, r8 ; let r8 be the counter.
-    mov rdx, QWORD [rbp + 16]
+    mov r10, QWORD [rbp + 16] ; frame pointer
+    mov rdx, QWORD [r10 + 0]
     ppl_console_print_while:
 
         mov r9b, BYTE [rdx]
@@ -71,9 +50,26 @@ ppl_console_print:
             ppl_console_print_elseif3:
             cmp r9b, 'd' ; TODO(Noah): Do we need to execute the cmp instr twice?
             jne ppl_console_print_endif3
+            
+            ;;;;;;;;; Routine for printing an integer. ;;;;;;;;;
+            
+            ; retrieve the integer.
+            mov r9, [r10 - 8]
+
+            ; Check the sign of the integer.
+            ppl_console_print_if:
+            cmp r9, 0
+            jge ppl_console_print_endif
+            neg r9
             add r8, 1
-            mov BYTE [rcx], 'D'
-            inc rcx
+            mov BYTE [rcx + 0], '-'
+            add rcx, 1
+            ppl_console_print_else:
+            ppl_console_print_endif:
+
+
+            ;;;;;;;;; Routine for printing an integer. ;;;;;;;;;
+            
             ppl_console_print_endif3:
 
         jmp ppl_console_print_endif2

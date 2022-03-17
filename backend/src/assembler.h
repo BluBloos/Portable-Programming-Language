@@ -3,6 +3,10 @@
 // arbitrary target platforms such as x86_64, x86, 64 bit ARM, webassmely, and
 // generally, and RISC / CISC based architecture.
 
+/* TODO(Noah): 
+    Implement variadic types for .def as well.
+*/
+
 #ifndef PASSEMBLER_H
 #define PASSEMBLER_H
 
@@ -48,7 +52,8 @@ enum pasm_type {
     PASM_UINT32,
     PASM_UINT64,
     PASM_FLOAT32,
-    PASM_FLOAT64
+    PASM_FLOAT64,
+    PASM_INT64_VARIADIC
 };
 
 // Function declaration.
@@ -234,6 +239,9 @@ void PasmTypePrint(enum pasm_type ptype) {
         break;
         case PASM_FLOAT64:
         LOGGER.Min("PASM_FLOAT64\n");
+        break;
+        case PASM_INT64_VARIADIC:
+        LOGGER.Min("PASM_INT64_VARIADIC\n");
         break;
     }
 }
@@ -669,6 +677,8 @@ enum pasm_type SillyStringGetPasmType(char *typeStr) {
         return PASM_FLOAT32;
     } else if (SillyStringStartsWith(typeStr, "float64")) {
         return PASM_FLOAT64;
+    } else if (SillyStringStartsWith(typeStr, "[]int64")) {
+        return PASM_INT64_VARIADIC;
     }
     return PASM_VOID;
 }

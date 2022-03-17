@@ -5,12 +5,8 @@ Backburner:
 to jump instructions, and so forth.
 - Now we need to figure out if fib actually works.
 
-For 2022.03.16:
-- Need to implement a variadic function in pasm,
-Ex) .extern p_decl void ppl_console_print(int64, []int64)
-Under the hood: Calling this function means that the last paramter passed is an extra one -> a frame
-pointer to the place in memory just above the first variadic argument. 
-
+Variadic Functions:
+- When resolving stack variables, we need to now account for variadic functions.
 
 */
 
@@ -101,10 +97,15 @@ void FileWriter_WriteParam(PFileWriter &fileWriter, struct pasm_fparam param) {
 int FileWriter_WriteFunParamPassing(PFileWriter &fileWriter, 
     enum pasm_type *types, struct pasm_fnparam *_types, struct pasm_fparam *params) 
 {
+
     int stackBytesPushed = 0;
+    bool variadicMode = false;
+    int variadicBeginIndex = 0;
+
     for (int i = 0; i < StretchyBufferCount(params); i++) {
         struct pasm_fparam fparam = params[i];
-        enum pasm_type type = (_types != NULL) ? _types[i].type : types[i];
+        int _i = (variadicMode) ? variadicBeginIndex : i;
+        enum pasm_type type = (_types != NULL) ? _types[_i].type : types[_i];
         char *reg;
         switch(type) {
             case PASM_INT8:
@@ -120,6 +121,18 @@ int FileWriter_WriteFunParamPassing(PFileWriter &fileWriter,
             reg = pasm_x64_GprTable[32];
             // stackBytesPushed += 4;
             break;
+            case PASM_INT64_VARIADIC:
+            {
+                // We have reached the first variadic parameter.
+                //   there will be no more accompanying type.
+                //   we need to enter into a state. 
+                // We have to start counting the amount of variadic params.
+                if (!variadicMode) {
+                    variadicMode = true;
+                    variadicBeginIndex = i;
+                    fileWriter.write("mov rbx, rsp\n");
+                } 
+            }
             case PASM_INT64:
             case PASM_UINT64:
             default:
@@ -133,9 +146,25 @@ int FileWriter_WriteFunParamPassing(PFileWriter &fileWriter,
         // NOTE(Noah): In x64 we can only push 64 bit registers
         // onto the stack.
         // https://stackoverflow.com/questions/43435764/64-bit-mode-does-not-support-32-bit-push-and-pop-instructions
-        fileWriter.write(SillyStringFmt("push rax\n"));
+        fileWriter.write("push rax\n");
         stackBytesPushed += 8;
     }
+
+    if (variadicMode) {
+        // Push something onto the stack that would be useful for someone implementing
+        // a variadicMode.
+        fileWriter.write("push rbx\n"); // saved frame pointer
+        stackBytesPushed += 8;
+    } else if (!variadicMode) {
+        int lastIndex = (_types != NULL) ? StretchyBufferCount(_types) : StretchyBufferCount(types);
+        enum pasm_type type = (_types != NULL) ? _types[lastIndex].type : types[lastIndex];
+        if (type == PASM_INT64_VARIADIC) {
+            fileWriter.write("mov rax, rsp\n");
+            fileWriter.write("push rax\n");
+            stackBytesPushed += 8;
+        }
+    }
+
     return stackBytesPushed;
 }
 
@@ -270,6 +299,7 @@ int pasm_x86_64(struct pasm_line *source,
                 // our own form of permenant storage.
 
                 // Is the function an fdecl, or an fdef?
+                // NOTE(Noah): Here we are assuming that the calling convention is always pasm.
                 char *fname = fcall.name;
                 int sbp = 0;
                 if (stbds_shgeti(fdecl_table, fname) != -1) {
