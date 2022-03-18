@@ -3,14 +3,14 @@
 
 .section code
 .def int32 main()
-call ppl_console_print(msg, -10)
+call ppl_console_print(msg, -2456, 67)
 call ppl_exit(0)
 
 .section data
 label_msg:
 .db "Hello, world!"
 .db 10
-.db "Number type of thing: %d"
+.db "Number one: %d, and number two: %d"
 .db 10
 .db 0
 

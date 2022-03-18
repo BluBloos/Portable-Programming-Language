@@ -11,6 +11,8 @@ extern WriteFile
 extern PPL_STDOUT
 
 ; TODO(Noah): Add in the saving of registers so that things are consistent between calls.
+; this will be espcially important when we integrate fib.pasm to use this subroutine.
+
 global ppl_console_print
 ; .extern p_decl void ppl_console_print(int64)
 section .text
@@ -26,7 +28,7 @@ ppl_console_print:
     ; the '%' sign, and outputting the characters to the buffer.
     xor r8, r8 ; let r8 be the counter.
     mov r10, QWORD [rbp + 16] ; frame pointer
-    mov rdx, QWORD [r10 + 0]
+    mov rdx, QWORD [r10 + 0] ; the string
     ppl_console_print_while:
 
         mov r9b, BYTE [rdx]
@@ -51,24 +53,62 @@ ppl_console_print:
             cmp r9b, 'd' ; TODO(Noah): Do we need to execute the cmp instr twice?
             jne ppl_console_print_endif3
             
-            ;;;;;;;;; Routine for printing an integer. ;;;;;;;;;
-            
+            ;;;;;;;;; Routine for printing an integer ;;;;;;;;;
+            push rdx ; save rdx (the string)
+            xor rax, rax
+            xor rdx, rdx
+
             ; retrieve the integer.
-            mov r9, [r10 - 8]
+            mov rax, [r10 - 8]
+            sub r10, 8 ; iterate to the next variadiac argument. 
 
             ; Check the sign of the integer.
             ppl_console_print_if:
-            cmp r9, 0
+            cmp rax, 0
             jge ppl_console_print_endif
-            neg r9
+            neg rax
             add r8, 1
             mov BYTE [rcx + 0], '-'
             add rcx, 1
             ppl_console_print_else:
             ppl_console_print_endif:
 
+            ; now that we have checked the sign, we can actually print the integer.
+            xor r9, r9 ; init for counter.
+            ppl_console_print_while2:
+                ; check the condition of the while loop.
+                cmp rax, 0
+                je ppl_console_print_endwhile2 ; we stop printing number once we hit 0
+                ; unsigned integer divide
+                ; the thing to be divided is stored in rdx:rax
+                ; the quotient is stored in rax, and the remainder in rdx.
+                xor rdx, rdx ; ensure we zero again.
+                mov rbx, 10
+                div rbx
+                ; use the remainder as the digit
+                mov rbx, rdx
+                add rbx, '0'
+                push rbx
+                add r9, 1 ; counter += 1
+                jmp ppl_console_print_while2
+            ppl_console_print_endwhile2:
 
-            ;;;;;;;;; Routine for printing an integer. ;;;;;;;;;
+            ; pull the string representation of the integer off the stack and into the
+            ; destination for printing.
+            ppl_console_print_for:
+                pop rbx
+                add r8, 1
+                mov BYTE [rcx + 0], bl
+                add rcx, 1    
+                ; for-loop post condition.
+                dec r9    
+                ; check the condition of the for-loop.
+                cmp r9, 0
+                jg ppl_console_print_for
+            ppl_console_print_endfor:
+
+            pop rdx
+            ;;;;;;;;; Routine for printing an integer ;;;;;;;;;
             
             ppl_console_print_endif3:
 

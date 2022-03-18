@@ -5,6 +5,9 @@
 
 /* TODO(Noah): 
     Implement variadic types for .def as well.
+    Implement the parsing of negative integers (right now it seems that they are 
+    intepreted as labels. And of course this works because NASM knows what do with 
+    negative numbers in the source file).
 */
 
 #ifndef PASSEMBLER_H
