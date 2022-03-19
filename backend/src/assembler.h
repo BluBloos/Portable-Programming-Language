@@ -33,7 +33,8 @@ enum pasm_line_type {
     // right now, our parsing supports for invalid assembly grammers.
     PASM_LINE_MOV,
     PASM_LINE_SUB,
-    PASM_LINE_ADD
+    PASM_LINE_ADD,
+    PASM_LINE_XOR
 };
 
 // calling convention
@@ -360,6 +361,7 @@ void PasmLinePrint(struct pasm_line pl) {
         case PASM_LINE_MOV:
         case PASM_LINE_SUB:
         case PASM_LINE_ADD:
+        case PASM_LINE_XOR:
         {
             switch(pl.lineType) {
                 case PASM_LINE_MOV:
@@ -370,6 +372,9 @@ void PasmLinePrint(struct pasm_line pl) {
                 break;
                 case PASM_LINE_ADD:
                 LOGGER.Min("PASM_LINE_ADD\n");
+                break;
+                case PASM_LINE_XOR:
+                LOGGER.Min("PASM_LINE_XOR\n");
                 break;
                 default:
                 break;
@@ -615,6 +620,7 @@ int pasm_main(int argc, char **argv) {
             case PASM_LINE_ADD:
             case PASM_LINE_SUB:
             case PASM_LINE_MOV:
+            case PASM_LINE_XOR:
             case PASM_LINE_BRANCH_GT:
             {
                 // All of these use the fptriad, so we can do this just fine.
@@ -849,7 +855,7 @@ void HandleLine(char *line) {
         stbds_shput(label_table, pline.data_cptr, 1);
 
     } else {
-        // We can now make the assumption that we are deadling
+        // We can now make the assumption that we are dealing
         // with a full-blown assembly command. So it's got the
         // pneumonic and everything.
         if (SillyStringStartsWith(line, "call")) {
@@ -928,10 +934,13 @@ void HandleLine(char *line) {
 
         } else if (SillyStringStartsWith(line, "mov") ||
             SillyStringStartsWith(line, "sub") ||
-            SillyStringStartsWith(line, "add")) 
+            SillyStringStartsWith(line, "add") ||
+            SillyStringStartsWith(line, "xor"))
         {
             pasm_line pline = PasmLineEmpty();
             switch(*line) {
+                // NOTE(Noah): It is probably going to be the case that we remove this at one point.
+                // Because like, some instructions might start with the same register...
                 case 'm':
                 pline.lineType = PASM_LINE_MOV;
                 break;
@@ -940,6 +949,9 @@ void HandleLine(char *line) {
                 break;
                 case 'a':
                 pline.lineType = PASM_LINE_ADD;
+                break;
+                case 'x':
+                pline.lineType = PASM_LINE_XOR;
                 break;
                 default:
                 pline.lineType = PASM_LINE_UNDEFINED;

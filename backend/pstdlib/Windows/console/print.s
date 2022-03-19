@@ -21,6 +21,16 @@ ppl_console_print:
     push rbp ; save the stack frame
     mov rbp, rsp ; save the stack pointer.
 
+    ; in the subroutine implementation below, we use the following registers.
+    ; rcx, rdx, r8, r9, r10, rax, rbx 
+    push rcx
+    push rdx
+    push r8
+    push r9
+    push r10
+    ; NOTE(Noah): no need to save rax and rbx as these are reserved for the compiler, so the callee will
+    ; never use them. aka, they are volatile across func calls.
+
     ; Intialize the pointer to the memory.
     mov rcx, ppl_console_print_storage
 
@@ -145,6 +155,12 @@ ppl_console_print:
     ; return value for WriteFile is true if func succeeds.
     ; otherwise is zero (false).
     ; We can use GetLastError to get extended error information.
+
+    pop r10 ; restore all the saved registers.
+    pop r9
+    pop r8
+    pop rdx
+    pop rcx
 
     mov rsp, rbp ; restore the stack pointer
     pop rbp ; restore the stack frame

@@ -71,6 +71,17 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
+    #ifdef PLATFORM_WINDOWS 
+    {
+        HANDLE stdout_handle = GetStdHandle(STD_OUTPUT_HANDLE);
+        DWORD stdout_mode;
+        GetConsoleMode(stdout_handle, &stdout_mode);
+        // NOTE(Noah): See https://docs.microsoft.com/en-us/windows/console/setconsolemode for 
+        // meaning of 0x0004. The macro was not being resolved...
+        SetConsoleMode(stdout_handle, stdout_mode | 0x0004);
+    }
+    #endif
+
     if (argc > 1) {
         char *l = argv[1];
         if (argc > 2) {
@@ -116,19 +127,24 @@ char *GetInFile() {
 }
 
 void PrintHelp() {
-    printf(ColorHighlight "\n=== Common Commands ===\n" ColorNormal);
-    printf("build           (b)                 - Build all cli tools.\n");
-    // TODO(Noah): Customize the github workflows to include automated testing of the integration tests, but for specific
-    // platforms.
-    printf("pasm_x86_64     (ax64)              - Integration test of pplasm assembler for x86_64 target (macOS).\n");
-    printf("win_x86_64      (wax64)             - Integration test of pplasm assembler for x86_64 target (Windows).\n");
-    printf("asmparse        (ap)                - Test pplasm parsing capability on backend/helloworld.\n");
-    printf("preparser       (p)                 - Test preparser on single unit.\n");
-    printf("preparser_all   (pall)              - Test preparser on all units in tests/preparse/.\n");
-    printf("regex_gen       (re)                - Test LoadGrammer() for building custom regex trees.\n");
-    printf("grammer         (g)                 - Test AST generation for a single GNODE on a single unit.\n");
-    printf("grammer_all     (gall)              - Test AST generation for all units in tests/grammer/.\n");
-    printf("exit                                - Exit the build system.\n");
+    printf("\n");
+    printf(ColorHighlight "=== Common Commands ===\n" ColorNormal);
+    printf("build           (b)               - Build all cli tools.\n");
+    printf("exit                              - Exit the build system.\n");
+    printf("\n");
+    printf(ColorHighlight "===  PASM  Commands ===\n" ColorNormal);
+    printf("pasm_x86_64     (ax64)            - pasm integration test of a single unit for x86_64 target (macOS).\n");
+    printf("win_x86_64      (wax64)           - pasm integration test of of a single unit for x86_64 target (Windows).\n");
+    printf("win_x86_64_all  (wax64all)        - pasm integration test of all units for x86_64 target (Windows).\n");
+    printf("asmparse        (ap)              - Test pplasm parsing capability.\n");
+    
+    printf("\n");
+    printf(ColorHighlight "===  PPL   Commands ===\n" ColorNormal);
+    printf("preparser       (p)               - Test preparser on single unit.\n");
+    printf("preparser_all   (pall)            - Test preparser on all units in tests/preparse/.\n");
+    printf("regex_gen       (re)              - Test LoadGrammer() for building custom regex trees.\n");
+    printf("grammer         (g)               - Test AST generation for a single GNODE on a single unit.\n");
+    printf("grammer_all     (gall)            - Test AST generation for all units in tests/grammer/.\n");
 }
 
 // Does command then returns the result code.
@@ -237,6 +253,11 @@ int DoCommand(const char *l, const char *l2) {
         }
         timer.TimerEnd();
         return (errors > 0);
+    
+    } else if (0  == strcmp(l, "wax64all") || 0 ==strcmp(l, "win_x86_64_all")) {
+        // TODO(Noah): Implement this command.
+        LOGGER.Log("This command is not implemented at the moment.");
+    }
 
     } else if (0  == strcmp(l, "p") || 0 ==strcmp(l, "preparser")) {
         

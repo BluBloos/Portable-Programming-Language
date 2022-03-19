@@ -28,6 +28,7 @@
 #include <math.h>
 #ifdef PLATFORM_WINDOWS
 #include <Windows.h>
+#include <WinCon.h>
 #endif
 /* PROJECT DEPENDENCIES */
 

@@ -197,6 +197,7 @@ int pasm_x86_64(struct pasm_line *source,
             case PASM_LINE_ADD:
             case PASM_LINE_SUB:
             case PASM_LINE_MOV:
+            case PASM_LINE_XOR:
             {
                 bool add_sub_Flag = false;
                 switch(pline.lineType) {
@@ -210,6 +211,9 @@ int pasm_x86_64(struct pasm_line *source,
                     break;
                     case PASM_LINE_MOV:
                     fileWriter.write("mov ");
+                    break;
+                    case PASM_LINE_XOR:
+                    fileWriter.write("xor ");
                     break;
                     default:
                     break;

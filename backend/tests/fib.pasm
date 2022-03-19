@@ -12,6 +12,7 @@
 ;   return fib(7); // should return 13
 ; }
 
+.extern p_decl void ppl_console_print(int64, []int64)
 .extern p_dcel void ppl_exit(int32)
 
 .section code
@@ -47,7 +48,14 @@ restore [r3]
 ret
 
 .def int32 main()
+xor r2, r2
 call fib(7)
-call ppl_exit(r2_32)
+call ppl_console_print(msg, r2)
+call ppl_exit(0)
 
+.section data
+label_msg:
+.db "fib(7)=%d"
+.db 10
+.db 0
 
