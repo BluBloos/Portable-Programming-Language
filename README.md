@@ -60,10 +60,13 @@ The project has been tested with the following setups
 
 Support for different setups is still "rough around the edges". No guarentees.
 
-The project uses an interactive build system. Run the following command to launch said system.
+The project uses an interactive build system. Run the following command to launch said system (macOS, Linux).
 
 ```bash
 ./build.sh
 ```
+
+On Windows, run ```build.bat```
+
 
 The interactive build system begins by printing a list of all available commands, then waits for susequent user input.
