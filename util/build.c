@@ -257,8 +257,7 @@ int DoCommand(const char *l, const char *l2) {
     } else if (0  == strcmp(l, "wax64all") || 0 ==strcmp(l, "win_x86_64_all")) {
         // TODO(Noah): Implement this command.
         LOGGER.Log("This command is not implemented at the moment.");
-    }
-
+        return 0;
     } else if (0  == strcmp(l, "p") || 0 ==strcmp(l, "preparser")) {
         
         printf("NOTE: cwd is set to tests/preparse/\n");
