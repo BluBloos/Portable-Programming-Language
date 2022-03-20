@@ -200,6 +200,16 @@ int DoCommand(const char *l, const char *l2) {
 
     } else if (0  == strcmp(l, "ax64") || 0 ==strcmp(l, "pasm_x86_64")) {
 
+        // TODO(Noah): 
+        // 1) Mimic pstdlib directory structure changes as they have been made for
+        // the Windows standard library.
+        // 2) Add stub because the x86_64 backend expects there to be one.
+        // 3) Extend macOS pstdlib to have a variadic print.
+        // 4) add ax64all command for runnnig all backend tests in Github workflow.
+        // 
+        // Finally, once all these changes are made, we can move towards writing a proper
+        // codegen layer to compile the dynamic array example as seen in the repo README. 
+
         printf("NOTE: cwd is set to backend/tests/\n");
         char *inFile = GetInFile();
         char *inFilePath = SillyStringFmt("backend/tests/%s", inFile);
