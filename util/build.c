@@ -48,7 +48,8 @@ HOW PPL PROGRAMS ARE BUILT */
 // NOTE(Noah): ppl.h on Windows is the parallel platforms library....I HATE EVERYTHING.
 #include <ppl_core.h>
 void ptest_Preparser(char *inFilePath, int &errors);
-void ptest_Grammer(char *inFilePath, int&errors);
+void ptest_Grammer(char *inFilePath, int &errors);
+void ptest_wax64(char *inFilePath, int &errors);
 /* ------- TESTS.CPaP ------- */
 
 void CheckErrors(int errors) {
@@ -137,7 +138,6 @@ void PrintHelp() {
     printf("win_x86_64      (wax64)           - pasm integration test of of a single unit for x86_64 target (Windows).\n");
     printf("win_x86_64_all  (wax64all)        - pasm integration test of all units for x86_64 target (Windows).\n");
     printf("asmparse        (ap)              - Test pplasm parsing capability.\n");
-    
     printf("\n");
     printf(ColorHighlight "===  PPL   Commands ===\n" ColorNormal);
     printf("preparser       (p)               - Test preparser on single unit.\n");
@@ -222,42 +222,46 @@ int DoCommand(const char *l, const char *l2) {
     } else if (0  == strcmp(l, "wax64") || 0 ==strcmp(l, "win_x86_64")) {
 
         printf("NOTE: cwd is set to backend/tests/\n");
-        
         char *inFile;
         if (l2 == NULL) {
             inFile = GetInFile();
         } else {
             inFile = (char *)l2;
         }
-        
         char *inFilePath = SillyStringFmt("backend/tests/%s", inFile);
         Timer timer = Timer("pasm");
         int errors = 0;
-        int r = passembler(inFilePath, "macOS"); // TODO(Noah): target independent, remove macOS.
-        r = pasm_x86_64(pasm_lines, "bin/out.x86_64", MAC_OS); // TODO(Noah): target independent, remove macOS.
-        DeallocPasm();
-        r = CallSystem("nasm -g -o bin\\out.obj -f win64 bin/out.x86_64");
-        r = CallSystem("nasm -g -o bin\\exit.obj -f win64 backend/pstdlib/Windows/exit.s");
-        r = CallSystem("nasm -g -o bin\\stub.obj -f win64 backend/pstdlib/Windows/stub.s");
-        r = CallSystem("nasm -g -o bin\\print.obj -f win64 backend/pstdlib/Windows/console/print.s");
-        // TODO(Noah): Remove dependency on Visual Studio linker.
-        r = CallSystem("link /LARGEADDRESSAWARE /subsystem:console /entry:start bin/out.obj bin/exit.obj bin/stub.obj bin/print.obj \
-            /OUT:bin/out.exe Kernel32.lib");
-        r = CallSystem("bin\\out.exe");
-        errors = (r != 0 );
-        if (errors > 0) {
-            LOGGER.Error("Completed with %d error(s)", errors);
-            LOGGER.Error("Return code: %d", r);
-        } else {
-            LOGGER.Success("Completed with 0 errors.");
-        }
+        ptest_wax64(inFilePath, errors);
         timer.TimerEnd();
         return (errors > 0);
     
     } else if (0  == strcmp(l, "wax64all") || 0 ==strcmp(l, "win_x86_64_all")) {
-        // TODO(Noah): Implement this command.
-        LOGGER.Log("This command is not implemented at the moment.");
-        return 0;
+
+        Timer timer = Timer("win_x86_64_all");
+        LOGGER.InitFileLogging("w");
+        int errors = 0;
+        DIR *dir;
+        struct dirent *ent;
+        char *dirName = "backend/tests";
+        if ((dir = opendir(dirName)) != NULL) {
+            while ((ent = readdir (dir)) != NULL) {
+                if (ent->d_name[0] != '.') {
+                    char *pStr;
+                    for (pStr = ent->d_name; *pStr != 0 && *pStr != '.'; pStr++);
+                    pStr++; // skp past the '.'
+                    if (SillyStringEquals("pasm", pStr)) {
+                        ptest_wax64(SillyStringFmt("%s/%s", dirName, ent->d_name), errors);
+                    }
+                }
+            }
+            closedir(dir);
+        } else {
+            LOGGER.Error("Unable to open %s", dirName);
+            errors += 1;
+        }
+        timer.TimerEnd();
+        return (errors > 0);
+
     } else if (0  == strcmp(l, "p") || 0 ==strcmp(l, "preparser")) {
         
         printf("NOTE: cwd is set to tests/preparse/\n");
@@ -280,7 +284,6 @@ int DoCommand(const char *l, const char *l2) {
         struct dirent *ent;
         char *dirName = "tests/preparse";
         if ((dir = opendir (dirName)) != NULL) {
-            /* print all the files and directories within directory */
             while ((ent = readdir (dir)) != NULL) {
                 if (ent->d_name[0] != '.') {
                     ptest_Preparser( SillyStringFmt("%s/%s", dirName, ent->d_name), errors);
@@ -434,4 +437,26 @@ void ptest_Preparser(char *inFilePath, int &errors) {
         }
     }
     fclose(inFile);
+}
+
+void ptest_wax64(char *inFilePath, int &errors) {
+    LOGGER.Log("Testing assembler for: %s", inFilePath);
+    int r = passembler(inFilePath, "macOS"); // TODO(Noah): target independent, remove macOS.
+    r = pasm_x86_64(pasm_lines, "bin/out.x86_64", MAC_OS); // TODO(Noah): target independent, remove macOS.
+    DeallocPasm();
+    r = CallSystem("nasm -g -o bin\\out.obj -f win64 bin/out.x86_64");
+    r = CallSystem("nasm -g -o bin\\exit.obj -f win64 backend/pstdlib/Windows/exit.s");
+    r = CallSystem("nasm -g -o bin\\stub.obj -f win64 backend/pstdlib/Windows/stub.s");
+    r = CallSystem("nasm -g -o bin\\print.obj -f win64 backend/pstdlib/Windows/console/print.s");
+    // TODO(Noah): Remove dependency on Visual Studio linker.
+    r = CallSystem("link /LARGEADDRESSAWARE /subsystem:console /entry:start bin/out.obj bin/exit.obj bin/stub.obj bin/print.obj \
+        /OUT:bin/out.exe Kernel32.lib");
+    r = CallSystem("bin\\out.exe");
+    errors = (r != 0 );
+    if (errors > 0) {
+        LOGGER.Error("Completed with %d error(s)", errors);
+        LOGGER.Error("Return code: %d", r);
+    } else {
+        LOGGER.Success("Completed with 0 errors.");
+    }
 }
