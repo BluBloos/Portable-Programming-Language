@@ -1,5 +1,7 @@
 # MVP
 
+Here I define what is expected of a Minimum Viable Product for the Portable Programming Language.
+
 ## Functional Requirements
 - Deviates from a toy language
   - Develop real things
@@ -25,48 +27,19 @@
     - macOS
     - Linux
 
-## The Sensible Road There
+# The Sensible Road There
 
-I'm gonna start by looking at the things that are a little unclear as to how I might do them. Like, **how do I go about targeting multiple platforms? How do I get debugging to work? How do I reliably support all the needed "real things" across different platforms?**
+We will be compiling PPL to an intermediate representation, which is then transformed into the textual representation for different assembly languages.
 
-Let's start the disucssion by thinking about how debugging might work across multiple desktop targets.
+For Windows, macOS, and Linux, we compile to x86_64 assembly.
 
-Let's break down the components here:
-- Source code
-- Visual Studio
-- The debugger:
-  - gdb
-  - lldb
+For Android and iOS, we compile to ARM. 
 
-The workflow is to compile your code with debugging information, and this puts this stuff in the symbol table.
+For Web, we compile to web assembly.
 
-But I think this looks different for each platform:
-- Webassembly bytecode
-  - Stored in a .wasm file for ingestion by the browser
-- DEX file format
-  - https://source.android.com/devices/tech/dalvik/dalvik-bytecode
-  - Contains a Dalvik bytecode
-  - Suitable for being run by the Android Runtime (ART)
-- Portable Executable file format
-  - Windows
-- Mach-O
-  - macOS 
-  - iOS
-- Executable and Linking format (ELF)
-  - Linux
+From the textual representation of the different assembly language, we will use available assemblers for compiling down to machine code.
 
-And then for each architecture, do we even know what the instruction set is? Arm, x86, etc? 
-
-For Windows, they run on Intel machines. For macOS, its fuzzy. The older macs use Intel, newer M1 are ARM. iOS is actually ARM. Linux is x86 but I believe can also be compiled to run (and has) on ARM.
-
-For Webassembly, there is a bytecode but also a human-readable form. This is WASM-text and has file ending of .wat
-
-The same goes for the Dalvik bytecode. It also has a human-readable form (and generally x86 and ARM as well).
-
-We will do the following (for the MVP). **x86 for Windows, macOS, and Linux, ARM for iOS, Dalvik for Android, and Webassembly for Web**
-
-Finally, there exists something called the DWARF standard. We might see this in some of the target executable file types.
-
+In terms of ensuring that debugging will work, we must put debugging information in the symbol table. PPL must inject this information into the resulting binary that was output from the available assemblers. These assemblers do have the ability to generate debugging information, but they will unfortunately be unable to capture the relevant information as these are associated with the PPL source code.
 
 # ROADMAP
 
@@ -186,7 +159,7 @@ implicit dereference / reference types:
 - if you have this, then you might not know that you are dealing with a pointer. And this is not explicit, and I generally dislike a lack of explicitness.
 - But then the advantage of implicit deref is not having to change large swaths of code if you wish to go from a non pointer type to a pointer type.
 
-## THINGS I NEED/WOULD-LIKE TO LEARN
+## THINGS I NEED / WOULD-LIKE TO LEARN
 - Statis Single Assignment (SSA)
   - Basically we are treating each intermediate value of some variable as it's own variable.
   - https://en.wikipedia.org/wiki/Static_single_assignment_form
@@ -195,3 +168,6 @@ implicit dereference / reference types:
 - Check out what vectorizing is.
 - Look into quantization (making ops smaller size)?
 - What is a GPR?
+- Complex memory schemes
+- The cache
+- Out-of-order execution by modern CPUs 

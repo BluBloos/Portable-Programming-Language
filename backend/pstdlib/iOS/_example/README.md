@@ -1,4 +1,10 @@
-# Path Forward
+# Steps for Building
+
+Simply run ```./build.sh```
+
+NOTE(Noah): As of 2022.03.20, it seems that in the small time I have stepped away from working on the iOS example, the example no longer works. iOS and Apple support overall is going to be challenging.
+
+# Devlog
 
 Current Progress:
 - objective-C to iOS simulator build working (without ever opening xCode).
