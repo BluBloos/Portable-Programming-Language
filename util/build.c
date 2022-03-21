@@ -200,11 +200,7 @@ int DoCommand(const char *l, const char *l2) {
 
     } else if (0  == strcmp(l, "ax64") || 0 ==strcmp(l, "pasm_x86_64")) {
 
-        // TODO(Noah): 
-        // 1) Mimic pstdlib directory structure changes as they have been made for
-        // the Windows standard library.
-        // 2) Add stub because the x86_64 backend expects there to be one.
-        // 3) Extend macOS pstdlib to have a variadic print.
+        // TODO(Noah):
         // 4) add ax64all command for runnnig all backend tests in Github workflow.
         // 
         // Finally, once all these changes are made, we can move towards writing a proper
@@ -216,16 +212,21 @@ int DoCommand(const char *l, const char *l2) {
         Timer timer = Timer("pasm");
         int errors = 0;
         int r = passembler(inFilePath, "macOS");
-        r |= pasm_x86_64(pasm_lines, "bin/out.x86_64", MAC_OS);
+        r = pasm_x86_64(pasm_lines, "bin/out.x86_64", MAC_OS);
         DeallocPasm();
-        r |= CallSystem("nasm -f macho64 bin/out.x86_64");
-        // TODO(Noah): Implement linking with more libraries.
-        r |= CallSystem("nasm -o bin/exit.o -f macho64 backend/pstdlib/macOS/console/exit.s");
-        r |= CallSystem("nasm -o bin/print.o -f macho64 backend/pstdlib/macOS/console/print.s");
-        r |= CallSystem("ld -o bin/out -static bin/out.o bin/exit.o bin/print.o");
-        r |= CallSystem("bin/out");
+        r = CallSystem("nasm -o bin/out.o -f macho64 bin/out.x86_64");
+        r = CallSystem("nasm -o bin/exit.o -f macho64 backend/pstdlib/macOS/exit.s");
+        r = CallSystem("nasm -o bin/print.o -f macho64 backend/pstdlib/macOS/console/print.s");
+        r = CallSystem("nasm -g -o bin/stub.o -f macho64 backend/pstdlib/macOS/stub.s");
+        r = CallSystem("ld -o bin/out -static bin/out.o bin/exit.o bin/print.o bin/stub.o");
+        r = CallSystem("bin/out");
         errors = (r != 0 );
-        CheckErrors(errors);
+        if (errors > 0) {
+            LOGGER.Error("Completed with %d error(s)", errors);
+            LOGGER.Error("Return code: %d", r);
+        } else {
+            LOGGER.Success("Completed with 0 errors.");
+        }
         timer.TimerEnd();
         return (errors > 0);
 
