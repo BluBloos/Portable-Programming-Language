@@ -51,12 +51,7 @@ See https://github.com/BluBloos/Portable-Programming-Language/wiki for devlogs.
 
 # Steps for Building
 
-The only dependency as of right now is a C++ compiler. 
-
-The project has been tested with the following setups
-- Clang on macOS x86_64
-- MinGW-W64 and Git bash on Windows
-- g++ on Ubuntu 20.04.3
+The project currently depends on the netwide assembler (NASM), the MSVC linker, and "ld" on macOS.
 
 Support for different setups is still "rough around the edges". No guarentees.
 
