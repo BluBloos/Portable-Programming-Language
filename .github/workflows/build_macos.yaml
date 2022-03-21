@@ -10,6 +10,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+      - uses: ilammy/setup-nasm@v1
       - name: Build PPL
         run: ./build.sh b 
         shell: bash
@@ -19,3 +20,6 @@ jobs:
       - name: Grammer Test
         run: ./build.sh gall 
         shell: bash
+      - name: Backend Tests
+        shell: bash
+        run: ./build.sh ax64all

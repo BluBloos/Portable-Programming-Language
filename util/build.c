@@ -50,6 +50,7 @@ HOW PPL PROGRAMS ARE BUILT */
 void ptest_Preparser(char *inFilePath, int &errors);
 void ptest_Grammer(char *inFilePath, int &errors);
 void ptest_wax64(char *inFilePath, int &errors);
+void ptest_ax64(char *inFilePath, int &errors);
 /* ------- TESTS.CPaP ------- */
 
 void CheckErrors(int errors) {
@@ -134,7 +135,9 @@ void PrintHelp() {
     printf("exit                              - Exit the build system.\n");
     printf("\n");
     printf(ColorHighlight "===  PASM  Commands ===\n" ColorNormal);
+    // TODO(Noah): Better naming scheme for macOS please...
     printf("pasm_x86_64     (ax64)            - pasm integration test of a single unit for x86_64 target (macOS).\n");
+    printf("pasm_x86_64_all (ax64all)         - pasm integration test of all units for x86_64 target (macOS).\n");
     printf("win_x86_64      (wax64)           - pasm integration test of of a single unit for x86_64 target (Windows).\n");
     printf("win_x86_64_all  (wax64all)        - pasm integration test of all units for x86_64 target (Windows).\n");
     printf("asmparse        (ap)              - Test pplasm parsing capability.\n");
@@ -211,21 +214,37 @@ int DoCommand(const char *l, const char *l2) {
         char *inFilePath = SillyStringFmt("backend/tests/%s", inFile);
         Timer timer = Timer("pasm");
         int errors = 0;
-        int r = passembler(inFilePath, "macOS");
-        r = pasm_x86_64(pasm_lines, "bin/out.x86_64", MAC_OS);
-        DeallocPasm();
-        r = CallSystem("nasm -o bin/out.o -f macho64 bin/out.x86_64");
-        r = CallSystem("nasm -o bin/exit.o -f macho64 backend/pstdlib/macOS/exit.s");
-        r = CallSystem("nasm -o bin/print.o -f macho64 backend/pstdlib/macOS/console/print.s");
-        r = CallSystem("nasm -g -o bin/stub.o -f macho64 backend/pstdlib/macOS/stub.s");
-        r = CallSystem("ld -o bin/out -static bin/out.o bin/exit.o bin/print.o bin/stub.o");
-        r = CallSystem("bin/out");
-        errors = (r != 0 );
-        if (errors > 0) {
-            LOGGER.Error("Completed with %d error(s)", errors);
-            LOGGER.Error("Return code: %d", r);
+        ptest_ax64(inFilePath, errors);
+        timer.TimerEnd();
+        return (errors > 0);
+
+    } else if (0  == strcmp(l, "ax64all") || 0 ==strcmp(l, "pasm_x86_64_all")) {
+
+        // TODO(Noah): Once more we have a case where we can abstract things because there is hella
+        // cmd+c cmd+v going on.
+        // The code we have below is quite literally the same as we see for the wax64all case,
+        // except we are calling ptest_ax64 instead...
+        Timer timer = Timer("pasm_x86_64_all");
+        LOGGER.InitFileLogging("w");
+        int errors = 0;
+        DIR *dir;
+        struct dirent *ent;
+        char *dirName = "backend/tests";
+        if ((dir = opendir(dirName)) != NULL) {
+            while ((ent = readdir (dir)) != NULL) {
+                if (ent->d_name[0] != '.') {
+                    char *pStr;
+                    for (pStr = ent->d_name; *pStr != 0 && *pStr != '.'; pStr++);
+                    pStr++; // skp past the '.'
+                    if (SillyStringEquals("pasm", pStr)) {
+                        ptest_ax64(SillyStringFmt("%s/%s", dirName, ent->d_name), errors);
+                    }
+                }
+            }
+            closedir(dir);
         } else {
-            LOGGER.Success("Completed with 0 errors.");
+            LOGGER.Error("Unable to open %s", dirName);
+            errors += 1;
         }
         timer.TimerEnd();
         return (errors > 0);
@@ -463,6 +482,26 @@ void ptest_wax64(char *inFilePath, int &errors) {
     r = CallSystem("link /LARGEADDRESSAWARE /subsystem:console /entry:start bin/out.obj bin/exit.obj bin/stub.obj bin/print.obj \
         /OUT:bin/out.exe Kernel32.lib");
     r = CallSystem("bin\\out.exe");
+    errors = (r != 0 );
+    if (errors > 0) {
+        LOGGER.Error("Completed with %d error(s)", errors);
+        LOGGER.Error("Return code: %d", r);
+    } else {
+        LOGGER.Success("Completed with 0 errors.");
+    }
+}
+
+void ptest_ax64(char *inFilePath, int &errors) {
+    LOGGER.Log("Testing assembler for: %s", inFilePath);
+    int r = passembler(inFilePath, "macOS");
+    r = pasm_x86_64(pasm_lines, "bin/out.x86_64", MAC_OS);
+    DeallocPasm();
+    r = CallSystem("nasm -o bin/out.o -f macho64 bin/out.x86_64");
+    r = CallSystem("nasm -o bin/exit.o -f macho64 backend/pstdlib/macOS/exit.s");
+    r = CallSystem("nasm -o bin/print.o -f macho64 backend/pstdlib/macOS/console/print.s");
+    r = CallSystem("nasm -g -o bin/stub.o -f macho64 backend/pstdlib/macOS/stub.s");
+    r = CallSystem("ld -o bin/out -static bin/out.o bin/exit.o bin/print.o bin/stub.o");
+    r = CallSystem("bin/out");
     errors = (r != 0 );
     if (errors > 0) {
         LOGGER.Error("Completed with %d error(s)", errors);
