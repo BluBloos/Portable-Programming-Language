@@ -24,6 +24,24 @@ char *COMPOUND_OPS[] = {
     "+=", "-=", "*=", "/=", "%=", "&=", "|=", "++", "--"
 };
 
+/* TODO(Noah): 
+    
+    Next step for PPL on 2020.03.22 is to implement the preparsing stuff.
+    So my thought process right now is that we are going to have different 
+    containers. One container for the main compilation unit.
+    And a container for each import statement.
+    We run the lexing and preparsing recursively on each import, so we end up getting a tree
+    structure of buckets.
+    Each bucket is literally a unit of source code that we are going to want to run 
+    through the entire pipeline (grammer generation and so forth).
+
+    At the time of bucket creation we are also going to want to generate some sort of
+    context around the buckets (like what is the qualification for thsi bucket).
+
+    And we will also want to generate context for the #using statements so that we can rename 
+    buckets as needed.
+    
+*/
 class PreparseContext { };
 
 enum lexer_state {
