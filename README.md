@@ -25,16 +25,12 @@ The primary aim of the language is to allow the developer to produce software fo
 Here is a small sample of the language
 
 ```c
-#import <ppl/console>
-#using ppl::console as pc
-
+#import <ppl/console> as pc
 int main() {
     [dynamic]int myIntegers;
-
     for (int i = 0; i < 10; i++) {
         myIntegers.push(i);
     }
-
     pc::print("There are %d many integers", len(myIntegers));
 }
 ```
