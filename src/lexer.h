@@ -10,11 +10,11 @@ char * TYPES[] = {
 char *KEYWORDS[] = {
     "struct", "continue", "break", "if", "while", "for", 
     "else", "return", "const", "sizeof", "fallthrough", "switch", 
-    "case", "default"
+    "case", "default", "as"
 };
 
 char *P_DIRECTIVES[] = {
-    "#include"
+    "#include", "#import"
 };
 
 char *OPS = "+-%*!<>=|&?[].~";
@@ -170,7 +170,9 @@ struct token {
         uint64 num;
         UNICODE_CPOINT c;
     };
-    uint32 line; // TODO(Noah): Add support for programs with more than 4 billion lines.
+    // TODO(Noah): Add support for programs with more than 4 billion lines.
+    // TODO(Noah): Line numbers are wrong for the first line of tests/prepare/printing.c
+    uint32 line; 
 };
 struct token Token() {
     struct token t; t.type = TOKEN_UNDEFINED; t.line = 0; t.str = NULL;
