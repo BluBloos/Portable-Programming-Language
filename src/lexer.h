@@ -171,7 +171,6 @@ struct token {
         UNICODE_CPOINT c;
     };
     // TODO(Noah): Add support for programs with more than 4 billion lines.
-    // TODO(Noah): Line numbers are wrong for the first line of tests/prepare/printing.c
     uint32 line; 
 };
 struct token Token() {
@@ -679,13 +678,15 @@ bool LexAndPreparse(
 
             // We want to check for symbols if we have hit whitespace.
             if (character == ' ' || character == '\n' || character == CP_EOF) {
-                unsigned int realLine = (character == '\n') ? currentLine - 1  : currentLine;
+                currentLine = (character == '\n') ? currentLine - 1  : currentLine;
                 struct token token;
-                if (TokenFromLatent(token)) {
+                bool isTokenLatent = TokenFromLatent(token);
+                if (isTokenLatent) {
                     tokenContainer.Append(token);
                     CurrentTokenReset();
-                    continue;
                 }
+                currentLine = (character == '\n') ? currentLine + 1  : currentLine;
+                if (isTokenLatent) continue;
             }
 
             // Go through all search patterns.
