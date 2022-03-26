@@ -141,6 +141,9 @@ Next Steps:
 
 # LANGUAGE DESIGN DISCUSSION
 
+Metaprogramming:
+- According to Casey Muratori, C and C++ are very bad at this.
+
 Package System, Some Goals:
 - If I have a file, I want to know what things the file depends on.
 - If I have a project, I want to know all the dependencies on the project.
@@ -171,3 +174,6 @@ implicit dereference / reference types:
 - Complex memory schemes
 - The cache
 - Out-of-order execution by modern CPUs 
+- (Has to do with multithreaded programming)
+- Atomic operations???? 
+  - Cache logic??

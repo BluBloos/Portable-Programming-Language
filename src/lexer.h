@@ -10,11 +10,11 @@ char * TYPES[] = {
 char *KEYWORDS[] = {
     "struct", "continue", "break", "if", "while", "for", 
     "else", "return", "const", "sizeof", "fallthrough", "switch", 
-    "case", "default"
+    "case", "default", "as"
 };
 
 char *P_DIRECTIVES[] = {
-    "#include"
+    "#include", "#import"
 };
 
 char *OPS = "+-%*!<>=|&?[].~";
@@ -23,8 +23,6 @@ char *COMPOUND_OPS[] = {
     "&&", "||", ">=", "<=", "==", "!=", "->",
     "+=", "-=", "*=", "/=", "%=", "&=", "|=", "++", "--"
 };
-
-class PreparseContext { };
 
 enum lexer_state {
     LEXER_NORMAL,
@@ -152,7 +150,8 @@ struct token {
         uint64 num;
         UNICODE_CPOINT c;
     };
-    uint32 line; // TODO(Noah): Add support for programs with more than 4 billion lines.
+    // TODO(Noah): Add support for programs with more than 4 billion lines.
+    uint32 line; 
 };
 struct token Token() {
     struct token t; t.type = TOKEN_UNDEFINED; t.line = 0; t.str = NULL;
@@ -188,6 +187,59 @@ struct token Token(enum token_type type, double dnum, unsigned int line) {
 struct token Token(enum token_type type, uint64 num, unsigned int line) {
     struct token t; t.num = num; t.type = type; t.line = line;
     return t;
+}
+
+// NOTE(Noah): I am unsure if this naming convention matches the rest of everything in this code
+// project, but it makes sense because we are defining function for operating on a specific data type.
+void TokenPrint(struct token tok) {
+    LOGGER.Min("%d, ", tok.line);
+    switch(tok.type) {
+        case TOKEN_UNDEFINED:
+        LOGGER.Min("TOKEN_UNDEFINED\n");
+        break;
+        case TOKEN_QUOTE:
+        Assert(tok.str != NULL);
+        LOGGER.Min("TOKEN_QUOTE: %s\n", tok.str);
+        break;
+        case TOKEN_INTEGER_LITERAL:
+        LOGGER.Min("TOKEN_INTEGER_LITERAL: %d\n", tok.num);
+        break;
+        case TOKEN_DECIMAL_LITERAL:
+        LOGGER.Min("TOKEN_DECIMAL_LITERAL: %f\n", tok.dnum);
+        break;
+        case TOKEN_CHARACTER_LITERAL:
+        {
+            char utf8Buff[5];
+            u8_toutf8(utf8Buff, 5, &tok.c, 1);
+            LOGGER.Min("TOKEN_CHARACTER_LITERAL: %s\n", utf8Buff);
+        }
+        break;
+        case TOKEN_ENDL:
+        LOGGER.Min("TOKEN_ENDL\n");
+        break;
+        case TOKEN_OP:
+        LOGGER.Min("TOKEN_OP: %c\n", tok.c);
+        break;
+        case TOKEN_COP:
+        Assert(tok.str != NULL);
+        LOGGER.Min("TOKEN_COP: %s\n", tok.str);
+        break;
+        case TOKEN_PART:
+        LOGGER.Min("TOKEN_PART: %c\n", tok.c);
+        break;
+        case TOKEN_KEYWORD:
+        Assert(tok.str != NULL);
+        LOGGER.Min("TOKEN_KEYWORD: %s\n", tok.str);
+        break;
+        case TOKEN_PDIRECTIVE:
+        Assert(tok.str != NULL);
+        LOGGER.Min("TOKEN_PDIRECTIVE: %s\n", tok.str);
+        break;
+        case TOKEN_SYMBOL:
+        Assert(tok.str != NULL);
+        LOGGER.Min("TOKEN_SYMBOL: %s\n", tok.str);
+        break;
+    }
 }
 
 // TODO(Noah): Change the TokenContainer to use StretchyBuffers.
@@ -259,54 +311,7 @@ class TokenContainer {
     void Print() {
         for (int i = 0; i < tokenCount; i++) {
             struct token &tok = tokens[i];
-            LOGGER.Min("%d, ", tok.line);
-            switch(tok.type) {
-                case TOKEN_UNDEFINED:
-                LOGGER.Min("TOKEN_UNDEFINED\n");
-                break;
-                case TOKEN_QUOTE:
-                Assert(tok.str != NULL);
-                LOGGER.Min("TOKEN_QUOTE: %s\n", tok.str);
-                break;
-                case TOKEN_INTEGER_LITERAL:
-                LOGGER.Min("TOKEN_INTEGER_LITERAL: %d\n", tok.num);
-                break;
-                case TOKEN_DECIMAL_LITERAL:
-                LOGGER.Min("TOKEN_DECIMAL_LITERAL: %f\n", tok.dnum);
-                break;
-                case TOKEN_CHARACTER_LITERAL:
-                {
-                    char utf8Buff[5];
-                    u8_toutf8(utf8Buff, 5, &tok.c, 1);
-                    LOGGER.Min("TOKEN_CHARACTER_LITERAL: %s\n", utf8Buff);
-                }
-                break;
-                case TOKEN_ENDL:
-                LOGGER.Min("TOKEN_ENDL\n");
-                break;
-                case TOKEN_OP:
-                LOGGER.Min("TOKEN_OP: %c\n", tok.c);
-                break;
-                case TOKEN_COP:
-                Assert(tok.str != NULL);
-                LOGGER.Min("TOKEN_COP: %s\n", tok.str);
-                break;
-                case TOKEN_PART:
-                LOGGER.Min("TOKEN_PART: %c\n", tok.c);
-                break;
-                case TOKEN_KEYWORD:
-                Assert(tok.str != NULL);
-                LOGGER.Min("TOKEN_KEYWORD: %s\n", tok.str);
-                break;
-                case TOKEN_PDIRECTIVE:
-                Assert(tok.str != NULL);
-                LOGGER.Min("TOKEN_PDIRECTIVE: %s\n", tok.str);
-                break;
-                case TOKEN_SYMBOL:
-                Assert(tok.str != NULL);
-                LOGGER.Min("TOKEN_SYMBOL: %s\n", tok.str);
-                break;
-            }
+            TokenPrint(tok);
         }
     }
 };
@@ -502,22 +507,11 @@ char **arr, unsigned int arrSize) {
     return sPattern;
 }
 
-/* 
-NOTE(Noah):
-The lexer should never fail. It just returns tokens. 
-But since we are combining witht the preparser (which opens files),
-this might fail.
-NOTE(Noah): Was debating on reading in file entirely into RAM, then parsing it.
-However, if we read character by character, this opens up the door for future 
-parallelizing of this code. This becomes important when the source file is HUGE.
-*/
-bool LexAndPreparse(
+bool Lex(
     FILE *inFile, 
-    TokenContainer &tokenContainer, 
-    PreparseContext &preparseContext
+    TokenContainer &tokenContainer
 ) 
 {    
-
     // Generate globals
     std::string cToken = ""; currentToken = &cToken;
     std::string clToken = ""; cleanToken = &clToken;
@@ -527,7 +521,9 @@ bool LexAndPreparse(
     // # append onto raw.
     // raw += ' '
     
+    // TODO(Noah): What if reading in the file here fails??
     RawFileReader raw = RawFileReader(inFile);
+
     enum lexer_state state = LEXER_NORMAL;
 
     sPatterns[0] = CreateSearchPattern(
@@ -636,7 +632,6 @@ bool LexAndPreparse(
                 n += 2;
                 continue;
             }
-
             
             // consume '.' in decimal literals to avoid being parsed as a TOKEN_PART. 
             // must ensure that what comes before the decimal is a number AND what comes after is also a number.
@@ -659,13 +654,15 @@ bool LexAndPreparse(
 
             // We want to check for symbols if we have hit whitespace.
             if (character == ' ' || character == '\n' || character == CP_EOF) {
-                unsigned int realLine = (character == '\n') ? currentLine - 1  : currentLine;
+                currentLine = (character == '\n') ? currentLine - 1  : currentLine;
                 struct token token;
-                if (TokenFromLatent(token)) {
+                bool isTokenLatent = TokenFromLatent(token);
+                if (isTokenLatent) {
                     tokenContainer.Append(token);
                     CurrentTokenReset();
-                    continue;
                 }
+                currentLine = (character == '\n') ? currentLine + 1  : currentLine;
+                if (isTokenLatent) continue;
             }
 
             // Go through all search patterns.
@@ -728,4 +725,51 @@ bool LexAndPreparse(
 
     return true;
 }
+
+/* TODO(Noah):
+    Next step for PPL on 2020.03.22 is to implement the preparsing stuff.
+    So my thought process right now is that we are going to have different 
+    containers. One container for the main compilation unit.
+    And a container for each import statement.
+    We run the lexing and preparsing recursively on each import, so we end up getting a tree
+    structure of buckets.
+
+    Each bucket is literally a unit of source code that we are going to want to run 
+    through the entire pipeline (grammer generation and so forth).
+
+    At the time of bucket creation we are also going to want to generate some sort of
+    context around the buckets (like what is the qualification for this bucket).
+
+    And we will also want to generate context for the #using statements so that we can rename 
+    buckets as needed.
+*/
+struct preparse_context {
+    // Need to know how this bucket is going to be qualified.
+    char *qualifierKey;
+    // Also need to know what it has been renamed to
+    char *qualifierKeyOverride;
+};
+
+// TODO(Noah): Combine the lexer and the preparser pass. We do 
+// not need two seperate things here.
+void Preparse(
+    TokenContainer &tokenContainer, 
+    struct tree_node &tn
+) {
+    // So this preparser takes in the tokenContainer from the prior lexed
+    // inFile.
+    // 
+    // T as output we write the program "bucket" into the tree node ref
+    // provided.
+    //
+    // This is gonna include the preparse_context as we have written it right now.
+    //
+    struct token tok;
+    for (int i = 0; (tok = tokenContainer.QueryDistance(i)).type != TOKEN_UNDEFINED; i++) {
+        TokenPrint(tok);
+    }
+
+}
+
+
 #endif

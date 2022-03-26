@@ -47,10 +47,21 @@ HOW PPL PROGRAMS ARE BUILT */
 // Standard for any compilation unit of this project.
 // NOTE(Noah): ppl.h on Windows is the parallel platforms library....I HATE EVERYTHING.
 #include <ppl_core.h>
-void ptest_Preparser(char *inFilePath, int &errors);
+void ptest_Lexer(char *inFilePath, int &errors);
 void ptest_Grammer(char *inFilePath, int &errors);
+void ptest_Preparser(char *inFilePath, int &errors);
 void ptest_wax64(char *inFilePath, int &errors);
 void ptest_ax64(char *inFilePath, int &errors);
+int RunPtestFromInFile(void (*ptest)(char *inFilePath, int &errors), char *testName, char *cwd);
+int RunPtestFromInFile(void (*ptest)(char *inFilePath, int &errors), char *testName, char *cwd,
+    char *inFile
+);
+int RunPtestFromCwd(
+    void (*ptest)(char *inFilePath, int &errors), 
+    bool (*validate)(char *fileName),
+    char *testName, 
+    char *cwd
+);
 /* ------- TESTS.CPaP ------- */
 
 void CheckErrors(int errors) {
@@ -143,6 +154,8 @@ void PrintHelp() {
     printf("asmparse        (ap)              - Test pplasm parsing capability.\n");
     printf("\n");
     printf(ColorHighlight "===  PPL   Commands ===\n" ColorNormal);
+    printf("lexer           (l)               - Test lexer on single unit.\n");
+    printf("lexer_all       (lall)            - Test lexer on all units in tests/preparse/.\n");
     printf("preparser       (p)               - Test preparser on single unit.\n");
     printf("preparser_all   (pall)            - Test preparser on all units in tests/preparse/.\n");
     printf("regex_gen       (re)              - Test LoadGrammer() for building custom regex trees.\n");
@@ -154,18 +167,7 @@ void PrintHelp() {
 // anything non-zero is an error.
 int DoCommand(const char *l, const char *l2) {
 
-    /* 
-        Basically, what different commands do we want to be able to execute in this build system?
-
-        We could have a basic "build" option to just chuck some binaries for PPL in the bin directory.
-        I then want all of my different testing things (we basically want to make tests.cpp obsolete).
-            - "preparser" or "p"
-            - "preparser_all" or "pall"
-            - "regex_gen" or "re"
-            - "grammer" or "g"
-            - "grammer_all" or "gall"
-    */
-
+    // Remove leading whitespace.
 	while ( (l) && (*l == ' ' || *l == '\t')) {
         l++;
     }
@@ -189,6 +191,7 @@ int DoCommand(const char *l, const char *l2) {
 
 	} else if (0  == strcmp(l, "ap") || 0 ==strcmp(l, "asmparse")) {
 
+        // TODO(Noah): Can be modularized via some variant on RunPtest...
         printf("NOTE: cwd is set to backend/tests/\n");
         char *inFile = GetInFile();
         char *inFilePath = SillyStringFmt("backend/tests/%s", inFile);
@@ -203,20 +206,7 @@ int DoCommand(const char *l, const char *l2) {
 
     } else if (0  == strcmp(l, "ax64") || 0 ==strcmp(l, "pasm_x86_64")) {
 
-        // TODO(Noah):
-        // 4) add ax64all command for runnnig all backend tests in Github workflow.
-        // 
-        // Finally, once all these changes are made, we can move towards writing a proper
-        // codegen layer to compile the dynamic array example as seen in the repo README. 
-
-        printf("NOTE: cwd is set to backend/tests/\n");
-        char *inFile = GetInFile();
-        char *inFilePath = SillyStringFmt("backend/tests/%s", inFile);
-        Timer timer = Timer("pasm");
-        int errors = 0;
-        ptest_ax64(inFilePath, errors);
-        timer.TimerEnd();
-        return (errors > 0);
+        return RunPtestFromInFile(ptest_ax64, "pasm", "backend/tests/");
 
     } else if (0  == strcmp(l, "ax64all") || 0 ==strcmp(l, "pasm_x86_64_all")) {
 
@@ -224,109 +214,70 @@ int DoCommand(const char *l, const char *l2) {
         // cmd+c cmd+v going on.
         // The code we have below is quite literally the same as we see for the wax64all case,
         // except we are calling ptest_ax64 instead...
-        Timer timer = Timer("pasm_x86_64_all");
-        LOGGER.InitFileLogging("w");
-        int errors = 0;
-        DIR *dir;
-        struct dirent *ent;
-        char *dirName = "backend/tests";
-        if ((dir = opendir(dirName)) != NULL) {
-            while ((ent = readdir (dir)) != NULL) {
-                if (ent->d_name[0] != '.') {
+
+        return RunPtestFromCwd(
+            ptest_ax64,
+            [](char *fileName) -> bool {
+                if (fileName[0] != '.') {
                     char *pStr;
-                    for (pStr = ent->d_name; *pStr != 0 && *pStr != '.'; pStr++);
+                    for (pStr = fileName; *pStr != 0 && *pStr != '.'; pStr++);
                     pStr++; // skp past the '.'
                     if (SillyStringEquals("pasm", pStr)) {
-                        ptest_ax64(SillyStringFmt("%s/%s", dirName, ent->d_name), errors);
+                        return true;
                     }
                 }
-            }
-            closedir(dir);
-        } else {
-            LOGGER.Error("Unable to open %s", dirName);
-            errors += 1;
-        }
-        timer.TimerEnd();
-        return (errors > 0);
+                return false;
+            },
+            "pasm_x86_64_all",
+            "backend/tests"
+        );
 
     } else if (0  == strcmp(l, "wax64") || 0 ==strcmp(l, "win_x86_64")) {
 
-        printf("NOTE: cwd is set to backend/tests/\n");
-        char *inFile;
-        if (l2 == NULL) {
-            inFile = GetInFile();
+        if (l2 != NULL) {
+            return RunPtestFromInFile(ptest_wax64, "pasm", "backend/tests/");
         } else {
-            inFile = (char *)l2;
+            return RunPtestFromInFile(ptest_wax64, "pasm", "backend/tests/", (char *)l2);
         }
-        char *inFilePath = SillyStringFmt("backend/tests/%s", inFile);
-        Timer timer = Timer("pasm");
-        int errors = 0;
-        ptest_wax64(inFilePath, errors);
-        timer.TimerEnd();
-        return (errors > 0);
     
     } else if (0  == strcmp(l, "wax64all") || 0 ==strcmp(l, "win_x86_64_all")) {
 
-        Timer timer = Timer("win_x86_64_all");
-        LOGGER.InitFileLogging("w");
-        int errors = 0;
-        DIR *dir;
-        struct dirent *ent;
-        char *dirName = "backend/tests";
-        if ((dir = opendir(dirName)) != NULL) {
-            while ((ent = readdir (dir)) != NULL) {
-                if (ent->d_name[0] != '.') {
+        return RunPtestFromCwd(
+            ptest_wax64, 
+            [](char *fileName) -> bool {
+                if (fileName[0] != '.') {
                     char *pStr;
-                    for (pStr = ent->d_name; *pStr != 0 && *pStr != '.'; pStr++);
+                    for (pStr = fileName; *pStr != 0 && *pStr != '.'; pStr++);
                     pStr++; // skp past the '.'
                     if (SillyStringEquals("pasm", pStr)) {
-                        ptest_wax64(SillyStringFmt("%s/%s", dirName, ent->d_name), errors);
+                        return true;
                     }
                 }
-            }
-            closedir(dir);
-        } else {
-            LOGGER.Error("Unable to open %s", dirName);
-            errors += 1;
-        }
-        timer.TimerEnd();
-        return (errors > 0);
+                return false;
+            },
+            "win_86_64_all",
+            "backend/tests"
+        );
+
+    } else if (0  == strcmp(l, "l") || 0 ==strcmp(l, "lexer")) {
+        
+        return RunPtestFromInFile(
+            ptest_Lexer, "lexer", "tests/preparse/");
+
+    } else if (0 == strcmp(l, "lall") || 0 == strcmp(l, "lexer_all")) {
+
+        return RunPtestFromCwd(
+            ptest_Lexer, 
+            [](char *fileName) -> bool {
+                return (fileName[0] != '.');
+            }, 
+            "lexer_all",
+            "tests/preparse");
 
     } else if (0  == strcmp(l, "p") || 0 ==strcmp(l, "preparser")) {
-        
-        printf("NOTE: cwd is set to tests/preparse/\n");
-        char *inFile = GetInFile();
-        char *inFilePath = SillyStringFmt("tests/preparse/%s", inFile);
-        Timer timer = Timer("preparser");
-        LOGGER.InitFileLogging("w");
-        int errors = 0;
-        ptest_Preparser(inFilePath, errors);
-        CheckErrors(errors);
-        timer.TimerEnd();
-        return (errors > 0);
 
-    } else if (0 == strcmp(l, "pall") || 0 == strcmp(l, "preparser_all")) {
-        
-        Timer timer = Timer("preparser_all");
-        LOGGER.InitFileLogging("w");
-        int errors = 0;
-        DIR *dir;
-        struct dirent *ent;
-        char *dirName = "tests/preparse";
-        if ((dir = opendir (dirName)) != NULL) {
-            while ((ent = readdir (dir)) != NULL) {
-                if (ent->d_name[0] != '.') {
-                    ptest_Preparser( SillyStringFmt("%s/%s", dirName, ent->d_name), errors);
-                }
-            }
-            closedir (dir);
-        } else {
-            LOGGER.Error("Unable to open %s", dirName);
-            errors += 1;
-        }
-        CheckErrors(errors);
-        timer.TimerEnd();
-        return (errors > 0);
+        return RunPtestFromInFile(
+            ptest_Preparser, "preparser", "tests/preparse/");
 
     } else if (0 == strcmp(l, "re") || 0 == strcmp(l, "regex_gen")) {
         
@@ -340,50 +291,32 @@ int DoCommand(const char *l, const char *l2) {
 
     } else if (0 == strcmp(l, "g") || 0 == strcmp(l, "grammer")) {
         
-        printf("NOTE: cwd is set to tests/grammer/\n");
-        char *inFile = GetInFile();
-        Timer timer = Timer("grammer");
-        LOGGER.InitFileLogging("w");
-        int errors = 0;
         LoadGrammer();
-        char *inFilePath = SillyStringFmt("tests/grammer/%s", inFile);
-        ptest_Grammer(inFilePath, errors);
-        CheckErrors(errors);
-        timer.TimerEnd();
-        return (errors > 0);
+        return RunPtestFromInFile(ptest_Grammer, "grammer", "tests/grammer/");
 
     } else if (0 == strcmp(l, "gall") || 0 == strcmp(l, "grammer_all")) {
         
-        Timer timer = Timer("grammer_all");
-        LOGGER.InitFileLogging("w");
-        int errors = 0;
-        // TODO(Noah): Abstract this stuff. This sort of directory read all files thing
-        // it's common between many different tests that I might want to do.
         LoadGrammer();
-        DIR *dir;
-        struct dirent *ent;
-        char *dirName = "tests/grammer";
-        if ((dir = opendir (dirName)) != NULL) {
-            /* print all the files and directories within directory */
-            while ((ent = readdir (dir)) != NULL) {
-                if (ent->d_name[0] != '.') {
-                    ptest_Grammer( SillyStringFmt("%s/%s", dirName, ent->d_name), errors);
-                }
-            }
-            closedir (dir);
-        } else {
-            LOGGER.Error("Unable to open %s", dirName);
-            errors += 1;
-        }
-        CheckErrors(errors);
-        timer.TimerEnd();
-        return (errors > 0);
+        return RunPtestFromCwd(
+            ptest_Grammer,
+            // TODO(Noah): Maybe we abstract the lambda here beause we use the same
+            // lambda twice?
+            [](char *fileName) -> bool {
+                return (fileName[0] != '.');
+            },
+            "grammer_all", 
+            "tests/grammer"
+        );
 
     } else if (0 == strcmp(l, "exit")) {
+        
         exit(0);
+
     } else if (0 == strcmp(l, "h") || 0 == strcmp(l, "help")) {
+        
         PrintHelp();
         return 0;
+
     }
 
     printf("Unrecognised command '%s'. Enter 'help' to get a list of commands.\n", l);
@@ -398,8 +331,7 @@ void ptest_Grammer(char *inFilePath, int&errors) {
         errors += 1;
     } else {
         TokenContainer tokensContainer;
-        PreparseContext preparseContext;
-        if (LexAndPreparse(inFile, tokensContainer, preparseContext)) {
+        if (Lex(inFile, tokensContainer)) {
             if (VERBOSE) {
                 tokensContainer.Print();
             }
@@ -441,7 +373,27 @@ void ptest_Grammer(char *inFilePath, int&errors) {
             } 
 
         } else {
-            LOGGER.Error("LexAndPreparse failed.");
+            LOGGER.Error("Lex failed.");
+            errors += 1;
+        }
+    }
+    fclose(inFile);
+}
+
+void ptest_Lexer(char *inFilePath, int &errors) {
+    FILE *inFile = fopen(inFilePath, "r");
+    LOGGER.Log("Testing lexer for: %s", inFilePath);
+    if (inFile == NULL) {
+        LOGGER.Error("inFile of '%s' does not exist", inFilePath);
+        errors += 1;
+    } else {
+        TokenContainer tokensContainer;
+        if (Lex(inFile, tokensContainer)) {
+            if (VERBOSE) {
+                tokensContainer.Print();
+            }
+        } else {
+            LOGGER.Error("Lex() failed.");
             errors += 1;
         }
     }
@@ -456,13 +408,15 @@ void ptest_Preparser(char *inFilePath, int &errors) {
         errors += 1;
     } else {
         TokenContainer tokensContainer;
-        PreparseContext preparseContext;
-        if (LexAndPreparse(inFile, tokensContainer, preparseContext)) {
+        if (Lex(inFile, tokensContainer)) {
             if (VERBOSE) {
                 tokensContainer.Print();
             }
+            // Now add on the preparsing.
+            struct tree_node tn;
+            Preparse(tokensContainer, tn);
         } else {
-            LOGGER.Error("LexAndPreparse failed.");
+            LOGGER.Error("Lex() failed.");
             errors += 1;
         }
     }
@@ -509,4 +463,66 @@ void ptest_ax64(char *inFilePath, int &errors) {
     } else {
         LOGGER.Success("Completed with 0 errors.");
     }
+}
+
+// TODO(Noah): We can even modularize the two different version of the function that we use
+// to modularize the code!
+
+int RunPtestFromInFile(void (*ptest)(char *inFilePath, int &errors), char *testName, char *cwd) {
+    printf("NOTE: cwd is set to %s\n", cwd);
+    char *inFile = GetInFile();
+    char *inFilePath = SillyStringFmt("%s%s", cwd, inFile);
+    Timer timer = Timer(testName);
+    LOGGER.InitFileLogging("w");
+    int errors = 0;
+    ptest(inFilePath, errors);
+    CheckErrors(errors);
+    timer.TimerEnd();
+    return (errors > 0);
+}
+
+int RunPtestFromInFile(void (*ptest)(char *inFilePath, int &errors), char *testName, char *cwd,
+    char *inFile
+) {
+    printf("NOTE: cwd is set to %s\n", cwd);
+    char *inFilePath = SillyStringFmt("%s%s", cwd, inFile);
+    Timer timer = Timer(testName);
+    LOGGER.InitFileLogging("w");
+    int errors = 0;
+    ptest(inFilePath, errors);
+    CheckErrors(errors);
+    timer.TimerEnd();
+    return (errors > 0);
+}
+
+int RunPtestFromCwd(
+    void (*ptest)(char *inFilePath, int &errors), 
+    bool (*validate)(char *fileName),
+    char *testName, 
+    char *cwd
+) {
+    Timer timer = Timer(testName);
+    LOGGER.InitFileLogging("w");
+    int errors = 0;
+    DIR *dir;
+    struct dirent *ent;
+    char *dirName = cwd;
+    if ((dir = opendir (dirName)) != NULL) {
+        while ((ent = readdir (dir)) != NULL) {
+            if (validate(ent->d_name)) {
+                ptest( 
+                    SillyStringFmt("%s/%s", dirName, ent->d_name), 
+                    errors
+                );
+            }
+            //if (ent->d_name[0] != '.') {}
+        }
+        closedir (dir);
+    } else {
+        LOGGER.Error("Unable to open %s", dirName);
+        errors += 1;
+    }
+    CheckErrors(errors);
+    timer.TimerEnd();
+    return (errors > 0);
 }
