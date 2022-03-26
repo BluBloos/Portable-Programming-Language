@@ -46,8 +46,7 @@ int main(int argc, char **argv) {
         }
 
         TokenContainer tokensContainer;
-        PreparseContext preparseContext;
-        if (!LexAndPreparse(inFile, tokensContainer, preparseContext)) {
+        if (!Lex(inFile, tokensContainer)) {
             // NOTE(Noah): exit program and silently fail.
             // All error messages are handled by whom that throws err.
 

@@ -24,26 +24,6 @@ char *COMPOUND_OPS[] = {
     "+=", "-=", "*=", "/=", "%=", "&=", "|=", "++", "--"
 };
 
-/* TODO(Noah): 
-    
-    Next step for PPL on 2020.03.22 is to implement the preparsing stuff.
-    So my thought process right now is that we are going to have different 
-    containers. One container for the main compilation unit.
-    And a container for each import statement.
-    We run the lexing and preparsing recursively on each import, so we end up getting a tree
-    structure of buckets.
-    Each bucket is literally a unit of source code that we are going to want to run 
-    through the entire pipeline (grammer generation and so forth).
-
-    At the time of bucket creation we are also going to want to generate some sort of
-    context around the buckets (like what is the qualification for thsi bucket).
-
-    And we will also want to generate context for the #using statements so that we can rename 
-    buckets as needed.
-    
-*/
-class PreparseContext { };
-
 enum lexer_state {
     LEXER_NORMAL,
     LEXER_COMMENT,
@@ -521,22 +501,11 @@ char **arr, unsigned int arrSize) {
     return sPattern;
 }
 
-/* 
-NOTE(Noah):
-The lexer should never fail. It just returns tokens. 
-But since we are combining witht the preparser (which opens files),
-this might fail.
-NOTE(Noah): Was debating on reading in file entirely into RAM, then parsing it.
-However, if we read character by character, this opens up the door for future 
-parallelizing of this code. This becomes important when the source file is HUGE.
-*/
-bool LexAndPreparse(
+bool Lex(
     FILE *inFile, 
-    TokenContainer &tokenContainer, 
-    PreparseContext &preparseContext
+    TokenContainer &tokenContainer
 ) 
 {    
-
     // Generate globals
     std::string cToken = ""; currentToken = &cToken;
     std::string clToken = ""; cleanToken = &clToken;
@@ -546,7 +515,9 @@ bool LexAndPreparse(
     // # append onto raw.
     // raw += ' '
     
+    // TODO(Noah): What if reading in the file here fails??
     RawFileReader raw = RawFileReader(inFile);
+
     enum lexer_state state = LEXER_NORMAL;
 
     sPatterns[0] = CreateSearchPattern(
@@ -655,7 +626,6 @@ bool LexAndPreparse(
                 n += 2;
                 continue;
             }
-
             
             // consume '.' in decimal literals to avoid being parsed as a TOKEN_PART. 
             // must ensure that what comes before the decimal is a number AND what comes after is also a number.
@@ -749,4 +719,47 @@ bool LexAndPreparse(
 
     return true;
 }
+
+/* TODO(Noah):
+    Next step for PPL on 2020.03.22 is to implement the preparsing stuff.
+    So my thought process right now is that we are going to have different 
+    containers. One container for the main compilation unit.
+    And a container for each import statement.
+    We run the lexing and preparsing recursively on each import, so we end up getting a tree
+    structure of buckets.
+
+    Each bucket is literally a unit of source code that we are going to want to run 
+    through the entire pipeline (grammer generation and so forth).
+
+    At the time of bucket creation we are also going to want to generate some sort of
+    context around the buckets (like what is the qualification for this bucket).
+
+    And we will also want to generate context for the #using statements so that we can rename 
+    buckets as needed.
+*/
+struct preparse_context {
+    // Need to know how this bucket is going to be qualified.
+    char *qualifierKey;
+    // Also need to know what it has been renamed to
+    char *qualifierKeyOverride;
+};
+
+// TODO(Noah): Combine the lexer and the preparser pass. We do 
+// not need two seperate things here.
+void Preparse(
+    TokenContainer &tokenContainer, 
+    struct tree_node &tn
+) {
+
+    // So this preparser takes in the tokenContainer from the prior lexed
+    // inFile.
+
+    // T as output we write the program "bucket" into the tree node ref
+    // provided.
+
+    // This is gonna include the preparse_context as we have written it right now.
+
+}
+
+
 #endif

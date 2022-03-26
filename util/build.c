@@ -398,8 +398,7 @@ void ptest_Grammer(char *inFilePath, int&errors) {
         errors += 1;
     } else {
         TokenContainer tokensContainer;
-        PreparseContext preparseContext;
-        if (LexAndPreparse(inFile, tokensContainer, preparseContext)) {
+        if (Lex(inFile, tokensContainer)) {
             if (VERBOSE) {
                 tokensContainer.Print();
             }
@@ -441,7 +440,7 @@ void ptest_Grammer(char *inFilePath, int&errors) {
             } 
 
         } else {
-            LOGGER.Error("LexAndPreparse failed.");
+            LOGGER.Error("Lex failed.");
             errors += 1;
         }
     }
@@ -456,13 +455,12 @@ void ptest_Preparser(char *inFilePath, int &errors) {
         errors += 1;
     } else {
         TokenContainer tokensContainer;
-        PreparseContext preparseContext;
-        if (LexAndPreparse(inFile, tokensContainer, preparseContext)) {
+        if (Lex(inFile, tokensContainer)) {
             if (VERBOSE) {
                 tokensContainer.Print();
             }
         } else {
-            LOGGER.Error("LexAndPreparse failed.");
+            LOGGER.Error("Lex failed.");
             errors += 1;
         }
     }
