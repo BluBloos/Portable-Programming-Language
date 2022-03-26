@@ -189,6 +189,59 @@ struct token Token(enum token_type type, uint64 num, unsigned int line) {
     return t;
 }
 
+// NOTE(Noah): I am unsure if this naming convention matches the rest of everything in this code
+// project, but it makes sense because we are defining function for operating on a specific data type.
+void TokenPrint(struct token tok) {
+    LOGGER.Min("%d, ", tok.line);
+    switch(tok.type) {
+        case TOKEN_UNDEFINED:
+        LOGGER.Min("TOKEN_UNDEFINED\n");
+        break;
+        case TOKEN_QUOTE:
+        Assert(tok.str != NULL);
+        LOGGER.Min("TOKEN_QUOTE: %s\n", tok.str);
+        break;
+        case TOKEN_INTEGER_LITERAL:
+        LOGGER.Min("TOKEN_INTEGER_LITERAL: %d\n", tok.num);
+        break;
+        case TOKEN_DECIMAL_LITERAL:
+        LOGGER.Min("TOKEN_DECIMAL_LITERAL: %f\n", tok.dnum);
+        break;
+        case TOKEN_CHARACTER_LITERAL:
+        {
+            char utf8Buff[5];
+            u8_toutf8(utf8Buff, 5, &tok.c, 1);
+            LOGGER.Min("TOKEN_CHARACTER_LITERAL: %s\n", utf8Buff);
+        }
+        break;
+        case TOKEN_ENDL:
+        LOGGER.Min("TOKEN_ENDL\n");
+        break;
+        case TOKEN_OP:
+        LOGGER.Min("TOKEN_OP: %c\n", tok.c);
+        break;
+        case TOKEN_COP:
+        Assert(tok.str != NULL);
+        LOGGER.Min("TOKEN_COP: %s\n", tok.str);
+        break;
+        case TOKEN_PART:
+        LOGGER.Min("TOKEN_PART: %c\n", tok.c);
+        break;
+        case TOKEN_KEYWORD:
+        Assert(tok.str != NULL);
+        LOGGER.Min("TOKEN_KEYWORD: %s\n", tok.str);
+        break;
+        case TOKEN_PDIRECTIVE:
+        Assert(tok.str != NULL);
+        LOGGER.Min("TOKEN_PDIRECTIVE: %s\n", tok.str);
+        break;
+        case TOKEN_SYMBOL:
+        Assert(tok.str != NULL);
+        LOGGER.Min("TOKEN_SYMBOL: %s\n", tok.str);
+        break;
+    }
+}
+
 // TODO(Noah): Change the TokenContainer to use StretchyBuffers.
 class TokenContainer {
     public:
@@ -258,54 +311,7 @@ class TokenContainer {
     void Print() {
         for (int i = 0; i < tokenCount; i++) {
             struct token &tok = tokens[i];
-            LOGGER.Min("%d, ", tok.line);
-            switch(tok.type) {
-                case TOKEN_UNDEFINED:
-                LOGGER.Min("TOKEN_UNDEFINED\n");
-                break;
-                case TOKEN_QUOTE:
-                Assert(tok.str != NULL);
-                LOGGER.Min("TOKEN_QUOTE: %s\n", tok.str);
-                break;
-                case TOKEN_INTEGER_LITERAL:
-                LOGGER.Min("TOKEN_INTEGER_LITERAL: %d\n", tok.num);
-                break;
-                case TOKEN_DECIMAL_LITERAL:
-                LOGGER.Min("TOKEN_DECIMAL_LITERAL: %f\n", tok.dnum);
-                break;
-                case TOKEN_CHARACTER_LITERAL:
-                {
-                    char utf8Buff[5];
-                    u8_toutf8(utf8Buff, 5, &tok.c, 1);
-                    LOGGER.Min("TOKEN_CHARACTER_LITERAL: %s\n", utf8Buff);
-                }
-                break;
-                case TOKEN_ENDL:
-                LOGGER.Min("TOKEN_ENDL\n");
-                break;
-                case TOKEN_OP:
-                LOGGER.Min("TOKEN_OP: %c\n", tok.c);
-                break;
-                case TOKEN_COP:
-                Assert(tok.str != NULL);
-                LOGGER.Min("TOKEN_COP: %s\n", tok.str);
-                break;
-                case TOKEN_PART:
-                LOGGER.Min("TOKEN_PART: %c\n", tok.c);
-                break;
-                case TOKEN_KEYWORD:
-                Assert(tok.str != NULL);
-                LOGGER.Min("TOKEN_KEYWORD: %s\n", tok.str);
-                break;
-                case TOKEN_PDIRECTIVE:
-                Assert(tok.str != NULL);
-                LOGGER.Min("TOKEN_PDIRECTIVE: %s\n", tok.str);
-                break;
-                case TOKEN_SYMBOL:
-                Assert(tok.str != NULL);
-                LOGGER.Min("TOKEN_SYMBOL: %s\n", tok.str);
-                break;
-            }
+            TokenPrint(tok);
         }
     }
 };
@@ -750,14 +756,18 @@ void Preparse(
     TokenContainer &tokenContainer, 
     struct tree_node &tn
 ) {
-
     // So this preparser takes in the tokenContainer from the prior lexed
     // inFile.
-
+    // 
     // T as output we write the program "bucket" into the tree node ref
     // provided.
-
+    //
     // This is gonna include the preparse_context as we have written it right now.
+    //
+    struct token tok;
+    for (int i = 0; (tok = tokenContainer.QueryDistance(i)).type != TOKEN_UNDEFINED; i++) {
+        TokenPrint(tok);
+    }
 
 }
 
