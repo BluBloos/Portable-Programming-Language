@@ -279,7 +279,19 @@ int DoCommand(const char *l, const char *l2) {
         return RunPtestFromInFile(
             ptest_Preparser, "preparser", "tests/preparse/");
 
-    } else if (0 == strcmp(l, "re") || 0 == strcmp(l, "regex_gen")) {
+    } else if (0  == strcmp(l, "pall") || 0 ==strcmp(l, "preparser_all")) {
+
+        return RunPtestFromCwd(
+            ptest_Preparser,
+            [](char *fileName) -> bool {
+                return (fileName[0] != '.');
+            },
+            "preparser_all",
+            "tests/preparse"
+        );
+
+    }
+    else if (0 == strcmp(l, "re") || 0 == strcmp(l, "regex_gen")) {
         
         Timer timer = Timer("regex_gen");
         LOGGER.InitFileLogging("w");
