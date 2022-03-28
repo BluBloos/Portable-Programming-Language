@@ -510,21 +510,34 @@ void StackVarFromFplabel(struct pasm_fparam *fparam) {
 
 }
 
+/* 
+    TODO(Noah): So we can see what happened here. pasm_main was intended to run the entire assembler
+    on the command-line. But we ended up calling the half-implemnted version, then continued 
+    to assume that this version should just parse the file into memory and that was its only purpose.
+    The issue is that just parsing the file into memory makes sense as a discrete step in a program,
+    where you are going to naturally do more things after to that in-memory representation,
+    //
+    BUT, it does not make sense a command-line thing.
+    //
+    Eventually, we ill have to add back that pasm_main takes in a target platform.
+    Then pasm_main will do an integration type of thing.
+    So we are going to need to implement a function that will do JUST parsing.
+*/
+
 // USAGE:
-// pplasm <inFile> <targetPlatform> 
+// pplasm <inFile>
 int pasm_main(int argc, char **argv) {
 
     // StretchyBufferInit(pasm_lines);
     pasm_lines = NULL;
     _sv_table = NULL;
 
-    if (argc < 3) {
+    if (argc < 2) {
         LOGGER.Error("Not enough arguments");
         return 1;
     } else {
 
         char *inFilePath = argv[1];
-        char *targetPlatform = argv[2];
 
         FILE *inFile = fopen(inFilePath, "r");
 
@@ -976,14 +989,11 @@ void HandleLine(char *line) {
 // Call to run the passembler as if it was from the command line
 // inFile is the path to the file to run the assembler on.
 // targetPlatform is not implemented at the moment.
-int passembler(char *inFilePath, char *targetPlatform) {
+int passembler(char *inFilePath) {
     char *argv[3];
     argv[0] = "pplasm";
     argv[1] = inFilePath;
-    argv[2] = targetPlatform;
     return pasm_main(3, argv);
 }
-
-
 
 #endif

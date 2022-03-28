@@ -52,6 +52,7 @@ void ptest_Grammer(char *inFilePath, int &errors);
 void ptest_Preparser(char *inFilePath, int &errors);
 void ptest_wax64(char *inFilePath, int &errors);
 void ptest_ax64(char *inFilePath, int &errors);
+void ptest_passembler(char *inFilePath, int &errors);
 int RunPtestFromInFile(void (*ptest)(char *inFilePath, int &errors), char *testName, char *cwd);
 int RunPtestFromInFile(void (*ptest)(char *inFilePath, int &errors), char *testName, char *cwd,
     char *inFile
@@ -191,29 +192,13 @@ int DoCommand(const char *l, const char *l2) {
 
 	} else if (0  == strcmp(l, "ap") || 0 ==strcmp(l, "asmparse")) {
 
-        // TODO(Noah): Can be modularized via some variant on RunPtest...
-        printf("NOTE: cwd is set to backend/tests/\n");
-        char *inFile = GetInFile();
-        char *inFilePath = SillyStringFmt("backend/tests/%s", inFile);
-        Timer timer = Timer("asmparse");
-        int errors = 0;
-        int r = passembler(inFilePath, "macOS");
-        DeallocPasm();
-        errors = (r != 0 );
-        CheckErrors(errors);
-        timer.TimerEnd();
-        return (errors > 0);
+        return RunPtestFromInFile(ptest_passembler, "asmparse", "backend/tests/");
 
     } else if (0  == strcmp(l, "ax64") || 0 ==strcmp(l, "pasm_x86_64")) {
 
         return RunPtestFromInFile(ptest_ax64, "pasm", "backend/tests/");
 
     } else if (0  == strcmp(l, "ax64all") || 0 ==strcmp(l, "pasm_x86_64_all")) {
-
-        // TODO(Noah): Once more we have a case where we can abstract things because there is hella
-        // cmd+c cmd+v going on.
-        // The code we have below is quite literally the same as we see for the wax64all case,
-        // except we are calling ptest_ax64 instead...
 
         return RunPtestFromCwd(
             ptest_ax64,
@@ -437,7 +422,7 @@ void ptest_Preparser(char *inFilePath, int &errors) {
 
 void ptest_wax64(char *inFilePath, int &errors) {
     LOGGER.Log("Testing assembler for: %s", inFilePath);
-    int r = passembler(inFilePath, "macOS"); // TODO(Noah): target independent, remove macOS.
+    int r = passembler(inFilePath);
     r = pasm_x86_64(pasm_lines, "bin/out.x86_64", MAC_OS); // TODO(Noah): target independent, remove macOS.
     DeallocPasm();
     r = CallSystem("nasm -g -o bin\\out.obj -f win64 bin/out.x86_64");
@@ -459,7 +444,7 @@ void ptest_wax64(char *inFilePath, int &errors) {
 
 void ptest_ax64(char *inFilePath, int &errors) {
     LOGGER.Log("Testing assembler for: %s", inFilePath);
-    int r = passembler(inFilePath, "macOS");
+    int r = passembler(inFilePath);
     r = pasm_x86_64(pasm_lines, "bin/out.x86_64", MAC_OS);
     DeallocPasm();
     r = CallSystem("nasm -o bin/out.o -f macho64 bin/out.x86_64");
@@ -537,4 +522,9 @@ int RunPtestFromCwd(
     CheckErrors(errors);
     timer.TimerEnd();
     return (errors > 0);
+}
+
+void ptest_passembler(char *inFilePath, int &errors) {
+    errors = passembler(inFilePath);
+    DeallocPasm();
 }
