@@ -37,7 +37,8 @@ What constitutes the platform dependent code?
     
 HOW PPL PROGRAMS ARE BUILT */
 
-// TODO(Noah): For the windows platform, the interactive build system seems to be delayed when you enter commands...
+// TODO(Noah): For the windows platform, the interactive build system seems to be delayed when 
+// you enter commands...
 
 #ifndef PATH_MAX
 #define PATH_MAX 1024
@@ -409,8 +410,8 @@ void ptest_Preparser(char *inFilePath, int &errors) {
             if (VERBOSE) {
                 tokensContainer.Print();
             }
-            // Now add on the preparsing.
-            struct tree_node tn;
+            struct tree_node tn = CreateTree(TREE_BUCKET);
+            tn.metadata.bucket_qualifier = inFilePath; /* TODO(Noah): We note that this is the wrong qualifier */
             Preparse(tokensContainer, tn);
         } else {
             LOGGER.Error("Lex() failed.");

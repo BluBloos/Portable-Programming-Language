@@ -46,8 +46,8 @@ class RawFileReader {
             fileByteCount = ftell(internalFile); // ftell is the number of bytes from the beginning of the file.
             Assert(fileByteCount != -1L);
             r = fseek(internalFile, 0L, SEEK_SET); Assert(r == 0);
-            // TODO(Noah): This is actually HIGHLY inefficient because we are multiplying the size of files by 4 when
-            // representing in internal memory...
+            // TODO(Noah): This is actually HIGHLY inefficient because we are multiplying the size of files 
+            // by 4 when representing in internal memory...
             internalBufferSize = fileByteCount;
             internalBuffer = (UNICODE_CPOINT *)malloc(internalBufferSize * sizeof(UNICODE_CPOINT));
             Assert(internalBuffer != NULL);
@@ -755,7 +755,8 @@ struct preparse_context {
 void Preparse(
     TokenContainer &tokenContainer, 
     struct tree_node &tn
-) {
+) {    
+
     // So this preparser takes in the tokenContainer from the prior lexed
     // inFile.
     // 

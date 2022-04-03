@@ -19,9 +19,12 @@ enum tree_type {
     TREE_AST_STRING_LITERAL,
     TREE_AST_SYMBOL,
     TREE_AST_OP,
-    TREE_AST_KEYWORD
+    TREE_AST_KEYWORD,
+    TREE_BUCKET
 };
 
+// TODO(Noah): We habe to be careful about using this data structure. It might become
+// too large if we try to use it for many different purposes.
 struct tree_metadata {
     char regex_mod;
     union { // kind of like the data storage for tree.
@@ -29,6 +32,7 @@ struct tree_metadata {
         char *str;
         uint64 num;
         double dnum;
+        char *bucket_qualifier;
     };
 };
 
@@ -97,8 +101,7 @@ struct tree_node CreateTree(enum tree_type type, double dnum) {
 
 // Needs to be a full-blown tree that gets adopted. Not just a leaf node.
 void TreeAdoptTree(struct tree_node &tn, struct tree_node child) {
-    // TODO(Noah): Maybe abstract stuff and make a dynamic list type :)
-    // because this same type of pattern is also done in tokenContainer.
+    // TODO(Noah): Change to use stretch buffers.
     if (!(tn.childrenCount < tn.childrenContainerCount)) {
         if (tn.childrenCount > 0) {
             tn.childrenContainerCount += 100;

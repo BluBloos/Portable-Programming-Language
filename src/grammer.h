@@ -315,7 +315,7 @@ char *_grammerTable[][2] = {
         "(keyword=sizeof)"
     },
     {
-        // TODO(Noah): Look into making this grammer definition more readable.
+        // TODO(Noah): Look into making this grammer definition more readable -> ghost definitions?
         "factor",
         "[(object)((_sizeof)\\([(_symbol)(type)]\\))([(op,!)(op,-)(op,&)(op,*)(op,~)(\\((type)\\))](factor))(\\((expression)\\))]"
     },
