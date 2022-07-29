@@ -19,10 +19,9 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
 
-      # Here we do whatever we need to do in order to generate the tar stuff ... 
-      # We can use completely custom ideas if we so desire.
-      - name: Run a one-line script
-        run: echo Hello, world!
+      - name: Run custom website builder
+        run: ./util/build_site.sh
+        shell: bash
 
       # take files from within _site directory and uploads artifact as github-pages
       - uses: actions/upload-pages-artifact@main

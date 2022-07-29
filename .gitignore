@@ -4,6 +4,7 @@
 *.pyc
 /__pycache__/*
 /.vs/*
+_site/*
 log.txt
 design/*
 bin/*
