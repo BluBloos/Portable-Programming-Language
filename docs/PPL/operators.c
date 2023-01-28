@@ -44,16 +44,16 @@ int main()
     -a; // negate.
     !a; // logical not.
     ~a; // bitwise not.
-    ^a; // pointer dereference.
+    <a; // pointer dereference.
 // dereference:
 // means to "peek inside".
 // variable are just human readable names that point to some loc (some storage bin).
 // if we have a pointer variable, the bin stores a mem addr.
 // deref the pointer and we go through one level of indirection to get to another bin.
-// so if we have pointer A. Then (^A), this is now as an expression, a label for a bin.
+// so if we have pointer A. Then (<A), this is now as an expression, a label for a bin.
 //
-// we could even do something as wild as ^0x1234, which is a label for a bin.
-//
+// we could even do something as wild as <0x1234, which is a label for a bin.
+
     @a; // address of.
 
     a ? b : c; // ternary.

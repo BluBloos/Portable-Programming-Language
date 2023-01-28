@@ -29,7 +29,11 @@ a = @x;
 // as opposed to allowing the user to use
 // whatever they want. Keep it simple.
 
-int32_t main(int32_t argc, ^^uint8_t argv)
+// Decision #2: i'd actually like to go with >
+// for the reason that deref can be the opposite,
+// with <.
+
+int32_t main(int32_t argc, >>uint8_t argv)
 {
     
 }
