@@ -5,7 +5,7 @@ on:
       - 'master'
 
 jobs:
-  build-test-ubuntu:
+  build-test-windows:
     runs-on: windows-latest
 
     steps:
@@ -29,7 +29,7 @@ jobs:
           arch: x64
       - name: Backend Tests
         shell: cmd
-        run: build.bat wax64all
+        run: ./build.sh wax64all
 
 
 

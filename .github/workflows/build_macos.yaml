@@ -5,7 +5,7 @@ on:
       - 'master'
 
 jobs:
-  build-test-ubuntu:
+  build-test-macos:
     runs-on: macos-latest
 
     steps:
