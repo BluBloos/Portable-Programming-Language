@@ -1,6 +1,6 @@
 @echo off
-IF "%GITHUB_ACTIONS%"=="" call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
-
+IF "%GITHUB_ACTIONS%"=="" call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
+:: TODO, prob replace with CMake because locating the correct vcvarsall.bat is a pain
 mkdir bin
 
 del bin\build.exe

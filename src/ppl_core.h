@@ -10,6 +10,8 @@
 #define PLATFORM_UNIX
 #endif
 
+#include <nc_defer.h>
+
 /* PROJECT DEPENDENCIES */
 #include <stdio.h>
 #include <stdlib.h>

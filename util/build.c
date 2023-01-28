@@ -76,13 +76,6 @@ int DoCommand(const char *l, const char *l2);
 
 // usage ./build [options]
 int main(int argc, char **argv) {
-    char cwd[PATH_MAX];
-	getcwd(cwd, sizeof(cwd));
-
-    if (strchr(cwd, ' ')) {
-		printf("Error: The path to your PPL directory, '%s', contains spaces.\n", cwd);
-		return 1;
-	}
 
     #ifdef PLATFORM_WINDOWS 
     {
@@ -101,7 +94,8 @@ int main(int argc, char **argv) {
             char *l2 = argv[2];
             return DoCommand(l, l2);
         }
-        return DoCommand(l, NULL);
+        // maybe here is it 4 or something. undefined case.
+        return DoCommand(l, (char *)0);
     } else {
         // Go into interactive mode.
         PrintHelp();
@@ -114,7 +108,7 @@ int main(int argc, char **argv) {
             printf(ColorNormal);
             fflush(stdout);
             SillyStringRemove0xA(l);
-            DoCommand(l, NULL);
+            DoCommand(l, (char *)0);
             free(l); // a call to getline, if given l=NULL, will alloc a buffer. So we must free it.
         }
     }
@@ -234,7 +228,7 @@ int DoCommand(const char *l, const char *l2) {
 
     } else if (0  == strcmp(l, "wax64") || 0 ==strcmp(l, "win_x86_64")) {
 
-        if (l2 != NULL) {
+        if (l2 == 0) {
             return RunPtestFromInFile(ptest_wax64, "pasm", "backend/tests/");
         } else {
             return RunPtestFromInFile(ptest_wax64, "pasm", "backend/tests/", (char *)l2);
