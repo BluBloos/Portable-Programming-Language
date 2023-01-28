@@ -29,7 +29,10 @@ jobs:
           arch: x64
       - name: Backend Tests
         shell: bash
-        run: rm /usr/bin/link; ./build.sh wax64all
+        run: |
+          rm /usr/bin/link || echo "Cannot rm GNU link. OK."
+          ./build.sh wax64all
+
 
 
 
