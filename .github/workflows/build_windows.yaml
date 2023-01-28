@@ -28,8 +28,8 @@ jobs:
         with: 
           arch: x64
       - name: Backend Tests
-        shell: cmd
-        run: ./build.sh wax64all
+        shell: bash
+        run: rm /usr/bin/link; ./build.sh wax64all
 
 
 
