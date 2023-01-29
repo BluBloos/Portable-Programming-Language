@@ -41,6 +41,8 @@ fs.copyFileSync(path.join(static_dir, "prism.js"), path.join(build_dir, "prism.j
 // build .html files from the .c files
 let c_template = Handlebars.compile(readFileSync(path.join(static_dir, "template.html"), "utf8"));
 
+let index_template = Handlebars.compile(readFileSync(path.join(static_dir, "index_template.html"), "utf8"));
+
 let fileNames = [];
 
 for (let file of fs.readdirSync(ppl_dir)) {
@@ -72,6 +74,10 @@ for (let i = 0; i < fileNames.length; i++) {
     });
 
     fs.writeFileSync(file_build_path, file_compiled);
-
-    
 }
+
+let index_compiled = index_template({
+    list_items: fileNames.map(file => `<li><a href=\"${file.file_build_name}\">${file.file_build_name}</a></li>`).join("\n")
+});
+
+fs.writeFileSync(path.join(build_dir, "index.html"), index_compiled);
