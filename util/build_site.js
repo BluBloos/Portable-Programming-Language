@@ -36,7 +36,8 @@ for (let file of fs.readdirSync(build_dir)) {
 
 fs.copyFileSync(path.join(static_dir, "styles.css"), path.join(build_dir, "styles.css"));
 fs.copyFileSync(path.join(static_dir, "prism.css"), path.join(build_dir, "prism.css"));
-fs.copyFileSync(path.join(static_dir, "prism.js"), path.join(build_dir, "prism.js"));
+//fs.copyFileSync(path.join(static_dir, "prism.js"), path.join(build_dir, "prism.js"));
+fs.copyFileSync(path.join(static_dir, "PPL.png"), path.join(build_dir, "PPL.png"));
 
 // build .html files from the .c files
 let c_template = Handlebars.compile(readFileSync(path.join(static_dir, "template.html"), "utf8"));
