@@ -29,7 +29,7 @@ jobs:
 
       - name: Run custom website builder
         shell: bash
-        run: node /util/build_site.js
+        run: node ./util/build_site.js
 
       # take files from within _site directory and uploads artifact as github-pages
       - uses: actions/upload-pages-artifact@main
