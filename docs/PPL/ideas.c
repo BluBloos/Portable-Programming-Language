@@ -2,7 +2,7 @@
 When you are writing code, and you think about "I want to make a variable of
 type integer with a name of A". Hence, int A; Over, A: int;
 
-At least, if you are a C porgrammer you would think this!
+At least, if you are a C programmer you would think this!
 */
 
 // One idea is the following : could create an IDE that virtualizes the syntax

@@ -9,7 +9,7 @@
 
 // ASSIGNMENT EXPRESSION SEMANTICS.
 
-// Idenfitiers are first class citizens of the compiler runtime (a type) and can
+// Identifiers are first class citizens of the compiler runtime (a type) and can
 // therefore be the operands of operators.
 
 // for the discussion that follows, allow the statement "bin <binName>" to mean,
@@ -51,7 +51,7 @@ A = B;
 // consider the below.
 0xFFF89 = 10;
 // this is _almost_ okay. the compiler may be forgiving and cast 0xFFF89 to an
-// identifier. however, it could only ever be resolved to UID<?>. the ambigious
+// identifier. however, it could only ever be resolved to UID<?>. the ambiguous
 // type stops this expression from ever being valid.
 
 // now consider
@@ -62,8 +62,9 @@ C = B;  // this reads the value in B and assigns it to C.
 // '=' sees an identifier on LHS. no cast needed for C.
 // since @C = UID<UID<int>>, the RHS should have a type of UID<int>.
 // any implicit cast from identifier -> UID<int> is not permitted.
-// these must always be explicit. thus, the only permittble cast is:
+// these must always be explicit. thus, the only permissible cast is:
 // first read from B to get int, then up cast to UID<int>.
+// TODO: we may also want to emit a warning in this case? 
 
 // if we wanted to do maybe what actually makes sense, we can do this:
 C = @B;
@@ -96,9 +97,9 @@ C = @B;
 ^int D;
 int  E;
 ^D = E;
-// the deref operator takes an identifier and outputs aother identifier.
+// the deref operator takes an identifier and outputs another identifier.
 // it pulls the UID<T> out of UID<UID<T>>.
-// then E on the left hand side is down-cast from an identifier direct to
+// then E on the right hand side is down-cast from an identifier direct to
 // the int type by performing a read, again skipping identifier -> UID<T>
 // (resolve), because this can never be implicit.
 
@@ -121,7 +122,7 @@ int  E;
 // ^D gives back an identifier.
 // this is then down cast read to add with 10.
 // the exp is ill-formed because we don't have the type information for the LHS.
-// we do not know what type we are point to and therefore cannot up cast to
+// we do not know what type we are pointing to and therefore cannot up cast to
 // identifier for LHS requirement.
 
 // what about this (important because it is a common case)?

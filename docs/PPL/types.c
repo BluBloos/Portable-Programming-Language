@@ -12,7 +12,7 @@ int main(int argc, >> char argv) {
 
     // Support for "long" does not exist. This is a personal choice.
     // when compiler encounters "long", give warning and communicate how to
-    // request C99 mode. C99 mode ON functionality turns the PPL lang into C99
+    // request C99 mode. C99 mode ON functionally turns the PPL lang into C99
     // from the perspective of the other compile-time interop langs.
     //
     // With this mode, we get back long. we also get a C99 compiler.

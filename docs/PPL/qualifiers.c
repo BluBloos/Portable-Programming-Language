@@ -1,9 +1,9 @@
 // -------------- HOW QUALIFIERS WORK ----------------
 
-// a qualifier modifes strictly what is to the right of it.
+// a qualifier modifies strictly what is to the right of it.
 // and it only modifies just one item.
 // a qualifier cannot modify a qualifer, so it searches until it can find the
-// first non qualifer. this allows for qualifier sequences.
+// first non qualifier. this allows for qualifier sequences.
 
 // please see pointers.c to understand how this relates to pointers.
 
