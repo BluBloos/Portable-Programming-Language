@@ -16,3 +16,4 @@ tests/*
 !tests/grammer
 JOURNAL.md
 .DS_Store
+node_modules

@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "handlebars": "^4.7.7",
+    "prismjs": "^1.29.0",
+    "showdown": "^2.1.0"
+  }
+}
