@@ -1,82 +1,68 @@
-// clang-format off
-// POINTERS.
+// -------------- POINTERS --------------
 
-// NOTE: int is an alias for int32_t, always.
+// I'm not quite sure what syntax to use for pointers.
+// below are some ideas.
+
+// idea 1.
 ->int a;
 
-// issue with -> syntax is that a double pointer, or even a triple pointer becomes
-// gross. of course, -> increases readability (maybe).
+// the issue with '->' syntax is that a double pointer, or even a triple pointer
+// becomes gross. maybe '->' increases readability?
 
-// I think I can agree that one character for pointer is better than two (or any more).
+// I think I can agree that one character is better than two (or any more).
+// idea 2.
+// clang-format off
 >int a;
+// clang-format on
 
 // this kind of hits the middle ground between readability and conciseness.
-// but it means now that > has two meanings, which is a bit gross.
-// in a lang like C++, & has two at least two meanings too (reference and address of).
-// of course, one could argue that references and address of are at least related.
-//
-// but even in C, we have that * means multiply and pointer.
-// so it should be okay for us to overlap with a binary operator.
 
-// Pascal:
+// here's another one from Pascal.
+// idea 3.
 int  x;
 ^int a;
-a = @x;
+a  = @x;
 ^a = 3;
 
-// Decision: I think I like the ^ syntax.
-// and we are going to stick to just ONE.
-// makes it easy to read code.
-// as opposed to allowing the user to use
-// whatever they want. Keep it simple.
-//
-// in pondering > vs ^, ^ is at least consistent visually with * as these take
-// up the upper half of the space allocated for a single character.
+// Decision:
+// I think I like the ^ syntax.
 
-// Here's another question. On which side of the type do we put the pointer syntax?
-^^int vs. int^^ ? ;
+// in pondering '>' vs Pascal, the '^' is at least consistent visually with the
+// C/C++ '*'. these take up the upper half of the space allocated for a single
+// character.
 
-// since we are borrowing from Pascal, we ought to stick with how it does things.
-^^int; // is correct.
+// Here's another question. On which side of the type do we put the pointer
+// syntax?
+^^int a;
+// OR
+// clang-format off
+int^^ a;
+// clang-format on
+
+// since we are borrowing from Pascal, we aught to stick with how it does
+// things.
+^^int;  // is correct.
 
 // Question:
 // How are we meant to do the two const ideas?
-// Where the memory pointed to may not be modified versus the pointer itself cannot be modded?
+// where
+// idea 1: the memory pointed to may not be modified.
+// idea 2: the pointer itself cannot be modded.
 
-// HOW QUALIFIERS WORK:
-// maybe say that qualifier modifes strictly what is to the right.
-// it only modifies just one item.
-// a qualifier cannot modify a qualifer, so it searches until it can find the first non qualifer. this allows for qualifier sequences.
-
-// thus,
-const int A; 
-// modifies direct to its right.
-// this becomes, "declare a constant integer called A".
-// const sort of folds into the value type.
-
-int const A; // redundant. the identifier A (UID part of UID<T>) is not going to change.
-// still allowable but again redundant.
-// (unless we are dealing with references).
-
-// if we wanted duck stuff (which I do not see why),
-// maybe we use some diff syntax.. so for now, don't care about that.
-
-// so if ...
+// clang-format off
 const ^int A;
+// clang-format on
 // "declare a constant pointer to an integer called A".
 
 // then
 ^const int A;
-// "declaree a pointer to a constant integer called A".
+// "declare a pointer to a constant integer called A".
 
+// please see qualifiers.c for more info on const.
 
-// also, there may be an implicit let,
+// also, I'm thinking we could do an implicit let,
 let const int A;
 // "let there be a consant integer called A".
 // where the "let there be ..." is an alloc/reserve idea.
 
-// we have to remeember that these decls create a VARIABLE.
-// which is some location and an identifier desribing/identifying it.
-
-int32_t main(int32_t argc, ^^uint8_t argv) {
-}
+int32_t main(int32_t argc, ^^uint8_t argv) {}

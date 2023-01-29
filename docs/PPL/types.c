@@ -1,20 +1,27 @@
 int main(int argc, >> char argv) {
     int   a;  // always 32 bits.
-    char  a;  // always 8 bits.
-    short a;  // always 16 bits.
-    bool  a;  // always 1 bit. So _can_ be packed in struct as 1 bit. Its _can_ because for perf default on struct is no
-              // pack and align for target.
+    char  b;  // always 8 bits.
+    short c;  // always 16 bits.
     // ^ default is signed.
-    unsigned int a;  // now uint32_t.
+    unsigned int e;  // now uint32_t.
 
-    // support for "long" does not exist. it's just odd.
-    // but #idea we could supply (on user request, and commuicate how to request on error of long not being defined)
-    // that we desire "C99 mode", or something. It would functionally turn the PPL lang into C99 in the set of interop
-    // langs.
+    // always 1 bit. So _can_ be packed in struct as 1 bit. It's "_can_" because
+    // for perf, default on struct is no pack and align for target. So bool is
+    // likely to take 8 bits.
+    bool d;
 
-    uint32_t a;  // these sorts of things exist for all of (u) vs. (no u) and any 8 -> 64 sizes.
+    // Support for "long" does not exist. This is a personal choice.
+    // when compiler encounters "long", give warning and communicate how to
+    // request C99 mode. C99 mode ON functionality turns the PPL lang into C99
+    // from the perspective of the other compile-time interop langs.
+    //
+    // With this mode, we get back long. we also get a C99 compiler.
+
+    uint32_t f;  // these sorts of things exist for all of (u) vs. (no u) and
+                 // any 8 -> 64 sizes.
+
     // TODO: would we want 128 size support?
 
-    float  a;
-    double b;
+    float  g;
+    double h;
 }

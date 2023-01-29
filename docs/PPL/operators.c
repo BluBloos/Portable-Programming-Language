@@ -21,8 +21,9 @@ int main() {  // prefer lawful good?
     a ^ b;  // bitwise xor.
     // clang-format on
 
-    // NOTE: While we might want ^ for raise to the power of, this is a little high-level.
-    // stick to the basics, and let the user define their own pow(). or std lib.
+    // NOTE: While we might want ^ for raise to the power of, this is a little
+    // high-level. stick to the basics, and let the user define their own pow().
+    // or std lib.
 
     a << b;  // left shift.
     a >> b;  // right shift.
@@ -52,17 +53,8 @@ int main() {  // prefer lawful good?
     -a;  // negate.
     !a;  // logical not.
     ~a;  // bitwise not.
-    // clang-format off
     ^a;  // pointer dereference.
-    // dereference:
-    // means to "peek inside".
-    // variable are just human readable names that point to some loc (some storage bin).
-    // if we have a pointer variable, the bin stores a mem addr.
-    // deref the pointer and we go through one level of indirection to get to another bin.
-    // so if we have pointer A. Then (<A), this is now as an expression, a label for a bin.
-    //
-    // we could even do something as wild as <0x1234, which is a label for a bin.
-    // clang-format on
+    // the dereference op is well-defined in assignment_and_identifiers.c
 
     @a;  // address of.
 
@@ -70,9 +62,11 @@ int main() {  // prefer lawful good?
 
     // I invision member access to just be an offset from @identifier = UID<T>,
     // but where T needs to have the member as verified by SEMA.
-    a.b;        // member access.
+    a.b;  // member access.
 
     // TODO: for now, this is member access through a pointer.
+    // we may elect to change this.
+    // but at least it is same as C/C++.
     a->b;
 
     a[b];  // subscript.
