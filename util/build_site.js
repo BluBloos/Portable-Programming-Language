@@ -15,7 +15,7 @@ loadLanguages(['cpp']);
 // TODO: Make cmd line params and have this script be relocatable.
 let docs_dir = path.join(__dirname, "..", "docs");
 let ppl_dir = path.join(docs_dir, "PPL");
-let build_dir = path.join(__dirname, "..", "bin");
+let build_dir = path.join(__dirname, "..", "_site");
 let static_dir = path.join(ppl_dir, "static");
 
 // create build dir.
