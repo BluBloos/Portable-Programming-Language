@@ -25,3 +25,4 @@ bool myBitfield;
 // how can we make things pack?
 // in C it varies by compiler.
 // we'll just have to pick a syntax and stick with it.
+// please see attributes.cpp where we go over this syntax.
