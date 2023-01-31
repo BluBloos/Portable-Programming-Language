@@ -58,6 +58,10 @@ int main() {  // prefer lawful good?
 
     @a;  // address of.
 
+    ##1234;  // stringize operator. well defined in enums.cpp
+
+    myNamespace::a;  // Static member access
+
     a ? b : c;  // ternary.
 
     // I invision member access to just be an offset from @identifier = UID<T>,
@@ -76,6 +80,10 @@ int main() {  // prefer lawful good?
     ++a;   // pre-increment.
     --a;   // pre-decrement.
     a, b;  // comma.
+
+    // C operator precedence
+    // https://en.cppreference.com/w/c/language/operator_precedence, for
+    // reference
 
     // TODO: think about pointer to member.
 
