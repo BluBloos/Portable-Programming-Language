@@ -37,6 +37,14 @@ int main() {
         int32_t y;
     } point;
 
+    // nested anonymous structs work :D
+    struct epic {
+        struct {
+            int a;
+            int b;
+        } another_struct;
+    };
+
     // this is both a definition of the type MyBoy2,
     // PLUS we create a var called myBoy2.
     struct MyBoy2 {
