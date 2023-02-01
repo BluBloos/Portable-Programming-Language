@@ -39,7 +39,7 @@ a  = @x;
 int^^ a;
 // clang-format on
 
-// since we are borrowing from Pascal, we aught to stick with how it does
+// since we are borrowing from Pascal, we ought to stick with how it does
 // things.
 ^^int;  // is correct.
 

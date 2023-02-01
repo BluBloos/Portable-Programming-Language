@@ -33,3 +33,6 @@ int foo(int x) {
     // so in fact, every function declaration is implicitly a var declaration
     // like the examples above. global functions are just global constexpr vars.
 }
+
+// TODO: Go over varidaic template funcs but with looping over the args.
+// Should be trivial, right?
