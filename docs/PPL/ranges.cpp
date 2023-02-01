@@ -10,9 +10,11 @@
 (... 0) == -inf... 0;  // true
 
 // we can see that with this operator, there is a new type called range.
-range<int> A = 0 ... 10;          // ranges are templated.
+range<int> A = 0 ... 10;         // ranges are templated.
 range<char8_t> B = '👀' ... '👁️';  // picks all the unicode points between.
 // a range is a set with strictly +1/-1 between each element in the set.
+// it should be noted that unlike an array, ranges do not store the entire set,
+// they represent. they arre just two values, begin and end.
 
 // TODO: could we have a float range if just have some stepSize?
 // TODO: could we allow for ranges that have simple arithmetic between each
