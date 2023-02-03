@@ -8,7 +8,8 @@ range<char8_t> B('👀', '👁️');  // picks all the unicode points between.
 
 // TODO: currently, we use `..` also for range.
 range<int> A = 0 .. 10;
-// but this is very similar to `...` which I hope to use for fold expressions and the sort.
+// but this is very similar to `...` which I hope to use for fold expressions
+// and the sort.
 
 // TODO: could we have a float range if just have some stepSize?
 // TODO: could we allow for ranges that have simple arithmetic between each
@@ -46,8 +47,9 @@ for (int i = 0; i < 10; i++) {
 // it goes as [begin, end). to match other languages.
 slice<^int> B = A[0 .. 10];  // slices are just two raw pointer.
 
-// here we use a range as an element of an arrary literal to initialize a static array.
-[]int A = [ 0 .. 10 ];
+// here we use a range as an element of an arrary literal to initialize a static
+// array.
+[] int A = [0..10];
 
 // we could even use many ranges in our array literal.
 []int A = [0 .. 10, 20 ..30, 40 ..50];
