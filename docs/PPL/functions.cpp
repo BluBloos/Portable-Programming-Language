@@ -5,34 +5,64 @@
 // return them from functions.
 
 // but consider this:
-int foo(int x) {
-    int bar(int y) { return 1 + y; }
-    // bar is what we call a scoped function declaration.
-    // it's not a lambda, as that would be an entirely different beast
-    // altogether. but `bar`, as a scoped function decl, is effectively a normal
-    // function but scoped. it also implies a var declaration of `bar`.
-    // the code in the executable for the func is static. the `bar` variable
-    // itself is not necessarily static, but it is constexpr.
-    //
-    // as a non-lambda, it cannot do any capturing at all. this ensures the
-    // constexpr property.
 
-    // anyways, we can also do this (assign a function, not a lambda, to a
-    // variable).
-    // the function body is static. however, unlike the syntax above, `bar2` is
-    // not constexpr. `bar2` can be reassigned to another function body if
-    // desired.
-    func<int, int> bar2 = int(int y) { return y + 1; };
+foo : () -> ((x:int) -> int) {
 
-    // also, for some notes on some of the syntax above...
+    // TODO: maybe think about the whole usage of static and how there are different
+    // meanings such as static storage duration and static linkage.
+    a : static = 1u;
 
-    // we let there be a func type.
-    // you template it with the return type and the argument types.
-    // generally it is func<T_Return, T_Args...>
+    // functions can exist anywhere.
+    // every function ever has its code static in the .exe.
+    // the function type is simply a pointer to the function code.
+    bar : (y:int) -> int {
+        return a + y;
+    }
 
-    // so in fact, every function declaration is implicitly a var declaration
-    // like the examples above. global functions are just global constexpr vars.
+    // the variable `bar` is scoped to this function and therefore
+    // normally the static code cannot be called from anywhere else.
+
+    // however, since the pointer to the static code is returned
+    // through this function, it may.
+
+    // this brings up the discussion on the capture of `a` here.
+    // how does that work?
+
+    // firstly it depends on if `a` has static storage duration or not.
+    // capture by reference would therefore be no issue.
+
+    // however if the lifetime of the thing is temporary, we have to be careful
+    // in the capture by reference case.
+    
+    // the rule is that the lifetime of the temporary must be less than or equal
+    // to the lifetime of the function pointer. otherwise a compiler error will occur.
+    // that sounds hard, but maybe it is possible. we'll see. for now lets assume it it :)
+
+    return bar;
+
+} // no-semicolon required for {} blocks, ever.
+
+// any function declared at the global scope is implicitly static.
+foo2 : {
+    
+    a : int=1; // undetermined at runtime. not initialized. this can be more efficient and maybe save
+    // a single instruction afaik?
+
+    // capture by value (this is also a template)
+    // when we capture by value this is a value type template parameter with the name of `a` and value of a.
+    // which therefore means this template is deduced at declaration time, not call time.
+    bar : <a> () -> int {
+
+        // TODO: George said the <> may be confusing for capture by value. 
+        return a;
+    }
+
+    tFunc : <T:uint32_t, a> (b:T)->T {
+        return a + b * 2;
+    }
+
+    b := tFunc<2>(4);
+
 }
 
-// TODO: Go over varidaic template funcs but with looping over the args.
-// Should be trivial, right?
+myFunc := foo();
