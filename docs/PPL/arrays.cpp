@@ -1,28 +1,21 @@
-// let's first consider a static array.
-// and to be consistent with the pointer syntax, they ought to go like this:
-[10]int a;
+// this is an array. the value in [] must be known at compile-time.
+a : [10+20]int;
 
-// and
+// decay to pointer works no problem. of course, we lose all information about the array, but
+// that's simply the "cost" of decay to pointer. 
+pA : ^int = a;
 
-let const [10]int a;  // let there be a const array of 10 integers called a.
-// again, the let is implicit.
-const [10]int a;  // same as above.
+// this is a constant array. none of the values inside the array can be changed.
+b : const [2]float;
 
-// now, this is a thing that we love to see happen and it's called decay to
-// pointer.
-^int B;
-B = a;  // and now B points to the first element of a.
+// the compiler should flag this as an error. this cannot work since through the pointer
+// we would be able to change something that is const.
+pB : ^float  = b;
 
-// and note that our compiler should not allow the above, actually, because A is
-// const. and through this pointer to not const, that's a mismatch.
+// instead of having constexpr we can used our strongly typed macros.
+c! : size_t = 100;
 
-// the value inside the [] is a constexpr.
-[10 + 20]int C;
-
-// since we have declared that what is inside [] is in fact an expression, what
-// type is it?
-constexpr size_t D = 100;
-[D]int          E;  // this is a static array of 100 integers.
+d : [c]int;
 
 // the definition of size_t is:
 // size_t can store the maximum size of a theoretically possible object of any
@@ -35,68 +28,54 @@ constexpr size_t D = 100;
 // we can see quite clearly that size_t is a suitable type for the index of
 // array objects.
 
-// --------- DYNAMIC ARRAYS, RANGES ------------
+// TODO: I think the reason I was using [] was so that the syntax is specific for array
+// initialization over something like {} which is this whole other idea.
+F : [10]int = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
-// In C++ there is std::vector<>.
-// In C there is no such dynamic array idea. But we can do it ourselves.
-
-// In enums.cpp we argued that to allow iteration over a disjoint enum would
-// imply a hidden cost.
-
-// If we wanted to offer a native dynamic array type, this too would imply a
-// hidden cost. Because there isn't a just 1 way to do dynamic arrays.
-
-// you could have different allocation strategies, different data structures,
-// etc.
-
-// if we want dynamic arrays and no hidden cost, we ought to just be clear what
-// is happening, and just pick one particular technique. never swap the
-// technique.
-
-// So firstly, there must be some concrete language primitives that deal with
-// alloc/delete memory. realloc is just a sequence of alloc and delete, so use
-// can impl this if needed.
-^int F = new [10]int;
-delete F;
-// these are of course things that the standard library must enable. Like `new`
-// maybe on Win32 maps to VirtualAlloc, for example.
-
-// and the dynamic array syntax is as follows:
-[$]int A;  // where `[$]` is its own symbol thing used for dynamic array
-            // declaration.
-
-// what if I want to give the array a begin size?
-[$]int A(10);  // here we use a ctor to give the array a begin size.
-// the size it takes in the ctor is a size_t.
-
-
-// the method that dynamic arrays work by is a simple one. they are just a
-// pointer to a block of memory, and a size_t that tells you how many elements
-// are in the array. an additional size_t could be used to tell you how many
-// elements the array can hold before it needs to be resized.
-//
-// resize is realloc, so just use the new and delete operators.
-//
-// when resized, the array size is simply doubled.
-
-
-// --------- DYNAMIC ARRAYS------------
-
-// Consider this useful template func.
-template <size_t Size>
-size_t foo([Size] int &a) {
+// this is possible.
+foo : <Size:size_t> ( a : [Size]int ) -> size_t {
     return Size;
 }
 
-// here, we require that the param A is a reference type. If not, when pass by
-// value there would be a pointer decay and we would lose the size information.
-// so, these sorts of templates are reasons for references to exist (among other
-// reasons).
+// but,
 
-// While maybe in the past I wasn't particularly a fan that there are both raw
-// pointers and references. It does make sense. They are not the same concept.
+// we could also just do:
+foo : (a : []int) -> size_t {
+    return countof(a);
+}
 
-// References sort of change how things fundamentally work.
-// Like a pass by ref versus a pass by value is a fundamental difference.
+// countof() is a compiler intrinsic.
 
-// And you can have a reference to a pointer, too.
+// dynamic memory allocation is an operating system specific function.
+// therefore, there is no `new` keyword.
+
+// the best that we can do is have the `malloc` function as part of the standard lib.
+F : ^int  = malloc( sizeof(int)*10 );
+free(F);
+
+
+// therefore, something like dynamic arrays _cannot_ be a core part of the language.
+// it is a part of the standard lib of the lang.
+
+
+// consider std::move, an impl of _move semantics_.
+// in the words of Bjarne Stroustrup:
+// https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2006/n2027.html#Move_Semantics
+// > This move() gives its target the value of its argument, but is not obliged to
+// > preserve the value of its source. So, for a vector, move() could reasonably
+// > be expected to leave its argument as a zero-capacity vector to avoid having
+// > to copy all the elements. In other words, move is a potentially destructive
+// > read.
+
+// 2. emplace_back.
+// most of the time the whole move() idea is done by the compiler.
+// it sees that you create a temporary and it automatically
+// creates it inside the array rather than creates it, then copies.
+// but if we already have another var, we can move() into the array.
+// now the var B may never be used again.
+//
+// the semantic of the move() built-in (compiler intrinsic) is like:
+// "take the thing and create is as a temporary here, and destroy all other references to it."
+A := [1u, 2];
+B := 2u;
+A[0] = move(B);
