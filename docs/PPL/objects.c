@@ -1,72 +1,53 @@
 // objects are basically structs with funcs.
-// they are concrete types that take up memory and an instance
-// could either exist on the stack or the heap.
-// they have a vtable to point to all member or static funcs.
-// member funcs take in the "this" pointer (implicit).
+// they are concrete types that take up memory.
+// functions are stored somewhere in the .exe.
+// there is no vtable. and thus there is no runtime polymorphism.
 
-// the whole point of the vtable is to say that for any object instance
-// of a particular struct, that the funcs in the table are NOT const.
-// with this ability, we get polymorphism. because can have "reference" to type
-// A, which is parent to type B. B overrides method in A. but caller of A has no
-// idea, it just sees a consistent interface. and in fact, the reference to A
-// can be an object of type B. because after all, inheritance is this purely
-// additive kind of deal.
-//
-// so you just ensure all var members of B come after in mem of those in A.
-// and same with vtable. so we can trivially truncate and look at the object B
-// as if it was an A.
+// this should be consider the creation of a variable called `MyBoy`
+// with a structure type. we can use this var name later as a type
+// if desired.
+MyBoy : struct {
 
-// a struct that is NOT anonymous.
-// this creates a type called MyBoy.
-struct MyBoy
-{
-    int m_a;
-    int m_b;
-    int Add()
+    // also note that if you remove the "struct" keyword the shits
+    // would still compile. this just becomes a function now.
+
+    m_a : int;
+    m_b : int;
+    Add : () -> int
     {
         return m_a + m_b;
     }
-};
+}; // `;` is optional. never required for `{}`.
 
-int main() {
-    // this is an anonymous struct.
-    // we define a var called point.
-    // no type is defined.
-    struct {
+// thus if I go:
+MyBoy.m_a; // this works.
+// regardless of if m_a is declared static or not.
+
+thing := MyBoy();
+thing.m_a; // this accesses a diff memory location to MyBoy.m_a; 
+
+// but if,
+
+boy2 : struct {
+    m_a : static int;
+}
+
+thing2 := boy2();
+thing2.m_a; // this accesses the same mem loc as boy2.m_a;
+
+main : {
+
+    // we can of course define vars with struct type anywhere.
+    point : struct {
         int32_t x;
         int32_t y;
-    } point;
-
-    // nested anonymous structs work :D
-    struct epic {
-        struct {
-            int a;
-            int b;
-        } another_struct;
     };
 
-    // this is both a definition of the type MyBoy2,
-    // PLUS we create a var called myBoy2.
-    struct MyBoy2 {
-        float A;
-        float B;
-    } myBoy2;
-
-    // both work.
-    MyBoy2 c;
-    myBoy2 d;
-
-    // if we use typedef this creates a type called myBoy3_t and aliases it to
-    // the anonymous struct. this is functionally the same as just defining a
-    // struct with the same syntax as used for MyBoy.
-    typedef struct {
-        double A;
-        double B;
-    } myBoy3_t;
-
-    // not allowed.
-    typedef struct MyBoy3 {
-        double A;
-        double B;
-    } myBoy3_t;
+    // nested structs work :D
+    epic : struct {
+        another_struct : struct {
+            a:int;
+            b:int;
+        }
+    }
 }
