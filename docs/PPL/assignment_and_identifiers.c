@@ -16,8 +16,8 @@
 // "tangible location at the UID for the <binName> identifier".
 
 // consider the following expression,
-int A;
-int B;
+A:int;
+B:int;
 A = B;
 // It must follow, based on how we understand assignment to work in other
 // languages, that the assignment operator itself is well-defined for:
@@ -55,8 +55,8 @@ A = B;
 // type stops this expression from ever being valid.
 
 // now consider
-^int C;
-int  B;
+C : ^int;
+B : int;
 C = B;  // this reads the value in B and assigns it to C.
 // identifier = identifier
 // '=' sees an identifier on LHS. no cast needed for C.
@@ -94,8 +94,8 @@ C = @B;
 0xFFF89 + (^int)@A = 10;
 
 // Now consider how to do the whole deref thing.
-^int D;
-int  E;
+D:^int;
+E:int;
 ^D = E;
 // the deref operator takes an identifier and outputs another identifier.
 // it pulls the UID<T> out of UID<UID<T>>.
