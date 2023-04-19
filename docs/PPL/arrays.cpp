@@ -30,7 +30,7 @@ d : [c]int;
 
 // TODO: I think the reason I was using [] was so that the syntax is specific for array
 // initialization over something like {} which is this whole other idea.
-F : [10]int = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+F : [10]int = {0; 1; 2; 3; 4; 5; 6; 7; 8; 9};
 
 // this is possible.
 foo : <Size:size_t> ( a : [Size]int ) -> size_t {
@@ -76,6 +76,6 @@ free(F);
 //
 // the semantic of the move() built-in (compiler intrinsic) is like:
 // "take the thing and create is as a temporary here, and destroy all other references to it."
-A := [1u, 2];
+A := {1u; 2};
 B := 2u;
 A[0] = move(B);
