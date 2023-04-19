@@ -3,10 +3,10 @@
 
 // also see operator_overloading.cpp
 
-int main() {  // prefer lawful good?
+main : ()->int {  // prefer lawful good?
 
-    int a;
-    int b;
+    a : int;
+    b : int;
 
     // binary operators.
 
@@ -60,18 +60,14 @@ int main() {  // prefer lawful good?
 
     ##1234;  // stringize operator. well defined in enums.cpp
 
-    myNamespace::a;  // Static member access
-
     a ? b : c;  // ternary.
 
     // I invision member access to just be an offset from @identifier = UID<T>,
     // but where T needs to have the member as verified by SEMA.
     a.b;  // member access.
-
-    // TODO: for now, this is member access through a pointer.
-    // we may elect to change this.
-    // but at least it is same as C/C++.
-    a->b;
+    // NOTE: member access works for what in C++ was :: and ->.
+    // i.e. with namespace access it is also `.` and with member access through
+    // pointer it is also `.`.
 
     a[b];  // subscript.
     a();   // function call.

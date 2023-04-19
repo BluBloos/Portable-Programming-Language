@@ -9,15 +9,14 @@
 
 // ex)
 
-struct A {
-    float x;
+A : struct  {
+    x : float;
 }
 
-struct B {
-    double w;
+B : struct {
+    w : double;
 }
 
-double
-operator+(A a, B b) {
+operator+ : (a:A, b:B) -> double {
     return a.x + b.w;
 }
