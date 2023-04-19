@@ -1,5 +1,3 @@
-
-
 <div>
   <p align="center">
     <img src="https://user-images.githubusercontent.com/38915815/155840268-844e6655-2554-4ac0-bacb-4d789f980b58.png" />
@@ -13,43 +11,50 @@
   </p>
 </div>
 
-
 # Portable Programming Language
 
-Built with ❤️, this repository contains the offical compiler toolchain for the Portable Programming Language. 
+Built with ❤️, this repository contains the official compiler toolchain for the Portable Programming Language.
 
-The language aims to be general purpose, allowing the user to write software projects as diverse as operating systems, video games, websites, apps, etc. 
+PPL is a systems programming language with the goal of allowing the developer to produce software, hassle-free, for any
+target platform.
 
-The primary aim of the language is to allow the developer to produce software for any target platform, hassle-free. Just write a text file (or many), run the compiler on the command line, and boom - you've got an executable (or bundle, in the case of mobile apps).
-
-Here is a small sample of the language
+Here is a small sample of PPL,
 
 ```c
-#import <ppl.console> as pc
-int main() {
-    [dynamic]int myIntegers;
-    for (int i = 0; i < 10; i++) {
-        myIntegers.push(i);
+pc : #import "ppl.console";
+#import "ppl.array";
+
+main : () -> int {
+    myIntegers : array<ui32> = {};
+
+    i := 0u;
+    for i < 10 {
+        myIntegers.push(i++);
     }
-    pc::print("There are %d many integers", len(myIntegers));
+
+    pc.print("\nThere are %d many integers\n", countof(myIntegers));
+
+    return 0;
 }
 ```
 
-As is clear, the language is very C-like. For C and Java programmers (and potentially others), there will be little to no learning curve.
+This language takes inspiration from many other programming languages. To list them all would be much too exhaustive.
+Notable mentions would be C, C++, and JAI.
 
 # Foreword
 
-This project is still in heavy development...the language is still being designed, as is the compiler to support the language. 
+This project is in HEAVY DEVELOPMENT.
 
-At the time of writing, the compiler is not "complete". It is not possible to take a PPL source file, run the compiler on it, and produce a working executable for the desired target machine. All that is possible at the moment is to run unit and integration tests for components of the compiler. 
+The language is undergoing design, and the compiler is incomplete. All that is possible at the moment is to run unit and
+integration tests for components of the compiler.
 
 See https://github.com/BluBloos/Portable-Programming-Language/wiki for devlogs.
 
 # Steps for Building
 
-The project currently depends on the netwide assembler (NASM), the MSVC linker, and "ld" on macOS.
+The project currently depends on the netwide assembler (NASM), the MSVC linker, and `ld` on macOS.
 
-Support for different setups is still "rough around the edges". No guarentees.
+Support for different setups is still "rough around the edges". No guarantees.
 
 The project uses an interactive build system. Run the following command to launch said system (macOS, Linux).
 
@@ -57,7 +62,6 @@ The project uses an interactive build system. Run the following command to launc
 ./build.sh
 ```
 
-On Windows, run ```build.bat```
+On Windows, run `build.bat`.
 
-
-The interactive build system begins by printing a list of all available commands, then waits for susequent user input.
+The interactive build system begins by printing a list of all available commands, then waits for subsequent user input.
