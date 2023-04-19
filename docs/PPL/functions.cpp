@@ -6,7 +6,7 @@
 
 // but consider this:
 
-foo : () -> ((x:int) -> int) {
+foo : () -> ((x:int) -> int) { // no equal sign required for {}.
 
     // TODO: maybe think about the whole usage of static and how there are different
     // meanings such as static storage duration and static linkage.
