@@ -1,5 +1,7 @@
 {
-    int var = 4;
+    var:int = 4;
     56;
-    std::name myVar = 78;
+    // TODO: need to support member access as part of the grammar for a type.
+    //myVar: std.name = 78;
+    myVar: someStructInStd = 78;
 }

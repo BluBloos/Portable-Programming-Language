@@ -1,6 +1,5 @@
-int main() {
-  int grade = 70;
-
+main : () -> int {
+  grade : int = 70;
   if (grade > 80) {
     return 100;
   } else if (grade > 60) {

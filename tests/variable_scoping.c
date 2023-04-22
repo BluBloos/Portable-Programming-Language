@@ -1,8 +1,8 @@
-int main()
+main : () -> int
 {
-  int h = 4;
+  h : int = 4;
   {
-    int h = 3;
+    h : int = 3;
     return h;
   }
 }

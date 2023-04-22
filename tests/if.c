@@ -1,5 +1,5 @@
-int main() {
-  int grade = 81;
+main: {
+  grade := 81u;
 
   if (grade > 80) {
     return 100;

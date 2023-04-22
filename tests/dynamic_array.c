@@ -1,11 +1,12 @@
-#include <ppl/console>
+pc : #import "ppl.console"
+#import "ppl.array"
 
-int main() {
-    [dynamic]int myIntegers;
+main:()->int {
+    myIntegers : array<int>;
 
-    for (int i = 0; i < 10; i++) {
-         myIntegers.append(i);
+    for i : int = 0; i < 10; i++ {
+        myIntegers.push(i);
     }
 
-    ppl::print("There are %d many integers", len(myIntegers));
+    pc.print("There are %d many integers", myIntegers.size);
 }

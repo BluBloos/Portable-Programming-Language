@@ -1,5 +1,5 @@
-int main()
+main :
 {
-  int h = 5;
+  h := 5u;
   return h;
 }

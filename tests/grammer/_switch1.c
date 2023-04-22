@@ -1,7 +1,7 @@
 /* 
 All poopoo are an opportunity to peepee, but not all 
 peepee are an opportunity to poopoo
-    - Taleb
+    - Talib
 */
 
 switch(myStr) {

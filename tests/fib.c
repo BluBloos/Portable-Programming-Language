@@ -1,13 +1,13 @@
-#include <stdio.h>
+#import "ppl.console"
 
-int fib(int n)
+fib : (n : int) -> int
 {
     if (n <= 1)
         return n;
     return fib(n - 1) + fib(n - 2);
 }
 
-int main()
+main :
 {
-  printf("Fib(7)=%d", fib(7)); // should return 13
+  print("Fib(7)=%d", fib(7)); // should return 13
 }

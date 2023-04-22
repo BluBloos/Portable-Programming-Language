@@ -1,6 +1,9 @@
 // This is a comment
 
-int main() /* Multiline comment */
+// TODO: Add support for nested multiline comments.
+
+main:()->int /* 
+  Multiline comment */
 {
   // comment in a body
   return 0 // + 1

@@ -1,1 +1,1 @@
-int var = 5;
+var:int = 5;

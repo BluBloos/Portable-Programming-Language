@@ -1,6 +1,6 @@
-struct A {
-    int a;
-    int b;
-    char c;
-    float aa;
+A : struct {
+    a:int;
+    b:int;
+    c:char;
+    aa:float;
 };

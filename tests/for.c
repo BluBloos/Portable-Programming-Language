@@ -1,7 +1,8 @@
-int main() {
-  int sum = 0;
-  []int myArray = [3,4,5,6,7,9.0,"Didn't expect to see me here :)"];
-  for (int i = 0 ; i < 5; i++)
+main: {
+  sum :int= 0;
+  // the below will not compile due to homogenous members.
+  myArray : []int = {3; 4; 5; 6; 7 };
+  for (i:int = 0 ; i < 5; i++) // the parenthesis are optional.
   {
     sum += 1;
   }

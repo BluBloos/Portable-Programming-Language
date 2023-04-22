@@ -1,3 +1,3 @@
 if ( true ) {
-    int var = 3;
+    var:int = 3;
 }

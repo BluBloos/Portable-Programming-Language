@@ -1,13 +1,13 @@
-int odd_sum(int a, int b)
+odd_sum : (a:int, b:int) -> int 
 {
   int h = 5;
   return h + a + b;
 }
 
-int main()
+main:
 {
-  int d = sizeof(char);
-  int a = 56;
-  int b = 4;
+  d:int = sizeof(char);
+  a:int = 56;
+  b:int = 4;
   return 2 * odd_sum(a - 1, b);
 }

@@ -1,23 +1,23 @@
-switch (ppl::getchar()) {            
+switch (ppl.getchar()) {            
     case 'D': 
-        fallthrough;
-    case 'd': if (DIRECTION != DIRECTION_LEFT)  DIRECTION = DIRECTION_RIGHT;
-
+    case 'd':
+        if (DIRECTION != DIRECTION_LEFT)  DIRECTION = DIRECTION_RIGHT;
+        break;
     case 'S': 
-        fallthrough;
-    case 's': if (DIRECTION != DIRECTION_UP)    DIRECTION = DIRECTION_DOWN;
-
+    case 's':
+        if (DIRECTION != DIRECTION_UP)    DIRECTION = DIRECTION_DOWN;
+        break;
     case 'A': 
-        fallthrough;
-    case 'a': if (DIRECTION != DIRECTION_RIGHT) DIRECTION = DIRECTION_LEFT;
-
+    case 'a':
+        if (DIRECTION != DIRECTION_RIGHT) DIRECTION = DIRECTION_LEFT;
+        break;
     case 'W': 
-        fallthrough;
-    case 'w': if (DIRECTION != DIRECTION_DOWN)  DIRECTION = DIRECTION_UP;
-
+    case 'w':
+        if (DIRECTION != DIRECTION_DOWN)  DIRECTION = DIRECTION_UP;
+        break;
     case 27: // ESC key
-    exit(); 
-    return 0;
+        exit(); 
+        return 0;
     case:
-    return 1;
+        return 1;
 }

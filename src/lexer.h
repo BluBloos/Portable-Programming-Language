@@ -4,25 +4,47 @@ typedef unsigned int UNICODE_CPOINT;
 #define CP_EOF 0
 
 char * TYPES[] = {
-    "float", "double", "int", "char", "short", "string", "bool", "void"
+    "float", "double", // floating point types.
+    "bool", "void",
+
+    // integer types.
+    "ui8", "ui16", "ui32", "ui64", "i8", "i16", "i32", "i64",
+
+    // types from C.
+    "int", "char", "short",
+    "uint8_t", "uint16_t", "uint32_t", "uint64_t",
+    "int8_t", "int16_t", "int32_t", "int64_t",
 };
 
 char *KEYWORDS[] = {
-    "struct", "continue", "break", "if", "while", "for", 
-    "else", "return", "const", "sizeof", "fallthrough", "switch", 
-    "case", "default", "as"
+    "struct",
+    "continue", "break", 
+    "if", "else", "for", "return",
+    "switch", "case", "default",
+    
+    // qualifiers.
+    "const",
+    
+    // TODO: should intrinsics be keywords?
+    "sizeof",
+
 };
 
 char *P_DIRECTIVES[] = {
     "#include", "#import"
 };
 
-char *OPS = "+-%*!<>=|&?[].~";
+char *OPS = "+-%*!<>=|&?[].~@^";
 
 char *COMPOUND_OPS[] = {
     "&&", "||", ">=", "<=", "==", "!=", "->",
     "+=", "-=", "*=", "/=", "%=", "&=", "|=", "++", "--"
 };
+
+// TODO: make `,` an operator. maybe ':' should be op as well.
+char *TOKEN_PARTS = "{}(),:";
+
+char *ENDLINE_CHAR = ";";
 
 enum lexer_state {
     LEXER_NORMAL,
@@ -529,8 +551,8 @@ bool Lex(
     sPatterns[0] = CreateSearchPattern(
         SEARCH_P_STRING, TOKEN_COP, COMPOUND_OPS, sizeof(COMPOUND_OPS) / sizeof(char*));
     sPatterns[1] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_OP, OPS);
-    sPatterns[2] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_ENDL, ";");
-    sPatterns[3] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_PART, "{}(),:");
+    sPatterns[2] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_ENDL, ENDLINE_CHAR);
+    sPatterns[3] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_PART, TOKEN_PARTS);
     sPatterns[4] = CreateSearchPattern(
         SEARCH_P_CURRENT_STRING, TOKEN_KEYWORD, KEYWORDS, sizeof(KEYWORDS) / sizeof(char*));
     sPatterns[5] = CreateSearchPattern(

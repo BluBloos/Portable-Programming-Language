@@ -1,13 +1,14 @@
-int odd_sum(int a, int b)
+odd_sum:(a:int, b:int)->int 
 {
-  int h = 5;
+  h : int = 5;
   return h + a + b;
 }
 
-int main()
+main:()->int
 {
-  const int c;
-  const int a = 56 & 6;
-  int b = 4 | 3;
+  // TODO: hook const.
+  c : const int;
+  a : const int = 56 & 6;
+  b : int = 4 | 3;
   return odd_sum(a ? 3 : 0, b) + c;
 }

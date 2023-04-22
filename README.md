@@ -32,7 +32,7 @@ main : () -> int {
         myIntegers.push(i++);
     }
 
-    pc.print("\nThere are %d many integers\n", countof(myIntegers));
+    pc.print("\nThere are %d many integers\n", myIntegers.size);
 
     return 0;
 }

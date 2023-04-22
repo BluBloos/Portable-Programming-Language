@@ -1,6 +1,6 @@
-int main() {
+main:()->int {
 
-    float x = 10.5;
+    x:float = 10.5;
     x.EPIC;
 
 }

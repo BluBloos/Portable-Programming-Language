@@ -298,11 +298,18 @@ int DoCommand(const char *l, const char *l2) {
     } else if (0 == strcmp(l, "g") || 0 == strcmp(l, "grammer")) {
         
         LoadGrammer();
+        // TODO: this printf is copy-pasta to the one for grammar_all.
+        printf(
+            "\nPlease note that grammar tests use the filename to derive the grammar\n"
+              "production to test.\n");
         return RunPtestFromInFile(ptest_Grammer, "grammer", "tests/grammer/");
 
     } else if (0 == strcmp(l, "gall") || 0 == strcmp(l, "grammer_all")) {
         
         LoadGrammer();
+        printf(
+            "\nPlease note that grammar tests use the filename to derive the grammar\n"
+              "production to test.\n");
         return RunPtestFromCwd(
             ptest_Grammer,
             // TODO(Noah): Maybe we abstract the lambda here beause we use the same

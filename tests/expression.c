@@ -1,13 +1,14 @@
-struct B {
-  int a;
-  int b;
-  ->B p;
+B : struct {
+  a : int;
+  b : int;
+  p : ^B;
 };
-int main()
+
+main:()->int
 {
   (54 % 8 * 9 / 10);
-  bool A = true;
-  B myB;
+  A :bool= true;
+  myB: B;
   myB.p[10].a = myB.b;
   return !0 + 6 == A;
 }

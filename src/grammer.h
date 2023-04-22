@@ -177,33 +177,27 @@ char *_grammerTable[][2] = {
         "program",
         "[(function)((var_decl);)(struct_decl)]*"
     },
-    {   
+    {
+        // TODO: we can use data packs here. will allow e.g. member functions.   
         "struct_decl",
-        "(keyword=struct)(symbol)\\{((var_decl);)*\\};"
+        "(symbol):(keyword=struct)\\{((var_decl);)*\\};"
     },
     {
-        "lv",
-        "(type)(symbol)"
+        "lv", // left-value.
+        "(symbol):(type)"
     },
     {
         "function",
-        "(type)(symbol)\\(((lv)(,(lv))*)?\\)[;(statement)]"
-    },
-    {
-        "_symbol",
-        "[((symbol)::(symbol))(symbol)]"
+        "(symbol):\\(((lv)(,(lv))*)?\\)((op,->)(type))?[;(statement)]"
     },
     { 
         "_const",
         "(keyword=const)"
     },
     {
-        "_dynamic",
-        "(keyword=dynamic)"
-    },
-    {
+        // TODO: need to add generics, a proper grammar for qualifiers.
         "type",
-        "[([((op,[)[(_dynamic)(literal)]?(op,]))(op,->)(_const)](type))(_symbol)(keyword)]"
+        "[([((op,[)[(literal)]?(op,]))(op,^)(_const)](type))(symbol)(keyword)]"
     },
     {
         "block",
@@ -218,23 +212,21 @@ char *_grammerTable[][2] = {
         "(keyword=continue)"
     },
     {
-        "_fallthrough",
-        "(keyword=fallthrough)"
-    },
-    {
         "_return",
         "(keyword=return)(expression)"
     },
     {
         "statement",
-        "[;([(_return)(var_decl)(expression)(_break)(_continue)(_fallthrough)];)(block)(_if)(_for)(_while)(_switch)]"
+        "[;([(_return)(var_decl)(expression)(_break)(_continue)];)(block)(_if)(_for)(_switch)]"
     },
     { 
         // TODO(Noah): I would certainly like to remove this grammer definition.
+        // there is a lot that is similar between this one and the grammar for `statement`.
         "statement_noend",
-        "[(var_decl)(expression)(_return)(_break)(_continue)(block)(_if)(_for)(_while)(_switch)]"
+        "[(var_decl)(expression)(_return)(_break)(_continue)(block)(_if)(_for)(_switch)]"
     },
     {
+        // TODO: need to add type inference.
         "var_decl",
         "(lv)(=[(initializer_list)(expression)])?"
     },
@@ -243,16 +235,15 @@ char *_grammerTable[][2] = {
         "(keyword=if)\\((expression)\\)(statement)((keyword=else)(statement))?"
     },
     {
+        // TODO: we need more advanced for-loops.
+
         // NOTE(Noah): Notice that this allows for having for-loops as the end condition
         // of a higher-level for-loop. 
         "_for",
         "(keyword=for)\\((statement)(expression);(statement_noend)\\)(statement)"
     },
     {
-        "_while",
-        "(keyword=while)\\((expression)\\)(statement)"
-    },
-    {
+        // TODO: does this not need the default keyword?
         "_switch_default",
         "(keyword=case):(statement)*"
     },
@@ -307,28 +298,31 @@ char *_grammerTable[][2] = {
         "(factor)([(op,*)(op,/)(op,%)](factor))*"
     },
     {
+        // TODO: what about member functions? e.g. pc.print( ... );
         "function_call",
-        "(_symbol)\\(((expression)(,(expression))*)?\\)"
+        "(symbol)\\(((expression)(,(expression))*)?\\)"
     },
     {
+        // TODO: rename this grammar construction to be like compiler built-ins.
         "_sizeof",
         "(keyword=sizeof)"
     },
     {
         // TODO(Noah): Look into making this grammer definition more readable.
         "factor",
-        "[(object)((_sizeof)\\([(_symbol)(type)]\\))([(op,!)(op,-)(op,&)(op,*)(op,~)(\\((type)\\))](factor))(\\((expression)\\))]"
+        "[(object)((_sizeof)\\([(symbol)(type)]\\))([(op,!)(op,-)(op,&)(op,*)(op,~)(\\((type)\\))](factor))(\\((expression)\\))]"
     },
+    // TODO: want to make this a more abstract "data block".
     {
         "initializer_list",
-        "\\[((literal)(,(literal))*)?\\]"
+        "\\{((literal)(;(literal))*)?\\}"
     }
 };
 
 char  *_grammerTable_LR[][3] = {
     {
         "object",
-        "[(function_call)(_symbol)(literal)]", // beta
+        "[(function_call)(symbol)(literal)]", // beta
         "[(op,++)(op,--)((op,[)(expression)(op,]))((op,.)(object))]" // alpha
     }
 };

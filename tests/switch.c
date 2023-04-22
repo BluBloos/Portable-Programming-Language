@@ -1,25 +1,29 @@
-int main() {
-    switch (ppl::getchar()) {            
-        case 'D': 
-            fallthrough;
-        case 'd': if (DIRECTION != DIRECTION_LEFT)  DIRECTION = DIRECTION_RIGHT;
+pc : #import "ppl.console";
 
-        case 'S': 
-            fallthrough;
+main: () -> int {
+    switch (pc::getchar()) {            
+        case 'D': 
+        case 'd': if (DIRECTION != DIRECTION_LEFT)  DIRECTION = DIRECTION_RIGHT;
+            break;
+
+        case 'S':
         case 's': if (DIRECTION != DIRECTION_UP)    DIRECTION = DIRECTION_DOWN;
+            break;
 
         case 'A': 
-            fallthrough;
         case 'a': if (DIRECTION != DIRECTION_RIGHT) DIRECTION = DIRECTION_LEFT;
+            break;
 
-        case 'W': 
-            fallthrough;
+        case 'W':
         case 'w': if (DIRECTION != DIRECTION_DOWN)  DIRECTION = DIRECTION_UP;
+            break;
 
-        case 27: // ESC key
-        exit(); 
-        return 0;
+        case 27: // ESC key        
+            exit();
+            return 0;
+            break;
         case:
-        return 1;
+            return 1;
+            break;
     }
 }

@@ -1,3 +1,3 @@
-int main() {
+main:()->int {
     printf("\"Hello, World!\"\n");
 }
