@@ -4,28 +4,22 @@
 // at least one of the purposes of such a macro is to force inline code instead
 // of a weak `inline` keyword suggestion.
 
-a! : (a:int, b:int) -> int {
+aFunc :: #save_code (a:int, b:int) -> int {
     return a + b;
 }
 
-a(10, 20);
+aFunc(10, 20); // macro insertion.
 
-b! : (a : id, b : id) -> id {
-    // `##` is normally used as the stringify operator in the unary case.
-    // but when used in a binary context, it is the concatenation operator.
-    // this is a macro that therefore concatenates the two identifiers.
-    return a##b;
-    // no whitespace for `##` is allowed as this is not in the grammar for identifiers.
+appendCodes :: #save_code (a : Code, b : Code) -> Code {
+    // TODO: something like this.
+    #insert a;
+    #insert b;
+    // each #insert statement literally just takes the code AST and inserts it
+    // as a stream.
+    // so if we do two in a row here 
 }
 
-c! : id = USELESS_MACRO;
+thing := appendCodes(a, Func); // call b with two ASTs. each of the nodes are identifier nodes.
 
-// theres's this interesting idea where {} is actually
-// a function that takes in nothing and returns nothing.
-d! : {
-    2+3;
-    foo();
-    bar();
-}
-
+thing(10, 30);
 

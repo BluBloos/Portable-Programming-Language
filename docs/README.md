@@ -1,4 +1,4 @@
-The .c/cpp files within the PPL dir/ are ad-hoc examples to showcase the PPL language.
+The .c/cpp files within the PPL dir/ are ad-hoc examples to showcase / document the PPL language.
 
 Currently, the language is being designed. These are draft examples.
 
