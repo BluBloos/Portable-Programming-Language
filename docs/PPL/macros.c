@@ -1,9 +1,3 @@
-// we use `!` for macros. Rust inspired.
-// macros are strongly typed.
-// they are not doing the C thing where it is a preprocessor thing.
-// at least one of the purposes of such a macro is to force inline code instead
-// of a weak `inline` keyword suggestion.
-
 aFunc :: #save_code (a:int, b:int) -> int {
     return a + b;
 }
