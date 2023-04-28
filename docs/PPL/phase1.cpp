@@ -237,10 +237,12 @@ myVector := Vector { 2.f; 3.6f };
 // since we only provided values for the first two members, the third one is zero initialized.
 //
 myVector = {};
+myVector = null;
 //
 // the empty, untyped data pack is a special kind of data pack. this is explicit zero initialization. the power of this is in setting an already
 // declared variable. this is an untyped literal and therefore an exception to the rule that all literals are strongly typed.
-
+//
+// null is an alias for the same idea as the empty data pack. explicit zero initialization.
 
 // NAMESPACES:
 // ===========
@@ -562,7 +564,7 @@ this_func_is_not_called := ()
         {
             // there is also a use-case where we can exit the outermost loop with this
             // sort of parameterized break statement.
-            break i;          
+            break i;
         }
     }
 

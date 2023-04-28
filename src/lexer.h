@@ -4,29 +4,61 @@ typedef unsigned int UNICODE_CPOINT;
 #define CP_EOF 0
 
 char * TYPES[] = {
-    "float", "double", // floating point types.
+
+    // floating point types.
+    "float", "double",
+    "f32", "f64",
+
     "bool", "void",
 
     // integer types.
-    "ui8", "ui16", "ui32", "ui64", "i8", "i16", "i32", "i64",
+    "u8", "u16", "u32", "u64",
+    "s8", "s16", "s32", "s64",
 
-    // types from C.
+    // alias types that we carry over from C because we are nice.
     "int", "char", "short",
-    "uint8_t", "uint16_t", "uint32_t", "uint64_t",
-    "int8_t", "int16_t", "int32_t", "int64_t",
+
+    // cool types.
+    "Any", "Type", "TypeInfo", "TypeInfoMember"
 };
 
 char *KEYWORDS[] = {
-    "struct",
-    "continue", "break", 
-    "if", "else", "for", "return",
-    "switch", "case", "default",
-    
-    // qualifiers.
-    "const",
-    
+
+    "struct", "enum", "enum_flag",
+
+    "continue", "break", "return",
+
+    "if", "else", "then", "for", "in", "while", "do",
+
+    "switch", "case", "default", "fall",
+
+    "true", "false", "null",
+
+    "defer",
+
+    // TODO: maybe just shorten this to like space?
+    "namespace",
+
+    // qualifiers
+    "static",
+    "unsigned", // TODO: do we really want this?
+        
     // TODO: should intrinsics be keywords?
-    "sizeof",
+    "size_of",
+    "type_of",
+    "type_info",
+    "offset_of",
+
+    // TODO: is assert a standard lib thing or a compile-time function????
+    "assert",
+
+    // TODO: should these be something else? and can I have like the #else, etc versions ???
+    "#if",
+
+    // TODO: do we need to move these to actually be ops?
+    "#import",
+    "#assert", // op
+    "#inline"  // op
 
 };
 
