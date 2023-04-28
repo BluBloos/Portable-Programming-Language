@@ -21,25 +21,24 @@ target platform.
 Here is a small sample of PPL,
 
 ```c
-pc : #import "ppl.console";
-#import "ppl.array";
+pal  :: #import "ppl.pal";
+plib :: #import "ppl.types";
 
-main : () -> int {
-    myIntegers : array<ui32> = {};
+main :: () -> int {
+    myIntegers := plib.Array<u32> {};
 
-    i := 0u;
-    for i < 10 {
-        myIntegers.push(i++);
+    for i in 0 ..< 10 {
+        myIntegers.push(i);
     }
 
-    pc.print("\nThere are %d many integers\n", myIntegers.size);
+    pal.print("\nThere are % many integers\n", myIntegers.size);
 
     return 0;
 }
 ```
 
 This language takes inspiration from many other programming languages. To list them all would be much too exhaustive.
-Notable mentions would be C, C++, and JAI.
+Notable mentions would be C/C++, JAI, and Odin.
 
 # Foreword
 
