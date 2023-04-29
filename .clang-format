@@ -1,0 +1,69 @@
+# Copyright (c) 2023 Noah Cabral. All rights reserved.
+#
+# This file is part of the Atomation Game.
+#
+# See file /LICENSE.md for full license details.
+
+BasedOnStyle: Google
+Language: Cpp
+
+# braces
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel: false
+  AfterClass: false
+  AfterControlStatement: false
+  AfterEnum: false
+  AfterFunction: true
+  AfterNamespace: false
+  AfterObjCDeclaration: false
+  AfterStruct: false
+  AfterUnion: false
+  AfterExternBlock: false
+  BeforeCatch: false
+  BeforeElse: false
+  IndentBraces: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
+
+
+# pointer alignment.
+DerivePointerAlignment: false
+PointerAlignment: Right
+
+# prefer.
+AccessModifierOffset: -4
+IndentCaseLabels: true
+AlignEscapedNewlines: Right
+IndentWidth: 4
+UseTab: Never
+ColumnLimit: 120
+BreakConstructorInitializers: AfterColon
+NamespaceIndentation: All
+
+# align stuff.
+AlignTrailingComments: true
+AlignConsecutiveMacros: true
+AlignOperands: true
+AlignConsecutiveAssignments: true
+AlignConsecutiveDeclarations: true
+
+# sometimes better not to align.
+AlignAfterOpenBracket: false
+
+# this is sometimes bad, so disable.
+ReflowComments: false
+
+# Please do not sort anything.
+SortIncludes: false
+SortUsingDeclarations: false
+
+# when we can reduce vertical space, do so.
+AllowShortFunctionsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: true
+AllowShortLoopsOnASingleLine: true
+AllowShortBlocksOnASingleLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
+BinPackParameters: false
+BinPackArguments: false
