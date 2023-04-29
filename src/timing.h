@@ -3,9 +3,9 @@
 class Timer {
   public:
     clock_t begin;
-    char *msg;
+    const char *msg;
     bool active;
-    Timer(char *msg) : msg(msg), active(true) { begin = clock(); }
+    Timer(const char *msg) : msg(msg), active(true) { begin = clock(); }
     void TimerEnd() {
         if (active) {
             clock_t end = clock();

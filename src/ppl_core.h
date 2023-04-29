@@ -19,9 +19,20 @@
 #include <cstring>
 // #include <time.h>
 #include <stdarg.h>
+
+#if !defined(_MSC_VER)
 #include <unistd.h>
-// #include <x86intrin.h>
 #include <dirent.h>
+#else
+
+// workaround because we do not have unistd.h
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+
+#endif
+
+// #include <x86intrin.h>
+
 #define STB_DS_IMPLEMENTATION
 #define STBDS_NO_SHORT_NAMES
 #include <stb_ds.h>
@@ -68,9 +79,9 @@ bool VERBOSE = true;
 /* SILLY THINGS */
 char __silly_buff[256];
 
-// Uses printf syntax to format a string, but it returns as a paramter the pointer to the null-terminated
+// Uses printf syntax to format a string, but it returns as a parameter the pointer to the null-terminated
 // string. Be warned that every call to this function destroys the result of the last call to this function.
-char *SillyStringFmt(char *fmt, ...) {
+char *SillyStringFmt(const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
     vsprintf(__silly_buff, fmt, args);
