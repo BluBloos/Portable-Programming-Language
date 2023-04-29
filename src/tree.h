@@ -3,8 +3,9 @@
 
 // TODO(Noah): I feel like there is something we can do here.
 // All of this is pass thru for some tokens right to tree metadata.
-// like, TOKEN_QUOTE -> TREE_AST_STRING_LITERAL
+// like, TOKEN_QUOTE -> AST_STRING_LITERAL
 // there is basically nothing special that happens here.
+
 enum tree_type {
     TREE_ROOT = 0,
     TREE_REGEX_STR,
@@ -12,14 +13,18 @@ enum tree_type {
     TREE_REGEX_GROUP,
     TREE_REGEX_CHAR,
     TREE_REGEX_KEYWORD,
-    TREE_AST_GNODE,
-    TREE_AST_CLITERAL,
-    TREE_AST_INT_LITERAL,
-    TREE_AST_DECIMAL_LITERAL,
-    TREE_AST_STRING_LITERAL,
-    TREE_AST_SYMBOL,
-    TREE_AST_OP,
-    TREE_AST_KEYWORD
+
+    AST_GNODE,
+
+    AST_CHARACTER_LITERAL,
+    AST_INT_LITERAL,
+    AST_DECIMAL_LITERAL,
+    AST_STRING_LITERAL,
+    AST_NULL_LITERAL,
+
+    AST_SYMBOL,
+    AST_OP,
+    AST_KEYWORD
 };
 
 struct tree_metadata {
@@ -127,7 +132,7 @@ void DeallocTree(struct tree_node &tn) {
     if (tn.children == NULL) {
         return;
     } else {
-        for (int i = 0; i < tn.childrenCount; i++) {
+        for (unsigned int i = 0; i < tn.childrenCount; i++) {
             DeallocTree(tn.children[i]);
         }
         free(tn.children);
@@ -138,13 +143,19 @@ void PrintTree(struct tree_node &tn, unsigned int indentation) {
 
     // NOTE(Noah): Max indentation is 80 ' ' . Any deeper AST get like, "truncated", or whatever.
     char sillyBuff[81]; // 1 extra than 80 for the null-terminator.
-    int i;
+    unsigned int i;
     for (i = 0; i < indentation && i < 80; i++) {
         sillyBuff[i] = ' ';
     }
     sillyBuff[i] = 0; // null terminator.
 
     switch (tn.type) {
+
+        case TREE_ROOT:
+            // in this case we do nothing. in the code below this switch statement,
+            // we will recurse and print all the children of a root node.
+            break;
+
         case TREE_REGEX_STR:
             Assert(tn.metadata.str != NULL);
             LOGGER.Min("%sSTR:%s", sillyBuff, tn.metadata.str);
@@ -159,37 +170,43 @@ void PrintTree(struct tree_node &tn, unsigned int indentation) {
             LOGGER.Min("%sKEYWORD:%s", sillyBuff, tn.metadata.str);
             break;
 
-        case TREE_AST_GNODE:
+        // TODO: there is likely a nice metaprogramming idea here.
+        // all the things to print are the enum names but trim a little of the front. 
+        case AST_GNODE:
             Assert(tn.metadata.str != NULL);
             LOGGER.Min("%sGNODE:%s", sillyBuff, tn.metadata.str);
             break;
-        case TREE_AST_CLITERAL:
-            LOGGER.Min("%sCLITERAL:%c", sillyBuff, tn.metadata.c);
+
+        case AST_CHARACTER_LITERAL:
+            LOGGER.Min("%sCHARACTER_LITERAL:%c", sillyBuff, tn.metadata.c);
             break;
-        case TREE_AST_INT_LITERAL:
+        case AST_INT_LITERAL:
             LOGGER.Min("%sINT_LITERAL:%d", sillyBuff, tn.metadata.num);
             break;
-        case TREE_AST_DECIMAL_LITERAL:
+        case AST_DECIMAL_LITERAL:
             LOGGER.Min("%sDECIMAL_LITERAL:%f", sillyBuff, tn.metadata.dnum);
             break;
-        case TREE_AST_STRING_LITERAL:
+        case AST_STRING_LITERAL:
             Assert(tn.metadata.str != NULL);
             LOGGER.Min("%sSTRING_LITERAL:%s", sillyBuff, tn.metadata.str);
             break;
-        case TREE_AST_SYMBOL:
+        case AST_NULL_LITERAL:
+            LOGGER.Min("%sNULL_LITERAL", sillyBuff);
+            break;
+        
+        case AST_SYMBOL:
             Assert(tn.metadata.str != NULL);
             LOGGER.Min("%sSYMBOL:%s", sillyBuff, tn.metadata.str);
             break;
-        case TREE_AST_OP:
+        case AST_OP:
             Assert(tn.metadata.str != NULL);
             LOGGER.Min("%sOP:%s", sillyBuff, tn.metadata.str);
             break;
-        case TREE_AST_KEYWORD:
+        case AST_KEYWORD:
             Assert(tn.metadata.str != NULL);
             LOGGER.Min("%sKEYWORD:%s", sillyBuff, tn.metadata.str);
             break;
-        // TODO(Noah): Implement missing switch cases.
-        default: break;
+        
     }
 
     if (tn.metadata.regex_mod > 0) {
@@ -199,7 +216,7 @@ void PrintTree(struct tree_node &tn, unsigned int indentation) {
     }
 
     if (tn.children != NULL) {
-        for (int i = 0; i < tn.childrenCount; i++) {
+        for (unsigned int i = 0; i < tn.childrenCount; i++) {
             PrintTree(tn.children[i], indentation + 2);
         }
     }

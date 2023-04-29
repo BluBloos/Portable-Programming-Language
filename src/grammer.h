@@ -369,18 +369,18 @@ void LoadGrammer() {
     // lube the tree
     // NOTE(Noah): ensures that when creating regex trees, the grammer is "well defined".
     {
-        for ( int i = 0; i < grammerCount; i++) {
+        for ( unsigned int i = 0; i < grammerCount; i++) {
             GRAMMER.AddDef(_grammerTable[i][0]);
         }
 
-        for (int i = 0; i < grammerCountLR; i++) {
+        for (unsigned int i = 0; i < grammerCountLR; i++) {
             GRAMMER.AddDef(_grammerTable_LR[i][0]);
         }
     }
 
     // define grammers with Regex Trees pre-generated.
     {
-        for (int i = 0; i < grammerCount; i++) {
+        for (unsigned int i = 0; i < grammerCount; i++) {
             GRAMMER.AddDef(_grammerTable[i][0], CreateGrammerDefinition(
                 _grammerTable[i][0],
                 _grammerTable[i][1]
@@ -388,7 +388,7 @@ void LoadGrammer() {
         }
         
         // left-recursive grammers
-        for (int i = 0; i < grammerCountLR; i++) {
+        for (unsigned int i = 0; i < grammerCountLR; i++) {
             GRAMMER.AddDef(_grammerTable_LR[i][0], CreateGrammerDefinition(
                 _grammerTable_LR[i][0],
                 _grammerTable_LR[i][1],

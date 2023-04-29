@@ -48,7 +48,7 @@ bool ParseTokensWithRegexTree(
     // Easy, we just check if regexTree is an Any.
     bool any_flag = regexTree.type == TREE_REGEX_ANY;
     bool group_flag = regexTree.type == TREE_REGEX_GROUP;
-    int k = 0;
+    unsigned int k = 0;
 
     bool global_fail_flag = (any_flag) ? true : false;
 
@@ -93,7 +93,7 @@ bool ParseTokensWithRegexTree(
                 struct tree_node dummyTree = CreateTree(TREE_ROOT);
                 if (ParseTokensWithRegexTree(tokens, child, dummyTree)) {
                     re_matched += 1;
-                    for (int i = 0; i < dummyTree.childrenCount; i++) {
+                    for (unsigned int i = 0; i < dummyTree.childrenCount; i++) {
                         TreeAdoptTree(tree, dummyTree.children[i]);
                     }
                 } else {
@@ -110,7 +110,7 @@ bool ParseTokensWithRegexTree(
                     strlen(child_data) == strlen(tok.str) && 
                     SillyStringStartsWith(child_data, tok.str) )
                 {
-                    tokens.Next();
+                    tokens.AdvanceNext();
                     re_matched += 1;
                 } else {
                     break;
@@ -134,7 +134,7 @@ bool ParseTokensWithRegexTree(
                     break; // didn't match character
                 }
                 if (didMatch) {
-                    tokens.Next();
+                    tokens.AdvanceNext();
                     re_matched += 1;
                 } else {
                     break;
@@ -152,51 +152,61 @@ bool ParseTokensWithRegexTree(
                         //buffered_errors += (_buffered_errors)
                         break; // didn't find grammer object we wanted.
                     }
-                } else if ( SillyStringStartsWith(child_data, "literal") ) {
+                }
+                // TODO(opt): the regex representation should not use strings.
+                // that is very slow. please we should just use simple enums or something instead of string
+                // comparison like this.
+                else if ( SillyStringStartsWith(child_data, "literal") ) {
                     struct token tok = tokens.QueryNext(); // # the whole LR k+1 idea :)
                     bool didMatch = true;
-                    switch(tok.type) {
-                        case TOKEN_QUOTE:
-                        {
-                            tokens.Next();
-                            struct tree_node newTree = CreateTree(TREE_AST_STRING_LITERAL);
-                            newTree.metadata.str = tok.str;
+
+                    // TODO: it would be nice if these switch statements could also warn us at compile-time
+                    // that we are missing a case. Is there an elegant way in C++ to do this or is this one
+                    // of those things that would be best done in the new language?
+
+                    switch (tok.type) {
+                        case TOKEN_QUOTE: {
+                            tokens.AdvanceNext();
+                            struct tree_node newTree = CreateTree(AST_STRING_LITERAL);
+                            newTree.metadata.str     = tok.str;
                             TreeAdoptTree(tree, newTree);
-                        }
-                        break;
-                        case TOKEN_DECIMAL_LITERAL:
-                        {
-                            tokens.Next();
-                            struct tree_node newTree = CreateTree(TREE_AST_DECIMAL_LITERAL, tok.dnum);
+                        } break;
+
+                        case TOKEN_DECIMAL_LITERAL: {
+                            tokens.AdvanceNext();
+                            struct tree_node newTree = CreateTree(AST_DECIMAL_LITERAL, tok.dnum);
                             TreeAdoptTree(tree, newTree);
-                        }
-                        break;
-                        case TOKEN_INTEGER_LITERAL:
-                        {
-                            tokens.Next();
-                            struct tree_node newTree = CreateTree(TREE_AST_INT_LITERAL, tok.num);
+                        } break;
+                        case TOKEN_INTEGER_LITERAL: {
+                            tokens.AdvanceNext();
+                            struct tree_node newTree = CreateTree(AST_INT_LITERAL, tok.num);
                             TreeAdoptTree(tree, newTree);
-                        }
-                        break;
-                        case TOKEN_CHARACTER_LITERAL:
-                        {
-                            tokens.Next();
-                            struct tree_node newTree = CreateTree(TREE_AST_CLITERAL, tok.c);
+                        } break;
+                        case TOKEN_CHARACTER_LITERAL: {
+                            tokens.AdvanceNext();
+                            struct tree_node newTree = CreateTree(AST_CHARACTER_LITERAL, tok.c);
                             TreeAdoptTree(tree, newTree);
-                        }
-                        break;
+                        } break;
+
+                        case TOKEN_NULL_LITERAL: {
+                            tokens.AdvanceNext();
+                            struct tree_node newTree = CreateTree(AST_NULL_LITERAL);
+                            TreeAdoptTree(tree, newTree);
+                        } break;
+
                         default:
-                        didMatch = false;
-                        break;
-                    }    
+                            didMatch = false;
+                            break;
+                    }
+
                     if (!didMatch) break;
                     re_matched += 1;
 
                 } else if ( SillyStringStartsWith(child_data, "symbol")) {
                     struct token tok = tokens.QueryNext(); //# the whole LR k+1 idea :)
                     if (tok.type == TOKEN_SYMBOL) {
-                        tokens.Next();
-                        struct tree_node newTree = CreateTree(TREE_AST_SYMBOL);
+                        tokens.AdvanceNext();
+                        struct tree_node newTree = CreateTree(AST_SYMBOL);
                         newTree.metadata.str = tok.str;
                         TreeAdoptTree(tree, newTree);
                         re_matched += 1;
@@ -206,7 +216,10 @@ bool ParseTokensWithRegexTree(
                 } else if ( SillyStringStartsWith(child_data, "op") ) {
                     struct token tok = tokens.QueryNext();
                     bool didMatch = true;
-                    char *op = child_data + 2;
+
+                    // TODO: does the strlen below happen at compile-time?
+                    char *op = child_data + strlen("op");
+
                     // NOTE(Noah): Because I made the delineation between COP and OP, it actually makes
                     // this processing gross-ish.
                     switch(tok.type) {
@@ -219,7 +232,12 @@ bool ParseTokensWithRegexTree(
                         break;
                         case TOKEN_OP:
                         {
-                            didMatch = (strlen(op) == 1) && op[0] == tok.c;
+                            // TODO: again, we want to verify that our compile-time strings
+                            // such as particular operation types are valid (not negative).
+                            // 
+                            // I mean, better yet, for perf we should not be using strings at all
+                            // because strings are a debug thing.
+                            didMatch = (strlen(op) == 1) && ((uint8_t)op[0] == tok.c);
                         }
                         break;
                         default:
@@ -227,8 +245,8 @@ bool ParseTokensWithRegexTree(
                         break;
                     }
                     if (didMatch) {
-                        tokens.Next();
-                        struct tree_node newTree = CreateTree(TREE_AST_OP);
+                        tokens.AdvanceNext();
+                        struct tree_node newTree = CreateTree(AST_OP);
                         newTree.metadata.str = child_data;
                         TreeAdoptTree(tree, newTree);
                         re_matched += 1; 
@@ -243,8 +261,8 @@ bool ParseTokensWithRegexTree(
                     // save that information.
                     struct token tok = tokens.QueryNext();
                     if (tok.type == TOKEN_KEYWORD) {
-                        tokens.Next();
-                        struct tree_node newTree = CreateTree(TREE_AST_KEYWORD);
+                        tokens.AdvanceNext();
+                        struct tree_node newTree = CreateTree(AST_KEYWORD);
                         newTree.metadata.str = tok.str;
                         TreeAdoptTree(tree, newTree);
                     } else {
@@ -330,7 +348,7 @@ bool ParseTokensWithGrammer(
     
     // NOTE(Noah): Here we do not alloc another string.
     // The string has already been secured and alloced inside of grammerDef.
-    tree = CreateTree(TREE_AST_GNODE);
+    tree = CreateTree(AST_GNODE);
     tree.metadata.str = (char *)grammerDef.name;
     
     // Fill up the tree with any parsed children.
@@ -358,7 +376,7 @@ bool ParseTokensWithGrammer(
 
     if (!r) {
         // Delete any children that might have been created.
-        for (int i = 0; i < tree.childrenCount; i++) {
+        for (unsigned int i = 0; i < tree.childrenCount; i++) {
             DeallocTree(tree.children[i]);
         }
         tree.childrenCount = 0; 

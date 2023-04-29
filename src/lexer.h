@@ -3,15 +3,6 @@
 typedef unsigned int UNICODE_CPOINT;
 #define CP_EOF 0
 
-// TODO:
-/*
-2, TOKEN_KEYWORD: in
-2, TOKEN_SYMBOL: t
-*/
-// ^ this is how the `int` will parse.
-// ^ this is fixed now.
-
-// BUT, if I have a thing called `input_off`, that doesn't work either.
 
 
 char * TYPES[] = {
@@ -33,6 +24,9 @@ char * TYPES[] = {
     "Any", "Type", "TypeInfo", "TypeInfoMember"
 };
 
+// NOTE: things like e.g. `true` and `false` are keywords but since they do not parse
+// as keywords they are not in the list below. they parse as literals and are therefore
+// somewhere else in the code below.
 char *KEYWORDS[] = {
 
     "struct", "enum", "enum_flag",
@@ -42,8 +36,6 @@ char *KEYWORDS[] = {
     "if", "else", "then", "for", "in", "while", "do",
 
     "switch", "case", "default", "fall",
-
-    "true", "false", "null",
 
     "defer",
 
@@ -73,12 +65,9 @@ char *KEYWORDS[] = {
 
 };
 
-char *P_DIRECTIVES[] = {
-    "#include", "#import"
-};
-
 char *OPS = "+-%*!<>=|&?[].~@^,";
 
+// TODO: are compound ops only two characters?
 char *COMPOUND_OPS[] = {
     "&&", "||", ">=", "<=", "==", "!=", "->",
     "+=", "-=", "*=", "/=", "%=", "&=", "|=", "++", "--"
@@ -172,7 +161,7 @@ class RawFileReader {
         return ch;
         */
     }
-    UNICODE_CPOINT operator[](int index) {
+    UNICODE_CPOINT operator[](unsigned int index) {
         if (index < 0 ) return CP_EOF;
         // Check if index is not accounted for by internalBuffer
         if ( !(index < buffCharCount) ) {
@@ -192,6 +181,7 @@ class RawFileReader {
 enum token_type {
     TOKEN_UNDEFINED,
     TOKEN_QUOTE,
+    TOKEN_NULL_LITERAL,
     TOKEN_INTEGER_LITERAL,
     TOKEN_DECIMAL_LITERAL,
     TOKEN_CHARACTER_LITERAL,
@@ -200,7 +190,6 @@ enum token_type {
     TOKEN_COP, // compouned op.
     TOKEN_PART,
     TOKEN_KEYWORD,
-    TOKEN_PDIRECTIVE, // preprocessor directives.
     TOKEN_SYMBOL
 };
 
@@ -219,6 +208,8 @@ struct token {
     // TODO(Noah): Add support for programs with more than 4 billion lines.
     uint32 line; 
 };
+
+// TODO: below looks like a good candidate for template stuff.
 struct token Token() {
     struct token t; t.type = TOKEN_UNDEFINED; t.line = 0; t.str = NULL;
     return t;
@@ -257,54 +248,56 @@ struct token Token(enum token_type type, uint64 num, unsigned int line) {
 
 // NOTE(Noah): I am unsure if this naming convention matches the rest of everything in this code
 // project, but it makes sense because we are defining function for operating on a specific data type.
-void TokenPrint(struct token tok) {
+void TokenPrint(struct token tok)
+{
     LOGGER.Min("%d, ", tok.line);
-    switch(tok.type) {
+    switch (tok.type) {
         case TOKEN_UNDEFINED:
-        LOGGER.Min("TOKEN_UNDEFINED\n");
-        break;
+            LOGGER.Min("TOKEN_UNDEFINED\n");
+            break;
         case TOKEN_QUOTE:
-        Assert(tok.str != NULL);
-        LOGGER.Min("TOKEN_QUOTE: %s\n", tok.str);
-        break;
+            Assert(tok.str != NULL);
+            LOGGER.Min("TOKEN_QUOTE: %s\n", tok.str);
+            break;
+
+        // NOTE: at the time of adding this enum, we added -Wall so that
+        // if any enum is missing from this switch that the compiler screams at us.
+        case TOKEN_NULL_LITERAL:
+            LOGGER.Min("TOKEN_NULL_LITERAL\n");
+            break;
+
         case TOKEN_INTEGER_LITERAL:
-        LOGGER.Min("TOKEN_INTEGER_LITERAL: %d\n", tok.num);
-        break;
+            LOGGER.Min("TOKEN_INTEGER_LITERAL: %d\n", tok.num);
+            break;
         case TOKEN_DECIMAL_LITERAL:
-        LOGGER.Min("TOKEN_DECIMAL_LITERAL: %f\n", tok.dnum);
-        break;
-        case TOKEN_CHARACTER_LITERAL:
-        {
+            LOGGER.Min("TOKEN_DECIMAL_LITERAL: %f\n", tok.dnum);
+            break;
+        case TOKEN_CHARACTER_LITERAL: {
             char utf8Buff[5];
             u8_toutf8(utf8Buff, 5, &tok.c, 1);
             LOGGER.Min("TOKEN_CHARACTER_LITERAL: %s\n", utf8Buff);
-        }
-        break;
+        } break;
         case TOKEN_ENDL:
-        LOGGER.Min("TOKEN_ENDL\n");
-        break;
+            LOGGER.Min("TOKEN_ENDL\n");
+            break;
         case TOKEN_OP:
-        LOGGER.Min("TOKEN_OP: %c\n", tok.c);
-        break;
+            LOGGER.Min("TOKEN_OP: %c\n", tok.c);
+            break;
         case TOKEN_COP:
-        Assert(tok.str != NULL);
-        LOGGER.Min("TOKEN_COP: %s\n", tok.str);
-        break;
+            Assert(tok.str != NULL);
+            LOGGER.Min("TOKEN_COP: %s\n", tok.str);
+            break;
         case TOKEN_PART:
-        LOGGER.Min("TOKEN_PART: %c\n", tok.c);
-        break;
+            LOGGER.Min("TOKEN_PART: %c\n", tok.c);
+            break;
         case TOKEN_KEYWORD:
-        Assert(tok.str != NULL);
-        LOGGER.Min("TOKEN_KEYWORD: %s\n", tok.str);
-        break;
-        case TOKEN_PDIRECTIVE:
-        Assert(tok.str != NULL);
-        LOGGER.Min("TOKEN_PDIRECTIVE: %s\n", tok.str);
-        break;
+            Assert(tok.str != NULL);
+            LOGGER.Min("TOKEN_KEYWORD: %s\n", tok.str);
+            break;
         case TOKEN_SYMBOL:
-        Assert(tok.str != NULL);
-        LOGGER.Min("TOKEN_SYMBOL: %s\n", tok.str);
-        break;
+            Assert(tok.str != NULL);
+            LOGGER.Min("TOKEN_SYMBOL: %s\n", tok.str);
+            break;
     }
 }
 
@@ -332,7 +325,7 @@ class TokenContainer {
     void ResetSavepoint(unsigned int check) { 
         _checkpoint = check;
     }
-    struct token Next() {
+    struct token AdvanceNext() {
         if (_checkpoint < tokenCount) {
             return tokens[_checkpoint++];
         }
@@ -375,7 +368,7 @@ class TokenContainer {
         }
     }
     void Print() {
-        for (int i = 0; i < tokenCount; i++) {
+        for (unsigned int i = 0; i < tokenCount; i++) {
             struct token &tok = tokens[i];
             TokenPrint(tok);
         }
@@ -392,7 +385,7 @@ bool IsNumber(std::string potNum, bool &decimalFlag) {
         return false;
     if (potNum[0] == '.' || potNum[potNum.size() - 1] == '.')
         return false;
-    for (int i = 0; i < potNum.size(); i++) {
+    for (size_t i = 0; i < potNum.size(); i++) {
         char character = potNum[i];
         switch(character) {
             case '0':
@@ -431,10 +424,14 @@ bool TokenFromLatent(struct token &token) {
                 token = Token(TOKEN_DECIMAL_LITERAL, num, currentLine);
             }
         }
+        // TODO: maybe a refactor here to just define a list of literals and their mappings?
+        // e.e. "null" -> NULL_LITERAL, "true" -> INTEGER_LITERAL, 1.
         else if (*cleanToken == "true")
             token = Token(TOKEN_INTEGER_LITERAL, (unsigned int)1, currentLine);
         else if (*cleanToken == "false")
             token = Token(TOKEN_INTEGER_LITERAL, (unsigned int)0, currentLine);
+        else if (*cleanToken == "null")
+            token = Token(TOKEN_NULL_LITERAL, currentLine);
         else
             token = Token(TOKEN_SYMBOL, *cleanToken, currentLine);
         return true;
@@ -452,14 +449,21 @@ unsigned int TokenFromLookaheadString(
     struct token &tok,
     struct token &symbolTok
 ) {
-    for (int i = 0; i < patternLen; i++) {
+    for (unsigned int i = 0; i < patternLen; i++) {
         char *mString = strPattern[i];
         int k = n;
         int j = 0;
         char *pStr;
-        for( pStr = mString; (raw[k++] == *pStr && *pStr != 0); pStr++ ) {
-            j++;
-        }
+
+        // NOTE: the idea here that we compare the unicode codepoint to the char
+        // is that our things that we are looking ahead we assume to always be
+        // just plain ASCII (and not the extended ascii).
+
+        // TODO: we need to do some sort of a compile-time check on the strings
+        // then for sanity that this is indeed the case.
+
+        for (pStr = mString; (raw[k++] == (uint8_t)*pStr && *pStr != 0); pStr++) { j++; }
+
         if (*pStr == 0) {
             // Means we made it through entire string and matched.
             TokenFromLatent(symbolTok);
@@ -481,7 +485,7 @@ void TokenFromChar(
 ) {
     bool charInTest = false;
     for (char *pStr = test; *pStr != 0; pStr++) { // Go thru str till null terminator.
-        if (*pStr == character)
+        if ((uint8_t)*pStr == character)
             charInTest = true;
     }
     if (charInTest) {
@@ -499,7 +503,7 @@ void TokenFromString(
     struct token &tok,
     struct token &symbolTok
 ) {
-    for (int i = 0; i < patternLen; i++) {
+    for (unsigned int i = 0; i < patternLen; i++) {
         char *mString = strPattern[i];
         char *pStr;
         int k = 0;
@@ -607,10 +611,6 @@ bool Lex(
     ); // need to lookahead for `int` keyword.
     sPatterns[5] = CreateSearchPattern(
         SEARCH_P_CURRENT_STRING, TOKEN_KEYWORD, KEYWORDS, sizeof(KEYWORDS) / sizeof(char*)); // the `in` keyword is a substring of `int`
-
-    sPatterns[6] = CreateSearchPattern(
-        SEARCH_P_STRING, TOKEN_PDIRECTIVE, P_DIRECTIVES, sizeof(P_DIRECTIVES) / sizeof(char *)
-    );
 
 
     // Go through each character one-by-one
@@ -740,7 +740,7 @@ bool Lex(
 
             // Go through all search patterns.
             bool foundToken = false;
-            for (int i = 0; i < sizeof(sPatterns) / sizeof(struct search_pattern); i++) {
+            for (size_t i = 0; i < sizeof(sPatterns) / sizeof(struct search_pattern); i++) {
                 struct search_pattern sPattern = sPatterns[i];
                 struct token tok = Token();
                 struct token symbolTok = Token();

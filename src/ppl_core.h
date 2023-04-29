@@ -139,7 +139,7 @@ bool SillyStringIsNumber(char *str, bool &decimalFlag) {
     unsigned int strLength = SillyStringLength(str);
     if (str[0] == '.' || str[strLength - 1] == '.')
         return false;
-    for (int i = 0; i < strLength; i++) {
+    for (unsigned int i = 0; i < strLength; i++) {
         char c = str[i];
         switch(c) {
             case '0':
@@ -231,7 +231,6 @@ static void StretchyBuffer_Growf(void **arr, int increment, int itemsize)
             In the event of a failure, errno is set to indicate the error.
         */
 
-        size_t nVal = 0;    
         std::string str = "";
 
         char c = fgetc(streamIn);    
@@ -272,7 +271,7 @@ public:
     void DecreaseIndentation(unsigned int amount) { indentation -= amount; }
     // TODO(Noah): Make this take in a char *fmt string and ... variadic arguments.
     void write(char *str) {
-        int n = 0 ;
+        size_t n = 0 ;
         std::string currentWrite = "";        
         while (n < strlen(str)) {
             char c = str[n];
@@ -284,7 +283,7 @@ public:
             } else {
                 if (freshNewline) {
                     std::string sillyWhitespace = ""; 
-                    int i = 0;
+                    unsigned int i = 0;
                     while(i++ < indentation) {sillyWhitespace += ' ';}
                     fprintf(handle, "%s", sillyWhitespace.c_str());
                 }

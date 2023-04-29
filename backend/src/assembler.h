@@ -524,7 +524,7 @@ int pasm_main(int argc, char **argv) {
     } else {
 
         char *inFilePath = argv[1];
-        char *targetPlatform = argv[2];
+        // char *targetPlatform = argv[2]; // TODO: use this.
 
         FILE *inFile = fopen(inFilePath, "r");
 
