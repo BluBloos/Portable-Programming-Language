@@ -13,7 +13,7 @@ tests/*
 !/tests/*.c
 *.o
 !tests/preparse/
-!tests/grammer
+!tests/grammar
 JOURNAL.md
 .DS_Store
 node_modules
