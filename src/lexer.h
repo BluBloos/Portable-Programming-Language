@@ -3,6 +3,17 @@
 typedef unsigned int UNICODE_CPOINT;
 #define CP_EOF 0
 
+// TODO:
+/*
+2, TOKEN_KEYWORD: in
+2, TOKEN_SYMBOL: t
+*/
+// ^ this is how the `int` will parse.
+// ^ this is fixed now.
+
+// BUT, if I have a thing called `input_off`, that doesn't work either.
+
+
 char * TYPES[] = {
 
     // floating point types.
@@ -66,15 +77,16 @@ char *P_DIRECTIVES[] = {
     "#include", "#import"
 };
 
-char *OPS = "+-%*!<>=|&?[].~@^";
+char *OPS = "+-%*!<>=|&?[].~@^,";
 
 char *COMPOUND_OPS[] = {
     "&&", "||", ">=", "<=", "==", "!=", "->",
     "+=", "-=", "*=", "/=", "%=", "&=", "|=", "++", "--"
 };
 
-// TODO: make `,` an operator. maybe ':' should be op as well.
-char *TOKEN_PARTS = "{}(),:";
+// TODO: maybe there should be a compound part kind of like `->`.
+// because `->` isn't really an operator.
+char *TOKEN_PARTS = "{}():";
 
 char *ENDLINE_CHAR = ";";
 
@@ -580,19 +592,26 @@ bool Lex(
 
     enum lexer_state state = LEXER_NORMAL;
 
+    // there is a precedence in any of the searches below where if some things are substrings of patterns,
+    // they need to be checked last.
+
     sPatterns[0] = CreateSearchPattern(
         SEARCH_P_STRING, TOKEN_COP, COMPOUND_OPS, sizeof(COMPOUND_OPS) / sizeof(char*));
-    sPatterns[1] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_OP, OPS);
+    sPatterns[1] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_OP, OPS); // some ops are substrings of compound ops.
+
     sPatterns[2] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_ENDL, ENDLINE_CHAR);
     sPatterns[3] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_PART, TOKEN_PARTS);
+
     sPatterns[4] = CreateSearchPattern(
-        SEARCH_P_CURRENT_STRING, TOKEN_KEYWORD, KEYWORDS, sizeof(KEYWORDS) / sizeof(char*));
+        SEARCH_P_STRING, TOKEN_KEYWORD, TYPES, sizeof(TYPES) / sizeof(char *)
+    ); // need to lookahead for `int` keyword.
     sPatterns[5] = CreateSearchPattern(
+        SEARCH_P_CURRENT_STRING, TOKEN_KEYWORD, KEYWORDS, sizeof(KEYWORDS) / sizeof(char*)); // the `in` keyword is a substring of `int`
+
+    sPatterns[6] = CreateSearchPattern(
         SEARCH_P_STRING, TOKEN_PDIRECTIVE, P_DIRECTIVES, sizeof(P_DIRECTIVES) / sizeof(char *)
     );
-    sPatterns[6] = CreateSearchPattern(
-        SEARCH_P_CURRENT_STRING, TOKEN_KEYWORD, TYPES, sizeof(TYPES) / sizeof(char *)
-    );
+
 
     // Go through each character one-by-one
     int n = -1;
@@ -781,7 +800,7 @@ bool Lex(
 }
 
 /* TODO(Noah):
-    Next step for PPL on 2020.03.22 is to implement the preparsing stuff.
+    Next step for PPL on 2021.03.22 is to implement the preparsing stuff.
     So my thought process right now is that we are going to have different 
     containers. One container for the main compilation unit.
     And a container for each import statement.
