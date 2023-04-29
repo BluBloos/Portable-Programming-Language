@@ -168,91 +168,108 @@ struct grammer_definition CreateGrammerDefinition(
 }
 
 /*
-So basically, the issue here is that for each Grammer.AddDef call, we contruct the RegexTree.
+So basically, the issue here is that for each Grammer.AddDef call, we construct the RegexTree.
 but in doing so, we require to know what type of grammer definitions already exist.
 */
 
-char *_grammerTable[][2] = {
+// TODO(Noah): Look into making these grammer constructions more readable.
+// I think the idea of string to regex tree is silly. we should maybe just directly construct the regex tree.
+
+char *_grammerTable[][2] =
+{
     {   
         "program",
-        "[(function)((var_decl);)(struct_decl)]*"
+        "[(function)((var_decl);)]*"
     },
     {
-        // TODO: we can use data packs here. will allow e.g. member functions.   
-        "struct_decl",
-        "(symbol):(keyword=struct)\\{((var_decl);)*\\};"
+        "routed_value",
+        "(symbol):"
     },
+    // TODO: do such built_in nodes actually contain what keyword was matched??
     {
-        "lv", // left-value.
-        "(symbol):(type)"
-    },
-    {
-        "function",
-        "(symbol):\\(((lv)(,(lv))*)?\\)((op,->)(type))?[;(statement)]"
+        "built_in",
+        "[(keyword=size_of)(keyword=type_of)(keyword=type_info)(keyword=offset_of)]"
     },
     { 
-        "_const",
-        "(keyword=const)"
+        "qualifier",
+        "[(keyword=static)(keyword=unsigned)]"
     },
     {
-        // TODO: need to add generics, a proper grammar for qualifiers.
+        "pointer_type",
+        "(op,^)(type)"
+    },
+    {
+        // TODO: And can we just do `(literal)?`   ?
+        // TODO: Can we have an integer_literal    ?
+        "array_type",        
+        "(op,[)[(literal)]?(op,])(type)"
+    },
+    {
+        // TODO: need to add generics.
         "type",
-        "[([((op,[)[(literal)]?(op,]))(op,^)(_const)](type))(symbol)(keyword)]"
+        "[(pointer_type)(array_type)((qualifier)(type))(symbol)(keyword)]"
     },
     {
-        "block",
+        "data_pack",
         "\\{(statement)*\\}"
     },
+
     {
-        "_break",
-        "(keyword=break)"
+        "typed_data_pack",
+        "(type)(data_pack)"
     },
+
     {
-        "_continue",
-        "(keyword=continue)"
-    },
-    {
-        "_return",
+        "return_statement",
         "(keyword=return)(expression)"
     },
     {
+        "runtime_var_decl",
+        "(routed_value)[((type)(op,=)(expression))((op,=)(expression))]"
+    },
+    {
+        "compile_time_var_decl",
+        "(routed_value):[((type)(op,=)(expression))(expression)]"
+    },
+    {
+        "var_decl",
+        "[(compile_time_var_decl)(runtime_var_decl)]"
+    },
+    {
+        // includes the else statement :p
+        "if_statement",
+        "(keyword=if)(expression)[((keyword=then)(statement))(data_pack)]((keyword=else)(statement))?"
+    },
+    {
+        "while_statement",
+        "(keyword=while)[((statement)(expression);(statement_noend))((expression);(statement_noend))(expression)][((keyword=do)(statement))(data_pack)]"
+    },
+
+    {
+        // whether the expression is set-like is another story. that is the semantic analysis stage.
+        "for_statement",
+        "(keyword=for)((symbol)(,(symbol))*(keyword=in))?(expression)[((keyword=do)(statement))(data_pack)]"
+    },
+
+
+    {
+        // TODO: support duffs device.
+        "switch_statement",
+        "(keyword=switch)(expression)\\{((keyword=case)(expression):(statement)*)*((keyword=default):(statement)*)?\\}"
+    },
+
+
+    {
         "statement",
-        "[;([(_return)(var_decl)(expression)(_break)(_continue)];)(block)(_if)(_for)(_switch)]"
+        "[;([(return_statement)(var_decl)(expression)(keyword=fall)(keyword=break)(keyword=continue)];)(if_statement)(while_statement)(for_statement)(switch_statement)]"
     },
     { 
-        // TODO(Noah): I would certainly like to remove this grammer definition.
-        // there is a lot that is similar between this one and the grammar for `statement`.
+        // TODO(Noah): I would certainly like to remove this grammer definition. there is a lot that is similar between this one and the grammar for `statement`.
         "statement_noend",
-        "[(var_decl)(expression)(_return)(_break)(_continue)(block)(_if)(_for)(_switch)]"
+        "[(var_decl)(expression)(return_statement)(keyword=fall)(keyword=break)(keyword=continue)(if_statement)(while_statement)(for_statement)(switch_statement)]"
     },
-    {
-        // TODO: need to add type inference.
-        "var_decl",
-        "(lv)(=[(initializer_list)(expression)])?"
-    },
-    {
-        "_if",
-        "(keyword=if)\\((expression)\\)(statement)((keyword=else)(statement))?"
-    },
-    {
-        // TODO: we need more advanced for-loops.
 
-        // NOTE(Noah): Notice that this allows for having for-loops as the end condition
-        // of a higher-level for-loop. 
-        "_for",
-        "(keyword=for)\\((statement)(expression);(statement_noend)\\)(statement)"
-    },
-    {
-        // TODO: does this not need the default keyword?
-        "_switch_default",
-        "(keyword=case):(statement)*"
-    },
-    {
-        //NOTE(Noah): Switch statement grammer makes it such that default case MUST come last.
-        // Is this intended?
-        "_switch",
-        "(keyword=switch)\\((expression)\\)\\{((keyword=case)(expression):(statement)*)*(_switch_default)?\\}"
-    },
+
     {
         "expression",
         "[(assignment_exp)(conditional_exp)]"
@@ -293,36 +310,52 @@ char *_grammerTable[][2] = {
         "additive_exp",
         "(term)([(op,+)(op,-)](term))*"
     },
+
     {
+        // TODO: once we get the comma operator working, we can simplify some of the grammar below.
+        "function_call",
+        "[(symbol)(built_in)]\\(((expression)(,(expression))*)?\\)"
+    },
+
+    {
+        // TODO: needs a better name.
         "term",
         "(factor)([(op,*)(op,/)(op,%)](factor))*"
     },
     {
-        // TODO: what about member functions? e.g. pc.print( ... );
-        "function_call",
-        "(symbol)\\(((expression)(,(expression))*)?\\)"
-    },
-    {
-        // TODO: rename this grammar construction to be like compiler built-ins.
-        "_sizeof",
-        "(keyword=sizeof)"
-    },
-    {
-        // TODO(Noah): Look into making this grammer definition more readable.
+        // TODO: needs a better name.
         "factor",
-        "[(object)((_sizeof)\\([(symbol)(type)]\\))([(op,!)(op,-)(op,&)(op,*)(op,~)(\\((type)\\))](factor))(\\((expression)\\))]"
+        "[(object)([(op,!)(op,-)(op,&)(op,*)(op,~)(\\((type)\\))](factor))(\\((expression)\\))]"
     },
-    // TODO: want to make this a more abstract "data block".
+
+    /*  
     {
-        "initializer_list",
-        "\\{((literal)(;(literal))*)?\\}"
-    }
+        "lv", // left-value.
+        "(routed_value)(type)"
+    },
+    */
+
+    /*
+    {
+        "function",
+        "(symbol):\\(((lv)(,(lv))*)?\\)((op,->)(type))?[;(statement)]"
+    },
+    */
+
+    /*
+    {
+        // TODO: we can use data packs here. will allow e.g. member functions.
+        "struct_decl",
+        "(symbol):(keyword=struct)\\{((var_decl);)*\\};"
+    },
+    */
+
 };
 
 char  *_grammerTable_LR[][3] = {
     {
         "object",
-        "[(function_call)(symbol)(literal)]", // beta
+        "[(function_call)(symbol)(literal)(typed_data_pack)(type)]", // beta
         "[(op,++)(op,--)((op,[)(expression)(op,]))((op,.)(object))]" // alpha
     }
 };
