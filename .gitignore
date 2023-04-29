@@ -8,6 +8,7 @@ _site/*
 log.txt
 design/*
 bin/*
+build/*
 tests/*.cpp
 tests/*
 !/tests/*.c
@@ -17,3 +18,4 @@ tests/*
 JOURNAL.md
 .DS_Store
 node_modules
+*.rdbg

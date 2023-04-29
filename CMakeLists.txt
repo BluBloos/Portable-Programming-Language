@@ -1,4 +1,5 @@
-# This file exists to support XCode backend for debugging compiler on macOS.
+# This file exists to support using XCode for debugging compiler on macOS.
+# I suppose it could also be for using Visual Studio on Windows.
 
 cmake_minimum_required(VERSION 3.21)
 

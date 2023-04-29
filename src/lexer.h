@@ -558,6 +558,8 @@ struct search_pattern {
 
 struct search_pattern sPatterns[7];
 
+static unsigned int sPatternsCount=0;
+
 struct search_pattern CreateSearchPattern( enum search_pattern_type sType, enum token_type tokType, char *pattern) {
     struct search_pattern sPattern;
     sPattern.sType = sType;
@@ -599,19 +601,22 @@ bool Lex(
     // there is a precedence in any of the searches below where if some things are substrings of patterns,
     // they need to be checked last.
 
-    sPatterns[0] = CreateSearchPattern(
+    sPatternsCount = 0;
+
+    sPatterns[sPatternsCount++] = CreateSearchPattern(
         SEARCH_P_STRING, TOKEN_COP, COMPOUND_OPS, sizeof(COMPOUND_OPS) / sizeof(char*));
-    sPatterns[1] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_OP, OPS); // some ops are substrings of compound ops.
+    sPatterns[sPatternsCount++] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_OP, OPS); // some ops are substrings of compound ops.
 
-    sPatterns[2] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_ENDL, ENDLINE_CHAR);
-    sPatterns[3] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_PART, TOKEN_PARTS);
+    sPatterns[sPatternsCount++] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_ENDL, ENDLINE_CHAR);
+    sPatterns[sPatternsCount++] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_PART, TOKEN_PARTS);
 
-    sPatterns[4] = CreateSearchPattern(
+    sPatterns[sPatternsCount++] = CreateSearchPattern(
         SEARCH_P_STRING, TOKEN_KEYWORD, TYPES, sizeof(TYPES) / sizeof(char *)
     ); // need to lookahead for `int` keyword.
-    sPatterns[5] = CreateSearchPattern(
+    sPatterns[sPatternsCount++] = CreateSearchPattern(
         SEARCH_P_CURRENT_STRING, TOKEN_KEYWORD, KEYWORDS, sizeof(KEYWORDS) / sizeof(char*)); // the `in` keyword is a substring of `int`
 
+    assert( sPatternsCount <= (sizeof(sPatterns) / sizeof(struct search_pattern)) );
 
     // Go through each character one-by-one
     int n = -1;
@@ -740,7 +745,7 @@ bool Lex(
 
             // Go through all search patterns.
             bool foundToken = false;
-            for (size_t i = 0; i < sizeof(sPatterns) / sizeof(struct search_pattern); i++) {
+            for (size_t i = 0; i < sPatternsCount; i++) {
                 struct search_pattern sPattern = sPatterns[i];
                 struct token tok = Token();
                 struct token symbolTok = Token();
