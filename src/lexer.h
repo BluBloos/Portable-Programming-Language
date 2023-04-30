@@ -1,28 +1,11 @@
-#ifndef LEXER_H
+#ifndef LEXER_H // TODO: make this file a .hpp
 #define LEXER_H
+
 typedef unsigned int UNICODE_CPOINT;
 #define CP_EOF 0
 
 
-
-char * TYPES[] = {
-
-    // floating point types.
-    "float", "double",
-    "f32", "f64",
-
-    "bool", "void",
-
-    // integer types.
-    "u8", "u16", "u32", "u64",
-    "s8", "s16", "s32", "s64",
-
-    // alias types that we carry over from C because we are nice.
-    "int", "char", "short",
-
-    // cool types.
-    "Any", "Type", "TypeInfo", "TypeInfoMember"
-};
+#include "ppl_types.hpp"
 
 // NOTE: things like e.g. `true` and `false` are keywords but since they do not parse
 // as keywords they are not in the list below. they parse as literals and are therefore
@@ -183,7 +166,8 @@ enum token_type {
     TOKEN_QUOTE,
     TOKEN_NULL_LITERAL,
     TOKEN_INTEGER_LITERAL,
-    TOKEN_DECIMAL_LITERAL,
+    TOKEN_DOUBLE_LITERAL,
+    TOKEN_FLOAT_LITERAL,
     TOKEN_CHARACTER_LITERAL,
     TOKEN_ENDL,
     TOKEN_OP,
@@ -269,14 +253,19 @@ void TokenPrint(struct token tok)
         case TOKEN_INTEGER_LITERAL:
             LOGGER.Min("TOKEN_INTEGER_LITERAL: %d\n", tok.num);
             break;
-        case TOKEN_DECIMAL_LITERAL:
-            LOGGER.Min("TOKEN_DECIMAL_LITERAL: %f\n", tok.dnum);
+        case TOKEN_DOUBLE_LITERAL:
+        // TODO: for doubles we have something else than %f, right?
+            LOGGER.Min("TOKEN_DOUBLE_LITERAL: %f\n", tok.dnum);
+            break;
+        case TOKEN_FLOAT_LITERAL:
+            LOGGER.Min("TOKEN_FLOAT_LITERAL: %f\n", tok.dnum);
             break;
         case TOKEN_CHARACTER_LITERAL: {
             char utf8Buff[5];
             u8_toutf8(utf8Buff, 5, &tok.c, 1);
             LOGGER.Min("TOKEN_CHARACTER_LITERAL: %s\n", utf8Buff);
         } break;
+
         case TOKEN_ENDL:
             LOGGER.Min("TOKEN_ENDL\n");
             break;
@@ -380,15 +369,15 @@ std::string *currentToken;
 std::string *cleanToken;
 unsigned int currentLine = 1;
 
-bool IsNumber(std::string potNum, bool *decimalFlag) {
+bool IsNumber(std::string potNum, bool *decimalFlag, bool *floatFlag)
+{
     *decimalFlag = false;
-    if (potNum == "") 
-        return false;
-    if (potNum[0] == '.' || potNum[potNum.size() - 1] == '.')
-        return false;
+    *floatFlag   = false;
+    if (potNum == "") return false;
+    if (potNum[0] == '.' || potNum[potNum.size() - 1] == '.') return false;
     for (size_t i = 0; i < potNum.size(); i++) {
         char character = potNum[i];
-        switch(character) {
+        switch (character) {
             case '0':
             case '1':
             case '2':
@@ -399,14 +388,18 @@ bool IsNumber(std::string potNum, bool *decimalFlag) {
             case '7':
             case '8':
             case '9':
-            break;
+                break;
             case '.':
-            *decimalFlag = true;
+                *decimalFlag = true;
+                break;
+            case 'f':
+                *floatFlag = true;
+                if (i != (potNum.size() - 1)) return false;
             break;
             default:
-            return false;
+                return false;
         }
-    } 
+    }
     return true;
 }
 
@@ -440,14 +433,17 @@ bool TokenFromString(
 bool TokenFromLatent(struct token &token) {
     // Latent currentTokens can be literal or symbol tokens
     if (*cleanToken != "") { 
-        bool dFlag;
-        if (IsNumber(*cleanToken, &dFlag)) { 
+        bool dFlag; bool fFlag;
+        if (IsNumber(*cleanToken, &dFlag, &fFlag)) { 
             if (!dFlag) {
                 unsigned int num = atoi(cleanToken->c_str());
                 token = Token(TOKEN_INTEGER_LITERAL, num, currentLine);
+            } else if (!fFlag) {
+                double num = atof(cleanToken->c_str());
+                token = Token(TOKEN_DOUBLE_LITERAL, num, currentLine);
             } else {
                 double num = atof(cleanToken->c_str());
-                token = Token(TOKEN_DECIMAL_LITERAL, num, currentLine);
+                token = Token(TOKEN_FLOAT_LITERAL, num, currentLine);
             }
         }
         // TODO: maybe a refactor here to just define a list of literals and their mappings?
@@ -460,11 +456,11 @@ bool TokenFromLatent(struct token &token) {
             token = Token(TOKEN_NULL_LITERAL, currentLine);
         else {
 
-            // TODO: looks like we can combine these two lists (TYPES and KEYWORDS).
+            // TODO: looks like we can combine these two lists (ppl::TYPE_STRINGS and KEYWORDS).
             if (!TokenFromString(
                     *cleanToken,
-                    TYPES,
-                    sizeof(TYPES) / sizeof(char *),
+                    ppl::TYPE_STRINGS,
+                    sizeof(ppl::TYPE_STRINGS) / sizeof(char *),
                     TOKEN_KEYWORD,
                     token
             )) {
@@ -734,8 +730,9 @@ bool Lex(
             // must ensure that what comes before the decimal is a number AND what comes after is also a number.
             
             bool _df; // NOTE: here we do not care about the decimal flag.
+            bool _ff; // also do not care about the float flag.
             
-            if (raw[n] == '.' && IsNumber(std::string(1, raw[n+1]), &_df) && IsNumber(*cleanToken, &_df) ) {
+            if (raw[n] == '.' && IsNumber(std::string(1, raw[n+1]), &_df, &_ff) && IsNumber(*cleanToken, &_df, &_ff) ) {
                 CurrentTokenAddChar('.');
                 continue;
             }

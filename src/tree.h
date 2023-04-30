@@ -1,5 +1,7 @@
-#ifndef TREE_H
+#ifndef TREE_H // TODO: make this file a .hpp
 #define TREE_H
+
+#include <ppl_types.hpp>
 
 // TODO(Noah): I feel like there is something we can do here.
 // All of this is pass thru for some tokens right to tree metadata.
@@ -29,12 +31,20 @@ enum tree_type {
 
 struct tree_metadata {
     char regex_mod;
+
+    // value.
     union { // kind of like the data storage for tree.
         UNICODE_CPOINT c;
         char *str;
         uint64 num;
+        int64_t sNum;
         double dnum;
+        float  fnum;
     };
+
+    // value-kind.
+    ppl_type valueKind;
+
 };
 
 /*
@@ -60,6 +70,8 @@ struct tree_node {
     struct tree_metadata metadata;
 };
 
+// TODO: I do not know if these CreateTree calls are the best idea.
+
 struct tree_node CreateTree(enum tree_type type) {
 
     struct tree_node tn =
@@ -69,12 +81,14 @@ struct tree_node CreateTree(enum tree_type type) {
     tn.childrenCount = 0;
     tn.childrenContainerCount = 0;
     tn.metadata.regex_mod = 0; // null character (null-terminator).
+    tn.metadata.valueKind = PPL_TYPE_UNKNOWN;
     return tn;
 }
 
 struct tree_node CreateTree(enum tree_type type, UNICODE_CPOINT c) {
     struct tree_node tn = CreateTree(type);
     tn.metadata.c = c;
+    tn.metadata.valueKind = PPL_TYPE_U32;
     return tn;
 }
 
@@ -85,18 +99,35 @@ struct tree_node CreateTree(enum tree_type type, char c) {
 struct tree_node CreateTree(enum tree_type type, const char *str) {
     struct tree_node tn = CreateTree(type);
     tn.metadata.str = MEMORY_ARENA.StringAlloc((char *)str);
+    // TODO: currently we are using PPL_TYPE_UNKNOWN and I think this is OK?
+    return tn;
+}
+
+struct tree_node CreateTree(enum tree_type type, int64_t num) {
+    struct tree_node tn = CreateTree(type);
+    tn.metadata.sNum = num;
+    tn.metadata.valueKind = PPL_TYPE_INT;
     return tn;
 }
 
 struct tree_node CreateTree(enum tree_type type, uint64 num) {
     struct tree_node tn = CreateTree(type);
     tn.metadata.num = num;
+    tn.metadata.valueKind = PPL_TYPE_U64;
     return tn;
 }
 
 struct tree_node CreateTree(enum tree_type type, double dnum) {
     struct tree_node tn = CreateTree(type);
     tn.metadata.dnum = dnum;
+    tn.metadata.valueKind = PPL_TYPE_DOUBLE;
+    return tn;
+}
+
+struct tree_node CreateTree(enum tree_type type, float fnum) {
+    struct tree_node tn = CreateTree(type);
+    tn.metadata.fnum = fnum;
+    tn.metadata.valueKind = PPL_TYPE_FLOAT;
     return tn;
 }
 

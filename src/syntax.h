@@ -172,14 +172,29 @@ bool ParseTokensWithRegexTree(
                             TreeAdoptTree(tree, newTree);
                         } break;
 
-                        case TOKEN_DECIMAL_LITERAL: {
+                        case TOKEN_DOUBLE_LITERAL: {
                             tokens.AdvanceNext();
-                            struct tree_node newTree = CreateTree(AST_DECIMAL_LITERAL, tok.dnum);
+                            struct tree_node newTree = CreateTree(AST_DECIMAL_LITERAL, (double)tok.dnum);
                             TreeAdoptTree(tree, newTree);
                         } break;
+                        case TOKEN_FLOAT_LITERAL: {
+                            // TODO: I know that f64 is more bits than f32, but is there e.g. a loss in precision
+                            // when we cast from double to float? some odd floating point representation thing.
+                            tokens.AdvanceNext();
+                            struct tree_node newTree = CreateTree(AST_DECIMAL_LITERAL, (float)tok.dnum);
+                            TreeAdoptTree(tree, newTree);
+                        } break;
+
                         case TOKEN_INTEGER_LITERAL: {
                             tokens.AdvanceNext();
-                            struct tree_node newTree = CreateTree(AST_INT_LITERAL, tok.num);
+                            
+                            // TODO: What happens if we write into the program a value that is too large
+                            // to fit into int64_t ?
+                            // or in general whenever we are looking at type stuff.
+                            // -> this should  be a compiler error about a non-explicit truncation.
+                            assert( tok.num > INT64_MAX );
+
+                            struct tree_node newTree = CreateTree(AST_INT_LITERAL, (int64_t)tok.num);
                             TreeAdoptTree(tree, newTree);
                         } break;
                         case TOKEN_CHARACTER_LITERAL: {
