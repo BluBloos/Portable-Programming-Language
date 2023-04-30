@@ -7,6 +7,6 @@
 
 main :: ()->int {
     utf8String:^char = "🔥🔥🔥🔥🔥🥵";
-    myMan : ui32 = '😱';
+    myMan : u32 = '😱';
     // Yo like that shit is 🔥🔥🔥🔥🔥🥵
 }

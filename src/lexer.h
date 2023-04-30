@@ -380,7 +380,8 @@ std::string *currentToken;
 std::string *cleanToken;
 unsigned int currentLine = 1;
 
-bool IsNumber(std::string potNum, bool &decimalFlag) {
+bool IsNumber(std::string potNum, bool *decimalFlag) {
+    *decimalFlag = false;
     if (potNum == "") 
         return false;
     if (potNum[0] == '.' || potNum[potNum.size() - 1] == '.')
@@ -400,7 +401,7 @@ bool IsNumber(std::string potNum, bool &decimalFlag) {
             case '9':
             break;
             case '.':
-            decimalFlag = true;
+            *decimalFlag = true;
             break;
             default:
             return false;
@@ -409,13 +410,38 @@ bool IsNumber(std::string potNum, bool &decimalFlag) {
     return true;
 }
 
+// given str will match a token from the pattern list.
+// returns true if the string matched the pattern.
+bool TokenFromString(
+    std::string str,
+    char **strPattern,
+    unsigned int patternLen,
+    enum token_type tokType,
+    struct token &tok
+) {
+//    tok = Token();
+    for (unsigned int i = 0; i < patternLen; i++) {
+        char *mString = strPattern[i];
+        char *pStr;
+        int k = 0;
+        for( pStr = mString; (*pStr != 0 && str[k] == *pStr); (pStr++, k++) );
+        if (*pStr == 0) {
+            // Means we made it through entire string and matched.
+            // TokenFromLatent(symbolTok);
+            tok = Token(tokType, mString, currentLine);
+            return true;
+        }
+    }
+    return false;
+}
+
 // Checks for a token from a latent currentToken 
 // which by definition is a token that is preceding any other token or is preceding whitespace
 bool TokenFromLatent(struct token &token) {
     // Latent currentTokens can be literal or symbol tokens
     if (*cleanToken != "") { 
         bool dFlag;
-        if (IsNumber(*cleanToken, dFlag)) { 
+        if (IsNumber(*cleanToken, &dFlag)) { 
             if (!dFlag) {
                 unsigned int num = atoi(cleanToken->c_str());
                 token = Token(TOKEN_INTEGER_LITERAL, num, currentLine);
@@ -432,8 +458,28 @@ bool TokenFromLatent(struct token &token) {
             token = Token(TOKEN_INTEGER_LITERAL, (unsigned int)0, currentLine);
         else if (*cleanToken == "null")
             token = Token(TOKEN_NULL_LITERAL, currentLine);
-        else
-            token = Token(TOKEN_SYMBOL, *cleanToken, currentLine);
+        else {
+
+            // TODO: looks like we can combine these two lists (TYPES and KEYWORDS).
+            if (!TokenFromString(
+                    *cleanToken,
+                    TYPES,
+                    sizeof(TYPES) / sizeof(char *),
+                    TOKEN_KEYWORD,
+                    token
+            )) {
+                if (!TokenFromString(
+                    *cleanToken,
+                    KEYWORDS,
+                    sizeof(KEYWORDS) / sizeof(char *),
+                    TOKEN_KEYWORD,
+                    token
+                )) {
+                    token = Token(TOKEN_SYMBOL, *cleanToken, currentLine);
+                }
+            }
+        }
+
         return true;
     }
     return false;
@@ -491,28 +537,6 @@ void TokenFromChar(
     if (charInTest) {
         TokenFromLatent(symbolTok);
         tok = Token(tokType, character, currentLine);
-    }
-}
-
-// given str will match a token from the pattern list.
-void TokenFromString(
-    std::string str,
-    char **strPattern,
-    unsigned int patternLen,
-    enum token_type tokType,
-    struct token &tok,
-    struct token &symbolTok
-) {
-    for (unsigned int i = 0; i < patternLen; i++) {
-        char *mString = strPattern[i];
-        char *pStr;
-        int k = 0;
-        for( pStr = mString; (*pStr != 0 && str[k] == *pStr); (pStr++, k++) );
-        if (*pStr == 0) {
-            // Means we made it through entire string and matched.
-            // TokenFromLatent(symbolTok);
-            tok = Token(tokType, mString, currentLine);
-        }
     }
 }
 
@@ -610,11 +634,6 @@ bool Lex(
     sPatterns[sPatternsCount++] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_ENDL, ENDLINE_CHAR);
     sPatterns[sPatternsCount++] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_PART, TOKEN_PARTS);
 
-    sPatterns[sPatternsCount++] = CreateSearchPattern(
-        SEARCH_P_STRING, TOKEN_KEYWORD, TYPES, sizeof(TYPES) / sizeof(char *)
-    ); // need to lookahead for `int` keyword.
-    sPatterns[sPatternsCount++] = CreateSearchPattern(
-        SEARCH_P_CURRENT_STRING, TOKEN_KEYWORD, KEYWORDS, sizeof(KEYWORDS) / sizeof(char*)); // the `in` keyword is a substring of `int`
 
     assert( sPatternsCount <= (sizeof(sPatterns) / sizeof(struct search_pattern)) );
 
@@ -713,8 +732,10 @@ bool Lex(
             
             // consume '.' in decimal literals to avoid being parsed as a TOKEN_PART. 
             // must ensure that what comes before the decimal is a number AND what comes after is also a number.
-            bool _df;
-            if (raw[n] == '.' && IsNumber(std::string(1, raw[n+1]), _df) && IsNumber(*cleanToken, _df) ) {
+            
+            bool _df; // NOTE: here we do not care about the decimal flag.
+            
+            if (raw[n] == '.' && IsNumber(std::string(1, raw[n+1]), &_df) && IsNumber(*cleanToken, &_df) ) {
                 CurrentTokenAddChar('.');
                 continue;
             }
@@ -730,7 +751,7 @@ bool Lex(
                 continue;
             }
 
-            // We want to check for symbols if we have hit whitespace.
+            // We want to check for a latent token if we have hit whitespace.
             if (character == ' ' || character == '\n' || character == CP_EOF) {
                 currentLine = (character == '\n') ? currentLine - 1  : currentLine;
                 struct token token;
@@ -743,7 +764,8 @@ bool Lex(
                 if (isTokenLatent) continue;
             }
 
-            // Go through all search patterns.
+            // Go through all search patterns. Some search patterns just check the current character.
+            // some search patterns are lookahead.
             bool foundToken = false;
             for (size_t i = 0; i < sPatternsCount; i++) {
                 struct search_pattern sPattern = sPatterns[i];
@@ -777,8 +799,7 @@ bool Lex(
                         sPattern.string_pattern,
                         sPattern.patternLen,
                         sPattern.tokType,
-                        tok,
-                        symbolTok
+                        tok
                     );
                     break;
                 }
