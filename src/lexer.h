@@ -418,9 +418,8 @@ bool TokenFromString(
         char *pStr;
         int k = 0;
         for( pStr = mString; (*pStr != 0 && str[k] == *pStr); (pStr++, k++) );
-        if (*pStr == 0) {
-            // Means we made it through entire string and matched.
-            // TokenFromLatent(symbolTok);
+        if ( (*pStr == 0) && (k == str.size()) ) {
+            // Means we made it through entire pattern string and the incoming string.
             tok = Token(tokType, mString, currentLine);
             return true;
         }

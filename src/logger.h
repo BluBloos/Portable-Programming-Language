@@ -1,5 +1,9 @@
 enum Color { RED, GREEN, WHITE };
 
+// TODO: maybe we should flush to file because until I exit
+// the build program the stuff in log.txt does not output.
+// that is sad.
+
 class Logger {
   public:
     FILE *logFile;

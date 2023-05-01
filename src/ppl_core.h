@@ -73,7 +73,9 @@ Logger LOGGER;
 ConstMemoryArena MEMORY_ARENA(1024 * 1024 * 60); // 60 MB.
 // Compiler parameters.
 enum target_platform PLATFORM = POSIX;
-bool VERBOSE = true;
+
+bool VERBOSE = true; // TODO: hook with build system (e.g. CMake).
+
 /* PROGRAM GLOBALS */
 
 /* SILLY THINGS */
