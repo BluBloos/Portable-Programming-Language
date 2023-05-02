@@ -74,13 +74,6 @@ a19 := 'a';       // this is a char.
 a20 := 0u;        // this is an unsigned int.
 a21 := true;      // this is a bool.
 a22 := a21;       // also a bool. uses the type of a21.
-#if 0
-{
-a24   := 0b10;        // this is an int.
-a25   := 1_000_000;   // this is an int.
-a26   := 1.0e9;       // this is a  float.
-var3  := 0xFA;        // this is an int.
-}
 
 
 // DEFAULT INITIALIZATION:
@@ -276,14 +269,6 @@ plib :: #import "ppl.types";
 //
 // the `#` idea shows up when we are dealing with compile-time things.
 // `#import` is specifically a statement that gets executed at compile-time by the compilation meta-program.
-//
-#if 0 {
-// this is the legacy include idea. a simple file-system based copy-pasta.
-#include "someFile.ppl";
-
-// compat for foreign things.
-legacyMath :: #translate_c99 #include "math.h";
-}
 
 
 // ARRAYS:
@@ -377,12 +362,12 @@ buildBridge :: ( brickCount : int, height : float ) -> Bridge {
     return Bridge {};
 }
 
-#if 0
-{ // so this is what does not work.
-buildBridge(  brickCount = 10, height = 1.f  );
+// so this is what does not work.
+//
+// buildBridge(  brickCount = 10, height = 1.f  );
+//
 // the problem with this syntax is that there is a confusion between variable assignment
 // of something that is already called e.g. `brickCount`.
-}
 
 // the solution:
 //
@@ -851,37 +836,4 @@ input_off := ()
     hTerm := pal.get_or_create_terminal();
     hTerm.reset_attributes();
 }
-
-
-// DUFFS DEVICE:
-// =============
-//
-#if 0 {
-    duffs_device :: () {
-        to : ^short; 
-        from : ^short;
-        count : u32;
-        {
-            n : u32 = (count + 7) / 8;
-            switch count % 8 {
-                case 0: do { ^to = ^from++; fall;
-                case 7:      ^to = ^from++; fall;
-                case 6:      ^to = ^from++; fall;
-                case 5:      ^to = ^from++; fall;
-                case 4:      ^to = ^from++; fall;
-                case 3:      ^to = ^from++; fall;
-                case 2:      ^to = ^from++; fall;
-                case 1:      ^to = ^from++;
-                        } while --n > 0;
-            }
-        }
-    }
-}
-//
-// SYNTAX:
-// =======
-//
-// The thing to note about the example above is that the case labels are not required to
-// be directly descendant to the switch statement in the AST. they can be anywhere pretty much
-// and just denote a location to jump to.
 
