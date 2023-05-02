@@ -342,11 +342,10 @@ class TokenContainer {
         }
     }
     void Append(struct token tok) {
-        if (tokenCount < containerSize) {
-            //tokens[tokenCount++] = tok; // invokes copy constructor.
-            memcpy(&tokens[tokenCount++], &tok, sizeof(struct token));
-        } else {
-            containerSize += 100;
+        // realloc.
+        if (tokenCount >= containerSize) 
+        {
+            containerSize += 100; // TODO: consider more advanced strat here?
             struct token* _tokens = (struct token *)realloc(tokens, containerSize * sizeof(struct token));
             if (_tokens == NULL) {
                 // Going to try doing a realloc ourselves.
@@ -359,6 +358,8 @@ class TokenContainer {
                 tokens = _tokens;
             }
         }
+        // append.
+        memcpy(&tokens[tokenCount++], &tok, sizeof(struct token));
     }
     void Print() {
         for (unsigned int i = 0; i < tokenCount; i++) {
