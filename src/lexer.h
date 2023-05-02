@@ -7,9 +7,6 @@ typedef unsigned int UNICODE_CPOINT;
 
 #include "ppl_types.hpp"
 
-// NOTE: things like e.g. `true` and `false` are keywords but since they do not parse
-// as keywords they are not in the list below. they parse as literals and are therefore
-// somewhere else in the code below.
 char *KEYWORDS[] = {
 
     "struct", "enum", "enum_flag",
@@ -21,6 +18,9 @@ char *KEYWORDS[] = {
     "switch", "case", "default", "fall",
 
     "defer",
+
+    // keywords that map to values.
+    "true", "false", "null",
 
     // TODO: maybe just shorten this to like space?
     "namespace",
@@ -53,7 +53,9 @@ char *OPS = "+-%*!<>=|&?[].~@^,";
 // TODO: are compound ops only two characters?
 char *COMPOUND_OPS[] = {
     "&&", "||", ">=", "<=", "==", "!=", "->",
-    "+=", "-=", "*=", "/=", "%=", "&=", "|=", "++", "--"
+    "+=", "-=", "*=", "/=", "%=", "&=", "|=", "++", "--",
+
+    "<<=", ">>=", "<<", ">>", "..=", "..<"
 };
 
 // TODO: maybe there should be a compound part kind of like `->`.
@@ -164,8 +166,8 @@ class RawFileReader {
 enum token_type {
     TOKEN_UNDEFINED,
     TOKEN_QUOTE,
-    TOKEN_NULL_LITERAL,
     TOKEN_INTEGER_LITERAL,
+    TOKEN_UINT_LITERAL,
     TOKEN_DOUBLE_LITERAL,
     TOKEN_FLOAT_LITERAL,
     TOKEN_CHARACTER_LITERAL,
@@ -230,6 +232,8 @@ struct token Token(enum token_type type, uint64 num, unsigned int line) {
     return t;
 }
 
+#include <algorithm>
+
 // NOTE(Noah): I am unsure if this naming convention matches the rest of everything in this code
 // project, but it makes sense because we are defining function for operating on a specific data type.
 void TokenPrint(struct token tok)
@@ -240,16 +244,18 @@ void TokenPrint(struct token tok)
             LOGGER.Min("TOKEN_UNDEFINED\n");
             break;
         case TOKEN_QUOTE:
-            Assert(tok.str != NULL);
-            LOGGER.Min("TOKEN_QUOTE: %s\n", tok.str);
-            break;
+            {Assert(tok.str != NULL);
+            std::string betterStr = std::string(tok.str);
+            std::replace(betterStr.begin(), betterStr.end(), ' ', '_');
+            LOGGER.Min("TOKEN_QUOTE: %s\n", betterStr.c_str());
+            }break;
 
-        // NOTE: at the time of adding this enum, we added -Wall so that
+        // NOTE: we added -Wall so that
         // if any enum is missing from this switch that the compiler screams at us.
-        case TOKEN_NULL_LITERAL:
-            LOGGER.Min("TOKEN_NULL_LITERAL\n");
-            break;
 
+        case TOKEN_UINT_LITERAL:
+            LOGGER.Min("TOKEN_UINT_LITERAL: %d\n", tok.num);
+            break;
         case TOKEN_INTEGER_LITERAL:
             LOGGER.Min("TOKEN_INTEGER_LITERAL: %d\n", tok.num);
             break;
@@ -369,10 +375,11 @@ std::string *currentToken;
 std::string *cleanToken;
 unsigned int currentLine = 1;
 
-bool IsNumber(std::string potNum, bool *decimalFlag, bool *floatFlag)
+bool IsNumber(std::string potNum, bool *decimalFlag, bool *floatFlag, bool *unsignedFlag)
 {
     *decimalFlag = false;
     *floatFlag   = false;
+    *unsignedFlag = false;
     if (potNum == "") return false;
     if (potNum[0] == '.' || potNum[potNum.size() - 1] == '.') return false;
     for (size_t i = 0; i < potNum.size(); i++) {
@@ -395,6 +402,11 @@ bool IsNumber(std::string potNum, bool *decimalFlag, bool *floatFlag)
             case 'f':
                 *floatFlag = true;
                 if (i != (potNum.size() - 1)) return false;
+                break;
+            case 'u':
+                *unsignedFlag = true;
+                if (i != (potNum.size() - 1)) return false;
+                break;
             break;
             default:
                 return false;
@@ -432,27 +444,29 @@ bool TokenFromString(
 bool TokenFromLatent(struct token &token) {
     // Latent currentTokens can be literal or symbol tokens
     if (*cleanToken != "") { 
-        bool dFlag; bool fFlag;
-        if (IsNumber(*cleanToken, &dFlag, &fFlag)) { 
+        bool dFlag; bool fFlag; bool uFlag;
+        if (IsNumber(*cleanToken, &dFlag, &fFlag, &uFlag)) { 
             if (!dFlag) {
+                // NOTE: atoi works in a similar way to atof. the invalid things
+                // at the end of the string are ignored. of particular interest
+                // to us would be the `u` at the end of the string.
                 unsigned int num = atoi(cleanToken->c_str());
-                token = Token(TOKEN_INTEGER_LITERAL, num, currentLine);
+                if (uFlag)
+                    token = Token(TOKEN_UINT_LITERAL, num, currentLine);
+                else
+                    token = Token(TOKEN_INTEGER_LITERAL, num, currentLine);
             } else if (!fFlag) {
+                // TODO: `atof` actually parses the exponent stuff so that sort
+                // of thing should be trivial to implement.
                 double num = atof(cleanToken->c_str());
                 token = Token(TOKEN_DOUBLE_LITERAL, num, currentLine);
             } else {
+                // NOTE: atof ignores any invalid things at the end of the string,
+                // so `f` is ignored.
                 double num = atof(cleanToken->c_str());
                 token = Token(TOKEN_FLOAT_LITERAL, num, currentLine);
             }
         }
-        // TODO: maybe a refactor here to just define a list of literals and their mappings?
-        // e.e. "null" -> NULL_LITERAL, "true" -> INTEGER_LITERAL, 1.
-        else if (*cleanToken == "true")
-            token = Token(TOKEN_INTEGER_LITERAL, (unsigned int)1, currentLine);
-        else if (*cleanToken == "false")
-            token = Token(TOKEN_INTEGER_LITERAL, (unsigned int)0, currentLine);
-        else if (*cleanToken == "null")
-            token = Token(TOKEN_NULL_LITERAL, currentLine);
         else {
 
             // TODO: looks like we can combine these two lists (ppl::TYPE_STRINGS and KEYWORDS).
@@ -730,8 +744,9 @@ bool Lex(
             
             bool _df; // NOTE: here we do not care about the decimal flag.
             bool _ff; // also do not care about the float flag.
+            bool _uf;
             
-            if (raw[n] == '.' && IsNumber(std::string(1, raw[n+1]), &_df, &_ff) && IsNumber(*cleanToken, &_df, &_ff) ) {
+            if (raw[n] == '.' && IsNumber(std::string(1, raw[n+1]), &_df, &_ff, &_uf) && IsNumber(*cleanToken, &_df, &_ff, &_uf) ) {
                 CurrentTokenAddChar('.');
                 continue;
             }

@@ -783,7 +783,7 @@ generate_food_symbol := ()
     foodSymbolNum = plib.rand() % 5;
 }
 
-snake_eats_itself := () -> bool
+snake_eats_itself := () -> bool {
 
 // TUPLES:
 // =======
@@ -817,7 +817,7 @@ draw := ()
             else if is_snake_body(j, i) then hTerm.print("%c", SNAKE_BODY);
             else if is_food(j, i) {
 
-                symbol : FOOD_SYMBOLS[foodSymbolNum];
+                symbol := FOOD_SYMBOLS[foodSymbolNum];
                 hTerm.print("%c", symbol);
 
             } else then hTerm.print(" ");
@@ -836,7 +836,7 @@ is_out_of_border := () -> bool
 is_snake_body := (x : int, y : int) -> bool
 {
     for snake {
-        if (it.y == y) && (it.x == x) then true;
+        if (it.y == y) && (it.x == x) then return true;
     }
     return false;
 }

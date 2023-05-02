@@ -185,6 +185,13 @@ bool ParseTokensWithRegexTree(
                             TreeAdoptTree(tree, newTree);
                         } break;
 
+                        case TOKEN_UINT_LITERAL:
+                        {
+                            tokens.AdvanceNext();
+                            struct tree_node newTree = CreateTree(AST_INT_LITERAL, tok.num);
+                            TreeAdoptTree(tree, newTree);
+                        } break;
+
                         case TOKEN_INTEGER_LITERAL: {
                             tokens.AdvanceNext();
                             
@@ -200,12 +207,6 @@ bool ParseTokensWithRegexTree(
                         case TOKEN_CHARACTER_LITERAL: {
                             tokens.AdvanceNext();
                             struct tree_node newTree = CreateTree(AST_CHARACTER_LITERAL, tok.c);
-                            TreeAdoptTree(tree, newTree);
-                        } break;
-
-                        case TOKEN_NULL_LITERAL: {
-                            tokens.AdvanceNext();
-                            struct tree_node newTree = CreateTree(AST_NULL_LITERAL);
                             TreeAdoptTree(tree, newTree);
                         } break;
 
