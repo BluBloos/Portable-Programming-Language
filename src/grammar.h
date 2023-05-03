@@ -182,9 +182,7 @@ char *_grammarTable[][2] =
         "[(function)((var_decl);)]*"
     },
     {
-        // TODO: this should only be called routed_value if the expression
-        // actually contains a value. but this is just the route currently.
-        "routed_value",
+        "route",
         "(symbol):"
     },
     // TODO: do such built_in nodes actually contain what keyword was matched??
@@ -227,11 +225,11 @@ char *_grammarTable[][2] =
     },
     {
         "runtime_var_decl",
-        "(routed_value)[((type)(op,=)(expression))((op,=)(expression))]"
+        "(route)[((type)(op,=)(expression))((op,=)(expression))]"
     },
     {
         "compile_time_var_decl",
-        "(routed_value):[((type)(op,=)(expression))(expression)]"
+        "(route):[((type)(op,=)(expression))(expression)]"
     },
     {
         "var_decl",
@@ -338,7 +336,7 @@ char *_grammarTable[][2] =
     /*  
     {
         "lv", // left-value.
-        "(routed_value)(type)"
+        "(route)(type)"
     },
     */
 
