@@ -18,9 +18,14 @@ enum tree_type {
 
     AST_GNODE,
 
+    // TODO: Do we require this in the AST node?
+    // we lose information about what the thing is if 
+    // we do not go with something like below.
     AST_CHARACTER_LITERAL,
+
     AST_INT_LITERAL,
     AST_DECIMAL_LITERAL,
+
     AST_STRING_LITERAL,
     AST_NULL_LITERAL,
 
@@ -91,7 +96,10 @@ struct tree_node CreateTree(enum tree_type type, UNICODE_CPOINT c) {
 }
 
 struct tree_node CreateTree(enum tree_type type, char c) {
-    return CreateTree(type, (UNICODE_CPOINT)c);
+    struct tree_node tn = CreateTree(type);
+    tn.metadata.c = c;
+    tn.metadata.valueKind = PPL_TYPE_S8;
+    return tn;
 }
 
 struct tree_node CreateTree(enum tree_type type, const char *str) {
@@ -126,6 +134,13 @@ struct tree_node CreateTree(enum tree_type type, float fnum) {
     struct tree_node tn = CreateTree(type);
     tn.metadata.dnum = fnum;
     tn.metadata.valueKind = PPL_TYPE_FLOAT;
+    return tn;
+}
+
+struct tree_node CreateTree(enum tree_type type, bool b) {
+    struct tree_node tn = CreateTree(type);
+    tn.metadata.num = b;
+    tn.metadata.valueKind = PPL_TYPE_BOOL;
     return tn;
 }
 

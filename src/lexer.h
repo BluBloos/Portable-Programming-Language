@@ -7,6 +7,10 @@ typedef unsigned int UNICODE_CPOINT;
 
 #include "ppl_types.hpp"
 
+// keywords that map to values such as:
+// "true", "false", "null",
+// are mapped to their own TOKEN kind.
+
 char *KEYWORDS[] = {
 
     "struct", "enum", "enum_flag",
@@ -18,9 +22,6 @@ char *KEYWORDS[] = {
     "switch", "case", "default", "fall",
 
     "defer",
-
-    // keywords that map to values.
-    "true", "false", "null",
 
     // TODO: maybe just shorten this to like space?
     "namespace",
@@ -169,6 +170,9 @@ enum token_type {
     TOKEN_DOUBLE_LITERAL,
     TOKEN_FLOAT_LITERAL,
     TOKEN_CHARACTER_LITERAL,
+    TOKEN_TRUE_LITERAL,
+    TOKEN_FALSE_LITERAL,
+    TOKEN_NULL_LITERAL,
     TOKEN_ENDL,
     TOKEN_OP,
     TOKEN_COP, // compouned op.
@@ -253,6 +257,15 @@ void TokenPrint(struct token tok)
         // NOTE: we added -Wall so that
         // if any enum is missing from this switch that the compiler screams at us.
 
+        case TOKEN_TRUE_LITERAL:
+            LOGGER.Min("TOKEN_TRUE_LITERAL\n");
+            break;
+        case TOKEN_FALSE_LITERAL:
+            LOGGER.Min("TOKEN_FALSE_LITERAL\n");
+            break;
+        case TOKEN_NULL_LITERAL:
+            LOGGER.Min("TOKEN_NULL_LITERAL\n");
+            break;
         case TOKEN_UINT_LITERAL:
             LOGGER.Min("TOKEN_UINT_LITERAL: %" PRIu64 "\n", tok.num);
             break;
@@ -467,6 +480,18 @@ bool TokenFromLatent(struct token &token) {
                 double num = atof(cleanToken->c_str());
                 token = Token(TOKEN_FLOAT_LITERAL, num, currentLine);
             }
+        }
+        // NOTE: the reason that these have dedicated tokens is because
+        // we want to lock down what kind of thing these are ASAP.
+        // otherwise at some point later we have to ask if the string is equal to e.g. "true".
+        else if (*cleanToken == "true") {
+            token = Token(TOKEN_TRUE_LITERAL, currentLine);
+        }
+        else if (*cleanToken == "false") {
+            token = Token(TOKEN_FALSE_LITERAL, currentLine);
+        }
+        else if (*cleanToken == "null") {
+            token = Token(TOKEN_NULL_LITERAL, currentLine);
         }
         else {
 

@@ -165,10 +165,30 @@ bool ParseTokensWithRegexTree(
                     // of those things that would be best done in the new language?
 
                     switch (tok.type) {
+
                         case TOKEN_QUOTE: {
                             tokens.AdvanceNext();
                             struct tree_node newTree = CreateTree(AST_STRING_LITERAL);
                             newTree.metadata.str     = tok.str;
+                            TreeAdoptTree(tree, newTree);
+                        } break;
+
+                        // 
+                        case TOKEN_NULL_LITERAL: {
+                            tokens.AdvanceNext();
+                            struct tree_node newTree = CreateTree(AST_NULL_LITERAL);
+                            TreeAdoptTree(tree, newTree);
+                        } break;
+
+                        case TOKEN_TRUE_LITERAL: {
+                            tokens.AdvanceNext();
+                            struct tree_node newTree = CreateTree(AST_INT_LITERAL, true);
+                            TreeAdoptTree(tree, newTree);
+                        } break;
+
+                        case TOKEN_FALSE_LITERAL: {
+                            tokens.AdvanceNext();
+                            struct tree_node newTree = CreateTree(AST_INT_LITERAL, false);
                             TreeAdoptTree(tree, newTree);
                         } break;
 
@@ -206,7 +226,11 @@ bool ParseTokensWithRegexTree(
                         } break;
                         case TOKEN_CHARACTER_LITERAL: {
                             tokens.AdvanceNext();
-                            struct tree_node newTree = CreateTree(AST_CHARACTER_LITERAL, tok.c);
+
+                            // TODO: revisit this stuff.
+                            assert( tok.c <= uint64_t(INT8_MAX) );
+
+                            struct tree_node newTree = CreateTree(AST_INT_LITERAL, (char)tok.c);
                             TreeAdoptTree(tree, newTree);
                         } break;
 

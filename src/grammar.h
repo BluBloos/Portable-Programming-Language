@@ -182,6 +182,8 @@ char *_grammarTable[][2] =
         "[(function)((var_decl);)]*"
     },
     {
+        // TODO: this should only be called routed_value if the expression
+        // actually contains a value. but this is just the route currently.
         "routed_value",
         "(symbol):"
     },
