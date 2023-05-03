@@ -314,13 +314,14 @@ char *_grammarTable[][2] =
         "additive_exp",
         "(term)([(op,+)(op,-)](term))*"
     },
-
     {
-        // TODO: once we get the comma operator working, we can simplify some of the grammar below.
-        "function_call",
-        "[(symbol)(built_in)]\\(((expression)(,(expression))*)?\\)"
+        "tuple",
+        "(expression)(,(expression))+"
     },
-
+    {
+        "function_call",
+        "[(symbol)(built_in)]\\([(tuple)(expression)]?\\)"
+    },
     {
         // TODO: needs a better name.
         "term",
