@@ -32,20 +32,63 @@ enum ppl_type {
     PPL_TYPE_UNKNOWN,
     PPL_TYPE_F32,
     PPL_TYPE_F64,
-    PPL_TYPE_FLOAT = PPL_TYPE_F32,
+    PPL_TYPE_FLOAT  = PPL_TYPE_F32,
     PPL_TYPE_DOUBLE = PPL_TYPE_F64,
     PPL_TYPE_BOOL,
     PPL_TYPE_VOID,
     PPL_TYPE_U8, PPL_TYPE_U16, PPL_TYPE_U32, PPL_TYPE_U64,
-    PPL_TYPE_S8, PPL_TYPE_S16, PPL_TYPE_S32, PPL_TYPE_S64,
-    PPL_TYPE_INT = PPL_TYPE_S64,
+    PPL_TYPE_S8, 
     PPL_TYPE_CHAR = PPL_TYPE_S8,
+    PPL_TYPE_S16, 
     PPL_TYPE_SHORT = PPL_TYPE_S16,
+    PPL_TYPE_S32,
+    PPL_TYPE_S64,
+    PPL_TYPE_INT = PPL_TYPE_S64,
     PPL_TYPE_ANY,
     PPL_TYPE_TYPE,
     PPL_TYPE_TYPE_INFO,
     PPL_TYPE_TYPE_INFO_MEMBER
 };
+
+static const char * PplTypeToString(ppl_type type)
+{
+    switch (type) {
+        case PPL_TYPE_UNKNOWN:
+            return "PPL_TYPE_UNKNOWN";
+        case PPL_TYPE_F32:
+            return "PPL_TYPE_F32";
+        case PPL_TYPE_F64:
+            return "PPL_TYPE_F64";
+        case PPL_TYPE_BOOL:
+            return "PPL_TYPE_BOOL";
+        case PPL_TYPE_VOID:
+            return "PPL_TYPE_VOID";
+        case PPL_TYPE_U8:
+            return "PPL_TYPE_U8";
+        case PPL_TYPE_U16:
+            return "PPL_TYPE_U16";
+        case PPL_TYPE_U32:
+            return "PPL_TYPE_U32";
+        case PPL_TYPE_U64:
+            return "PPL_TYPE_U64";
+        case PPL_TYPE_S8:
+            return "PPL_TYPE_S8";
+        case PPL_TYPE_S16:
+            return "PPL_TYPE_S16";
+        case PPL_TYPE_S32:
+            return "PPL_TYPE_S32";
+        case PPL_TYPE_S64:
+            return "PPL_TYPE_S64";
+        case PPL_TYPE_ANY:
+            return "PPL_TYPE_ANY";
+        case PPL_TYPE_TYPE:
+            return "PPL_TYPE_TYPE";
+        case PPL_TYPE_TYPE_INFO:
+            return "PPL_TYPE_TYPE_INFO";
+        case PPL_TYPE_TYPE_INFO_MEMBER:
+            return "PPL_TYPE_TYPE_INFO_MEMBER";
+    }
+}
 
 #endif // include guard.
  

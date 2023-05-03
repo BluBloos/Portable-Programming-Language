@@ -211,9 +211,14 @@ void PrintTree(struct tree_node &tn, unsigned int indentation) {
         case AST_CHARACTER_LITERAL:
             LOGGER.Min("%sCHARACTER_LITERAL:%c", sillyBuff, tn.metadata.c);
             break;
+
         case AST_INT_LITERAL:
-            LOGGER.Min("%sINT_LITERAL:%d", sillyBuff, tn.metadata.num);
+            LOGGER.Min("%sINT_LITERAL:%" PRIu64 ", valueKind:%s",
+                sillyBuff,
+                tn.metadata.num,
+                PplTypeToString(tn.metadata.valueKind));
             break;
+
         case AST_DECIMAL_LITERAL:
             LOGGER.Min("%sDECIMAL_LITERAL:%f", sillyBuff, tn.metadata.dnum);
             break;
