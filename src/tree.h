@@ -18,10 +18,7 @@ enum tree_type {
 
     AST_GNODE,
 
-    // TODO: Do we require this in the AST node?
-    // we lose information about what the thing is if 
-    // we do not go with something like below.
-    AST_CHARACTER_LITERAL,
+    //AST_CHARACTER_LITERAL,
 
     AST_INT_LITERAL,
     AST_DECIMAL_LITERAL,
@@ -221,9 +218,11 @@ void PrintTree(struct tree_node &tn, unsigned int indentation) {
             LOGGER.Min("%sGNODE:%s", sillyBuff, tn.metadata.str);
             break;
 
+#if 0
         case AST_CHARACTER_LITERAL:
             LOGGER.Min("%sCHARACTER_LITERAL:%c", sillyBuff, tn.metadata.c);
             break;
+#endif
 
         case AST_INT_LITERAL:
             LOGGER.Min("%sINT_LITERAL:%" PRIu64 ", valueKind:%s",

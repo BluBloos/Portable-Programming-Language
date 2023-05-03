@@ -1,1 +1,1 @@
-myFun(6.5, 7.4f, true, false, null, myVar)
+myFun(6.5, 7.4f, true, false, null, myVar, 't')
