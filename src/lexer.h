@@ -243,12 +243,12 @@ void TokenPrint(struct token tok)
         case TOKEN_UNDEFINED:
             LOGGER.Min("TOKEN_UNDEFINED\n");
             break;
-        case TOKEN_QUOTE:
-            {Assert(tok.str != NULL);
+        case TOKEN_QUOTE: {
+            Assert(tok.str != NULL);
             std::string betterStr = std::string(tok.str);
             std::replace(betterStr.begin(), betterStr.end(), ' ', '_');
             LOGGER.Min("TOKEN_QUOTE: %s\n", betterStr.c_str());
-            }break;
+        } break;
 
         // NOTE: we added -Wall so that
         // if any enum is missing from this switch that the compiler screams at us.

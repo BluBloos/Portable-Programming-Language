@@ -272,7 +272,11 @@ char *_grammarTable[][2] =
 
     {
         "expression",
-        "[(assignment_exp)(conditional_exp)]"
+        "[(span_expression)(assignment_exp)(conditional_exp)]"
+    },
+    {
+        "span_expression",
+        "(literal)[(op,..=)(op,..<)](literal)"
     },
     {
         "assignment_exp",
