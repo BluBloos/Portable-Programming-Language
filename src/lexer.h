@@ -230,6 +230,8 @@ struct token Token(enum token_type type, uint64 num, unsigned int line) {
     return t;
 }
 
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 #include <algorithm>
 
 // NOTE(Noah): I am unsure if this naming convention matches the rest of everything in this code
@@ -252,10 +254,10 @@ void TokenPrint(struct token tok)
         // if any enum is missing from this switch that the compiler screams at us.
 
         case TOKEN_UINT_LITERAL:
-            LOGGER.Min("TOKEN_UINT_LITERAL: %d\n", tok.num);
+            LOGGER.Min("TOKEN_UINT_LITERAL: %" PRIu64 "\n", tok.num);
             break;
         case TOKEN_INTEGER_LITERAL:
-            LOGGER.Min("TOKEN_INTEGER_LITERAL: %d\n", tok.num);
+            LOGGER.Min("TOKEN_INTEGER_LITERAL: %" PRIu64 "\n", tok.num);
             break;
         case TOKEN_DOUBLE_LITERAL:
         // TODO: for doubles we have something else than %f, right?
@@ -449,7 +451,7 @@ bool TokenFromLatent(struct token &token) {
                 // NOTE: atoi works in a similar way to atof. the invalid things
                 // at the end of the string are ignored. of particular interest
                 // to us would be the `u` at the end of the string.
-                unsigned int num = atoi(cleanToken->c_str());
+                uint64_t num = atoi(cleanToken->c_str());
                 if (uFlag)
                     token = Token(TOKEN_UINT_LITERAL, num, currentLine);
                 else

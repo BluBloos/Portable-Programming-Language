@@ -199,7 +199,7 @@ bool ParseTokensWithRegexTree(
                             // to fit into int64_t ?
                             // or in general whenever we are looking at type stuff.
                             // -> this should  be a compiler error about a non-explicit truncation.
-                            assert( tok.num > INT64_MAX );
+                            assert( tok.num <= uint64_t(INT64_MAX) );
 
                             struct tree_node newTree = CreateTree(AST_INT_LITERAL, (int64_t)tok.num);
                             TreeAdoptTree(tree, newTree);
