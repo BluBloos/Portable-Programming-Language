@@ -844,7 +844,7 @@ bool Lex(
     structure of buckets.
 
     Each bucket is literally a unit of source code that we are going to want to run 
-    through the entire pipeline (grammer generation and so forth).
+    through the entire pipeline (grammar generation and so forth).
 
     At the time of bucket creation we are also going to want to generate some sort of
     context around the buckets (like what is the qualification for this bucket).

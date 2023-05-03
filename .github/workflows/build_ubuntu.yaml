@@ -16,6 +16,6 @@ jobs:
       - name: Preparser Test
         run: ./build.sh pall 
         shell: bash
-      - name: Grammer Test
+      - name: Grammar Test
         run: ./build.sh gall 
         shell: bash

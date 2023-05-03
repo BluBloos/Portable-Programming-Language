@@ -1,9 +1,9 @@
-#ifndef GRAMMER_H
-#define GRAMMER_H
+#ifndef GRAMMAR_H
+#define GRAMMAR_H
 #include <tree.h>
 
 // TODO(Noah): In making the AST tree dramatically simpler, 
-//      create ghost grammer definitions.
+//      create ghost grammar definitions.
 // these definitions will not create a corresponding gnode and will
 // instead just "passthrough" the children to the request node. 
 
@@ -26,54 +26,54 @@ def IsValidType(typeStr):
 */
 
 
-// NOTE(Noah): Grammer definition are custom regular expressions that I invented,
+// NOTE(Noah): Grammar definition are custom regular expressions that I invented,
 // regardless of if there are parsing libraries out there...
-struct grammer_definition {
+struct grammar_definition {
     const char *name; 
     struct tree_node regexTree;
 };
 
-class Grammer {
+class Grammar {
     public:
-    Grammer() {}
-    ~Grammer() {
+    Grammar() {}
+    ~Grammar() {
         // Go through all definitions in defs and dealloc the trees.
         for (auto kv : defs) {
-            struct grammer_definition &gd = kv.second;
+            struct grammar_definition &gd = kv.second;
             DeallocTree(gd.regexTree);
         }
     }
-    std::unordered_map<std::string, struct grammer_definition> defs;
+    std::unordered_map<std::string, struct grammar_definition> defs;
     bool DefExists(const char *defName) {
         return defs.count(defName);
     }
     // NOTE(Noah): AddDef doesn't check to ensure that the defName you supplied already exists.
     // It assumes this responsibility to the caller.
-    void AddDef(const char *defName, struct grammer_definition gd) {
+    void AddDef(const char *defName, struct grammar_definition gd) {
         defs[defName] = gd;
     }
     void AddDef(const char *defName) {
-        struct grammer_definition gd = {};
+        struct grammar_definition gd = {};
         defs[defName] = gd;
     }
     // NOTE(Noah): Does no checking.
-    struct grammer_definition GetDef(const char *defName) {
+    struct grammar_definition GetDef(const char *defName) {
         return defs[defName];
     }
     void Print() {
         for (auto kv : defs) {
-            struct grammer_definition &gd = kv.second;
+            struct grammar_definition &gd = kv.second;
             struct tree_node &tn = gd.regexTree;
-            LOGGER.Log("Grammer definition for %s:", gd.name);
+            LOGGER.Log("Grammar definition for %s:", gd.name);
             PrintTree(tn, 0);
         }
     }
 };
 
-Grammer GRAMMER = Grammer(); // global grammer object.
+Grammar GRAMMAR = Grammar(); // global grammar object.
 
 // TODO(Noah): Account for failure to generate RegexTree. Do something sensible.
-struct tree_node CreateRegexTree(Grammer &grammer, const char *regex) {
+struct tree_node CreateRegexTree(Grammar &grammar, const char *regex) {
     
     struct tree_node regexTree = CreateTree(TREE_ROOT);
     struct tree_node *contextStack = NULL; // stretch buffer.
@@ -100,7 +100,7 @@ struct tree_node CreateRegexTree(Grammer &grammer, const char *regex) {
                     break; // or something like this.
                 }
             } 
-            if (grammer.DefExists(newStr.c_str()) || newStr == "symbol" || newStr == "keyword" || newStr == "literal") {
+            if (grammar.DefExists(newStr.c_str()) || newStr == "symbol" || newStr == "keyword" || newStr == "literal") {
                 struct tree_node tn = CreateTree(TREE_REGEX_STR, newStr.c_str());
                 TreeAdoptTree(lastTree, tn);
                 n += 1 + newStr.size(); // skip over () block
@@ -149,33 +149,33 @@ struct tree_node CreateRegexTree(Grammer &grammer, const char *regex) {
     return r;
 }
 
-struct grammer_definition CreateGrammerDefinition(const char *name, const char *regExp) {
-    struct grammer_definition gd;
+struct grammar_definition CreateGrammarDefinition(const char *name, const char *regExp) {
+    struct grammar_definition gd;
     gd.name = name; 
-    gd.regexTree = CreateRegexTree(GRAMMER, regExp);
+    gd.regexTree = CreateRegexTree(GRAMMAR, regExp);
     return gd;
 }
 
-struct grammer_definition CreateGrammerDefinition(
+struct grammar_definition CreateGrammarDefinition(
     const char *name, const char *beta, const char *alpha
 ) {
-    // here we are defining a left recursive grammer.
-    struct grammer_definition gd;
+    // here we are defining a left recursive grammar.
+    struct grammar_definition gd;
     gd.name = name;
     char * regExp = MEMORY_ARENA.StringAlloc(SillyStringFmt("%s%s*", beta, alpha));
-    gd.regexTree = CreateRegexTree(GRAMMER, regExp);
+    gd.regexTree = CreateRegexTree(GRAMMAR, regExp);
     return gd;
 }
 
 /*
-So basically, the issue here is that for each Grammer.AddDef call, we construct the RegexTree.
-but in doing so, we require to know what type of grammer definitions already exist.
+So basically, the issue here is that for each Grammar.AddDef call, we construct the RegexTree.
+but in doing so, we require to know what type of grammar definitions already exist.
 */
 
-// TODO(Noah): Look into making these grammer constructions more readable.
+// TODO(Noah): Look into making these grammar constructions more readable.
 // I think the idea of string to regex tree is silly. we should maybe just directly construct the regex tree.
 
-char *_grammerTable[][2] =
+char *_grammarTable[][2] =
 {
     {   
         "program",
@@ -264,7 +264,7 @@ char *_grammerTable[][2] =
         "[;([(return_statement)(var_decl)(expression)(keyword=fall)(keyword=break)(keyword=continue)];)(if_statement)(while_statement)(for_statement)(switch_statement)]"
     },
     { 
-        // TODO(Noah): I would certainly like to remove this grammer definition. there is a lot that is similar between this one and the grammar for `statement`.
+        // TODO(Noah): I would certainly like to remove this grammar definition. there is a lot that is similar between this one and the grammar for `statement`.
         "statement_noend",
         "[(var_decl)(expression)(return_statement)(keyword=fall)(keyword=break)(keyword=continue)(if_statement)(while_statement)(for_statement)(switch_statement)]"
     },
@@ -352,7 +352,7 @@ char *_grammerTable[][2] =
 
 };
 
-char  *_grammerTable_LR[][3] = {
+char  *_grammarTable_LR[][3] = {
     {
         "object",
         "[(function_call)(symbol)(literal)(typed_data_pack)(type)]", // beta
@@ -360,45 +360,45 @@ char  *_grammerTable_LR[][3] = {
     }
 };
 
-// Loads the grammer into the global grammer object.
-void LoadGrammer() {
+// Loads the grammar into the global grammar object.
+void LoadGrammar() {
 
-    unsigned int grammerCount = sizeof(_grammerTable) / (2 * sizeof(char *));
-    unsigned int grammerCountLR = sizeof(_grammerTable_LR) / (3 * sizeof(char *));
+    unsigned int grammarCount = sizeof(_grammarTable) / (2 * sizeof(char *));
+    unsigned int grammarCountLR = sizeof(_grammarTable_LR) / (3 * sizeof(char *));
 
     // lube the tree
-    // NOTE(Noah): ensures that when creating regex trees, the grammer is "well defined".
+    // NOTE(Noah): ensures that when creating regex trees, the grammar is "well defined".
     {
-        for ( unsigned int i = 0; i < grammerCount; i++) {
-            GRAMMER.AddDef(_grammerTable[i][0]);
+        for ( unsigned int i = 0; i < grammarCount; i++) {
+            GRAMMAR.AddDef(_grammarTable[i][0]);
         }
 
-        for (unsigned int i = 0; i < grammerCountLR; i++) {
-            GRAMMER.AddDef(_grammerTable_LR[i][0]);
+        for (unsigned int i = 0; i < grammarCountLR; i++) {
+            GRAMMAR.AddDef(_grammarTable_LR[i][0]);
         }
     }
 
-    // define grammers with Regex Trees pre-generated.
+    // define grammars with Regex Trees pre-generated.
     {
-        for (unsigned int i = 0; i < grammerCount; i++) {
-            GRAMMER.AddDef(_grammerTable[i][0], CreateGrammerDefinition(
-                _grammerTable[i][0],
-                _grammerTable[i][1]
+        for (unsigned int i = 0; i < grammarCount; i++) {
+            GRAMMAR.AddDef(_grammarTable[i][0], CreateGrammarDefinition(
+                _grammarTable[i][0],
+                _grammarTable[i][1]
             ));
         }
         
-        // left-recursive grammers
-        for (unsigned int i = 0; i < grammerCountLR; i++) {
-            GRAMMER.AddDef(_grammerTable_LR[i][0], CreateGrammerDefinition(
-                _grammerTable_LR[i][0],
-                _grammerTable_LR[i][1],
-                _grammerTable_LR[i][2]
+        // left-recursive grammars
+        for (unsigned int i = 0; i < grammarCountLR; i++) {
+            GRAMMAR.AddDef(_grammarTable_LR[i][0], CreateGrammarDefinition(
+                _grammarTable_LR[i][0],
+                _grammarTable_LR[i][1],
+                _grammarTable_LR[i][2]
             ));
         }
     }
  
     if (VERBOSE) {
-        GRAMMER.Print();
+        GRAMMAR.Print();
     }
 }   
 #endif

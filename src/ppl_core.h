@@ -318,7 +318,7 @@ public:
 #else
 #include <timing.h>
 #endif
-#include <grammer.h>
+#include <grammar.h>
 #include <syntax.h>
 #include <tree.h>
 // backend things :P

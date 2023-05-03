@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
 
     if (paramsValid) {
 
-        LoadGrammer();
+        LoadGrammar();
 
         FILE *inFile = fopen(inFilePath, "r");
         if (inFile == NULL) {

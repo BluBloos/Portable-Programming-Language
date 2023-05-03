@@ -1,10 +1,10 @@
 // TODO(Noah):
 // What if, to make the codegen part of things easier, we went ahead and added 'labels' to components
-// or children of grammer objects???
+// or children of grammar objects???
 // if I parse an if-statement,
 //     I might have component A (the expression)
 //     and component B (the body of the if statement)
-// and maybe I can change the syntax of the if-statment all that I please (on the grammer end of things)
+// and maybe I can change the syntax of the if-statment all that I please (on the grammar end of things)
 // but the AST that pops out is annotated, to make finding A and B easy. Let's call this
 // "linking" with A and B. 
 
@@ -27,9 +27,9 @@ void PrintAstError(struct ast_error err) {
     LOGGER.Error("Syntax error on line %d. %s", err.lineNumber, err.msg);
 }
 
-bool ParseTokensWithGrammer(
+bool ParseTokensWithGrammar(
     TokenContainer &tokens, 
-    struct grammer_definition grammerDef,
+    struct grammar_definition grammarDef,
     struct tree_node &tree);
 
 bool ParseTokensWithRegexTree(
@@ -143,14 +143,14 @@ bool ParseTokensWithRegexTree(
             } else if (childType == TREE_REGEX_STR) {
 
                 char *child_data = child.metadata.str;    
-                if ( GRAMMER.DefExists(child_data) ) {
+                if ( GRAMMAR.DefExists(child_data) ) {
                     struct tree_node treeChild;
-                    if (ParseTokensWithGrammer(tokens, GRAMMER.defs[child_data], treeChild)) {
+                    if (ParseTokensWithGrammar(tokens, GRAMMAR.defs[child_data], treeChild)) {
                         TreeAdoptTree(tree, treeChild);
                         re_matched += 1;
                     } else {
                         //buffered_errors += (_buffered_errors)
-                        break; // didn't find grammer object we wanted.
+                        break; // didn't find grammar object we wanted.
                     }
                 }
                 // TODO(opt): the regex representation should not use strings.
@@ -330,11 +330,11 @@ bool ParseTokensWithRegexTree(
 }
 
 /*
-    Returns a tree where root is simply the grammer.name
+    Returns a tree where root is simply the grammar.name
 
     Suppose regex = r"[(function_decl)(function_impl)(var_decl)(struct_decl)]*"
     - We can see that the top level is a list given by the *.
-    - So we make many an array of children under the root node, one for each of these sub grammer objects.
+    - So we make many an array of children under the root node, one for each of these sub grammar objects.
 
     Suppose regex = r"(type)(symbol)\(((lv),)*(lv)?\)[;(block)]"
     - first child is the type
@@ -346,32 +346,32 @@ bool ParseTokensWithRegexTree(
     Suppose regex = 
 
     Thus far the tree making algo is as follows. Simply go left to right through a regex, 
-    Add a child for each grammer element.
-    If there is a group, this creates an empty root under which there may be grammer element children.
+    Add a child for each grammar element.
+    If there is a group, this creates an empty root under which there may be grammar element children.
     If there is a * or ?, or any of the sort, we now have a list child that contains many tree roots.
-        - These tree roots may be single grammer element roots or empty group roots.
+        - These tree roots may be single grammar element roots or empty group roots.
     A nice prune is to remove empty group parents when there is only 1 child (keeps the tree simpler).
 */
 
-bool ParseTokensWithGrammer(
+bool ParseTokensWithGrammar(
     TokenContainer &tokens, 
-    struct grammer_definition grammerDef,
+    struct grammar_definition grammarDef,
     struct tree_node &tree) {
     
-    if (!GRAMMER.DefExists(grammerDef.name)) return false;
+    if (!GRAMMAR.DefExists(grammarDef.name)) return false;
 
     //buffered_errors = []
     
     // NOTE(Noah): Here we do not alloc another string.
-    // The string has already been secured and alloced inside of grammerDef.
+    // The string has already been secured and alloced inside of grammarDef.
     tree = CreateTree(AST_GNODE);
-    tree.metadata.str = (char *)grammerDef.name;
+    tree.metadata.str = (char *)grammarDef.name;
     
     // Fill up the tree with any parsed children.
     bool r = ParseTokensWithRegexTree(tokens, 
-        grammerDef.regexTree, tree);
+        grammarDef.regexTree, tree);
     
-    //if ( SillyStringStartsWith(grammerDef.name, "program") )
+    //if ( SillyStringStartsWith(grammarDef.name, "program") )
         //buffered_errors += (_buffered_errors);
     
     // NOTE(Noah): I know this is going to work and do what I want it to do, but 
@@ -380,11 +380,11 @@ bool ParseTokensWithGrammer(
     
     /*
     if ( fail_flag && len(trees) == 1 ) {
-        if (GRAMMER.DefExists(grammerDef.name)) {
-            for eq in g.equivalences[grammerDef.name]:
+        if (GRAMMAR.DefExists(grammarDef.name)) {
+            for eq in g.equivalences[grammarDef.name]:
                 if eq == trees[0].data:
                     fail_flag = False # redemption.
-                    return (trees[0], buffered_errors) # override upper level grammer object. Makes AST simpler.
+                    return (trees[0], buffered_errors) # override upper level grammar object. Makes AST simpler.
             
         }
     }
@@ -404,8 +404,8 @@ bool ParseTokensWithGrammer(
 
 /*
 def Run(tokens, logger):
-    grammer = g.LoadGrammer()
-    abstractSyntaxTree, bufErrors = ParseTokensWithGrammer(tokens, grammer, grammer.defs["program"], logger)
+    grammar = g.LoadGrammar()
+    abstractSyntaxTree, bufErrors = ParseTokensWithGrammar(tokens, grammar, grammar.defs["program"], logger)
     # check if it's valid.
     if abstractSyntaxTree and tokens.QueryNext().type == "EOL":
         return abstractSyntaxTree
