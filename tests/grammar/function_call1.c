@@ -1,1 +1,1 @@
-myFun(6, myVar)
+myFun(6.5, 7.4f, myVar)

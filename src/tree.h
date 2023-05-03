@@ -37,9 +37,7 @@ struct tree_metadata {
         UNICODE_CPOINT c;
         char *str;
         uint64 num;
-        int64_t sNum;
-        double dnum;
-        float  fnum;
+        double dnum; // stores all decimals (float/double).
     };
 
     // value-kind.
@@ -105,7 +103,7 @@ struct tree_node CreateTree(enum tree_type type, const char *str) {
 
 struct tree_node CreateTree(enum tree_type type, int64_t num) {
     struct tree_node tn = CreateTree(type);
-    tn.metadata.sNum = num;
+    tn.metadata.num = num;
     tn.metadata.valueKind = PPL_TYPE_INT;
     return tn;
 }
@@ -126,7 +124,7 @@ struct tree_node CreateTree(enum tree_type type, double dnum) {
 
 struct tree_node CreateTree(enum tree_type type, float fnum) {
     struct tree_node tn = CreateTree(type);
-    tn.metadata.fnum = fnum;
+    tn.metadata.dnum = fnum;
     tn.metadata.valueKind = PPL_TYPE_FLOAT;
     return tn;
 }
@@ -220,8 +218,12 @@ void PrintTree(struct tree_node &tn, unsigned int indentation) {
             break;
 
         case AST_DECIMAL_LITERAL:
-            LOGGER.Min("%sDECIMAL_LITERAL:%f", sillyBuff, tn.metadata.dnum);
+            LOGGER.Min("%sDECIMAL_LITERAL:%f, valueKind:%s",
+                sillyBuff,
+                tn.metadata.dnum,
+                PplTypeToString(tn.metadata.valueKind));
             break;
+
         case AST_STRING_LITERAL:
             Assert(tn.metadata.str != NULL);
             LOGGER.Min("%sSTRING_LITERAL:%s", sillyBuff, tn.metadata.str);
