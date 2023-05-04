@@ -263,13 +263,13 @@ char *_grammarTable[][2] =
 
     {
         "statement",
-        "[;([(return_statement)(var_decl)(expression)(keyword=fall)(keyword=break)(keyword=continue)];)(if_statement)(while_statement)(for_statement)(switch_statement)]"
+        "[(data_pack);([(return_statement)(var_decl)(expression)(keyword=fall)(keyword=break)(keyword=continue)];)(if_statement)(while_statement)(for_statement)(switch_statement)]"
     },
     { 
         // TODO: this grammar is sort of not correct. e.g. if_statement ends with a `;`, so how can we say that this is a statement,
         // with on end?
         "statement_noend",
-        "[(var_decl)(expression)(return_statement)(keyword=fall)(keyword=break)(keyword=continue)(if_statement)(while_statement)(for_statement)(switch_statement)]"
+        "[(data_pack)(var_decl)(expression)(return_statement)(keyword=fall)(keyword=break)(keyword=continue)(if_statement)(while_statement)(for_statement)(switch_statement)]"
     },
 
 
