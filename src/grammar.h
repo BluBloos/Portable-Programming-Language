@@ -179,7 +179,7 @@ char *_grammarTable[][2] =
 {
     {   
         "program",
-        "[(function)((var_decl);)]*"
+        "(compile_time_var_decl)*"
     },
     {
         "route",
