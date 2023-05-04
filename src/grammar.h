@@ -332,30 +332,11 @@ char *_grammarTable[][2] =
     {
         // TODO: needs a better name.
         "factor",
-        "[(object)([(op,!)(op,-)(op,&)(op,*)(op,~)(\\((type)\\))](factor))(\\((expression)\\))]"
+        "[(object)([(op,++)(op,--)(op,!)(op,-)(op,&)(op,*)(op,~)(\\((type)\\))](factor))(\\((expression)\\))]"
     },
 
-    /*  
-    {
-        "lv", // left-value.
-        "(route)(type)"
-    },
-    */
-
-    /*
-    {
-        "function",
-        "(symbol):\\(((lv)(,(lv))*)?\\)((op,->)(type))?[;(statement)]"
-    },
-    */
-
-    /*
-    {
-        // TODO: we can use data packs here. will allow e.g. member functions.
-        "struct_decl",
-        "(symbol):(keyword=struct)\\{((var_decl);)*\\};"
-    },
-    */
+    // TODO: Need the ++ and -- to be parsable, but not the ones that come after,
+    // the ones that come before.
 
 };
 
