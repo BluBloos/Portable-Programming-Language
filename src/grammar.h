@@ -332,7 +332,7 @@ char *_grammarTable[][2] =
     {
         // TODO: needs a better name.
         "factor",
-        "[(object)([(op,++)(op,--)(op,!)(op,-)(op,&)(op,*)(op,~)(\\((type)\\))](factor))(\\((expression)\\))]"
+        "[(object)([(op,++)(op,--)(op,!)(op,-)(op,^)(op,@)(op,~)(\\((type)\\))](factor))(\\((expression)\\))]"
     },
 
     // TODO: Need the ++ and -- to be parsable, but not the ones that come after,
