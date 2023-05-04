@@ -204,19 +204,20 @@ char *_grammarTable[][2] =
         "array_type",        
         "(op,[)[(literal)]?(op,])(type)"
     },
+
     {
-        // TODO: need to add generics.
-        "type",
-        "[(pointer_type)(array_type)((qualifier)(type))(symbol)(keyword)]"
-    },
-    {
-        "data_pack",
-        "\\{(statement)*[(statement)(statement_noend)]?\\}"
+        "function_type",
+        "\\(((runtime_var_decl)(,(runtime_var_decl))*)?\\)((op,->)(type))?"
     },
 
     {
-        "typed_data_pack",
-        "(type)(data_pack)"
+        // TODO: need to add generics.
+        "type",
+        "[(function_type)(pointer_type)(array_type)((qualifier)(type))(symbol)(keyword)]"
+    },
+    {
+        "data_pack",
+        "(type)?\\{(statement)*[(statement)(statement_noend)]?\\}"
     },
 
     {
@@ -363,7 +364,7 @@ char *_grammarTable[][2] =
 char  *_grammarTable_LR[][3] = {
     {
         "object",
-        "[(function_call)(symbol)(literal)(typed_data_pack)(type)]", // beta
+        "[(function_call)(symbol)(literal)(type)]", // beta
         "[(op,++)(op,--)((op,[)(expression)(op,]))((op,.)(object))]" // alpha
     }
 };

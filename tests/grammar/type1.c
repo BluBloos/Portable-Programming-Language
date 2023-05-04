@@ -1,1 +1,1 @@
-const int
+(a:int) -> void
