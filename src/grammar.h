@@ -185,12 +185,9 @@ char *_grammarTable[][2] =
         "route",
         "(symbol):"
     },
-    // TODO: do such built_in nodes actually contain what keyword was matched??
-    {
-        "built_in",
-        "[(keyword=size_of)(keyword=type_of)(keyword=type_info)(keyword=offset_of)]"
-    },
     { 
+        // TODO: this doesn't keep what keyword was matched. there is no node generated for this.
+        // so we are losing information.
         "qualifier",
         "[(keyword=static)(keyword=unsigned)]"
     },
@@ -324,7 +321,8 @@ char *_grammarTable[][2] =
     },
     {
         "function_call",
-        "[(symbol)(built_in)]\\([(tuple)(expression)]?\\)"
+        // NOTE: keyword is used here for builtin functions.
+        "[(symbol)(keyword)]\\([(tuple)(expression)]?\\)"
     },
     {
         // TODO: needs a better name.
