@@ -211,7 +211,7 @@ char *_grammarTable[][2] =
     },
     {
         "data_pack",
-        "\\{(statement)*\\}"
+        "\\{(statement)*[(statement)(statement_noend)]?\\}"
     },
 
     {
@@ -264,7 +264,8 @@ char *_grammarTable[][2] =
         "[;([(return_statement)(var_decl)(expression)(keyword=fall)(keyword=break)(keyword=continue)];)(if_statement)(while_statement)(for_statement)(switch_statement)]"
     },
     { 
-        // TODO(Noah): I would certainly like to remove this grammar definition. there is a lot that is similar between this one and the grammar for `statement`.
+        // TODO: this grammar is sort of not correct. e.g. if_statement ends with a `;`, so how can we say that this is a statement,
+        // with on end?
         "statement_noend",
         "[(var_decl)(expression)(return_statement)(keyword=fall)(keyword=break)(keyword=continue)(if_statement)(while_statement)(for_statement)(switch_statement)]"
     },
