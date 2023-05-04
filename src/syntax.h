@@ -1,15 +1,22 @@
-// TODO(Noah):
-// What if, to make the codegen part of things easier, we went ahead and added 'labels' to components
-// or children of grammar objects???
-// if I parse an if-statement,
-//     I might have component A (the expression)
-//     and component B (the body of the if statement)
-// and maybe I can change the syntax of the if-statment all that I please (on the grammar end of things)
-// but the AST that pops out is annotated, to make finding A and B easy. Let's call this
-// "linking" with A and B. 
+// TODO(Noah): Check if there might be some memory-leaks since we are doing
+// wack stuff with trees.
 
-// TODO(Noah): Really need to check if there might be some memory-leaks going on here....
-// I am doing some FuNkY things with the trees and so forth...
+// TODO: in general there are "funny" ideas that need some super fixing.
+// 1. there are no error messages if we fail to parse the grammar. that is prob
+//    the worst thing ever.
+// 2. suppose that you are parsing a program. due to the grammar of the program,
+//    it permits that we can have any amount of statements, var_decl, etc.
+//    the issue is that if some early ones are valid, and the latter half are not,
+//    there are no complaints by the system and it just throws out the invalid part.
+
+// TODO(AST cleanup): there are redundant nodes that
+// communicate zero information. the var_decl grammar node definition is an Any
+// group. thus, we should never need to have a grammar node that is "var_decl",
+// we just require the children grammar kinds i.e. compile/runtime var decl.
+
+// TODO(AST cleanup): the depth of our expression trees is very silly and not
+// required at all. we really only need to go some amount up the tree, and after that
+// the ancestors do not give an extra info.
 
 struct ast_error {
     char *msg;
