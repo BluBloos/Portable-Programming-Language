@@ -225,7 +225,7 @@ char *_grammarTable[][2] =
     // TODO: maybe a var decl should always have the semicolon baked in?
     {
         "runtime_var_decl",
-        "(route)[((type)((op,=)(expression))?)((op,=)(expression))]"
+        "(route)[((type)((op,=)[(op,?)(expression)])?)((op,=)(expression))]"
     },
     {
         "compile_time_var_decl",
