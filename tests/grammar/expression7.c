@@ -1,2 +1,2 @@
 // Sufficiently advanced.
-epicVar.hi | 7 & 3 
+a ^= epicVar.hi | 7 & 3 

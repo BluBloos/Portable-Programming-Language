@@ -281,7 +281,7 @@ char *_grammarTable[][2] =
     },
     {
         "assignment_exp",
-        "(factor)[(op,=)(op,+=)(op,-=)(op,*=)(op,/=)(op,%=)(op,&=)(op,|=)](expression)"
+        "(factor)[(op,=)(op,+=)(op,^=)(op,-=)(op,*=)(op,/=)(op,%=)(op,&=)(op,|=)](expression)"
     },
     {
         "conditional_exp",
@@ -297,7 +297,11 @@ char *_grammarTable[][2] =
     },
     {
         "bitwise_or_exp",
-        "(bitwise_and_exp)((op,|)(bitwise_and_exp))*"
+        "(bitwise_xor_exp)((op,|)(bitwise_xor_exp))*"
+    },
+    {
+        "bitwise_xor_exp",
+        "(bitwise_and_exp)((op,^)(bitwise_and_exp))*"
     },
     {
         "bitwise_and_exp",
@@ -316,6 +320,7 @@ char *_grammarTable[][2] =
         "(term)([(op,+)(op,-)](term))*"
     },
     {
+        // TODO: where else would a tuple be allowed?
         "tuple",
         "(expression)(,(expression))+"
     },
@@ -335,8 +340,10 @@ char *_grammarTable[][2] =
         "[(object)([(op,++)(op,--)(op,!)(op,-)(op,^)(op,@)(op,~)(\\((type)\\))](factor))(\\((expression)\\))]"
     },
 
-    // TODO: Need the ++ and -- to be parsable, but not the ones that come after,
-    // the ones that come before.
+    // TODO: need bitwise XOR, and bitwise XOR assignment.
+
+    // TODO: need left and right shift to work, as well as the left/right shift
+    // assignment.
 
 };
 
