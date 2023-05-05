@@ -273,7 +273,7 @@ char *_grammarTable[][2] =
 
     {
         "expression",
-        "[(data_pack)(span_expression)(assignment_exp)(conditional_exp)]"
+        "[(import_expression)(data_pack)(span_expression)(assignment_exp)(conditional_exp)]"
     },
     {
         "span_expression",
@@ -344,6 +344,12 @@ char *_grammarTable[][2] =
         // NOTE: keyword is used here for builtin functions.
         "[(symbol)(keyword)]\\([(tuple)(expression)]?\\)"
     },
+
+    {
+        "import_expression",
+        "(keyword=#import)(literal)"
+    }
+
 
 };
 

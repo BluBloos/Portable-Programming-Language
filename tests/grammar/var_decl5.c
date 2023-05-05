@@ -1,0 +1,1 @@
+myVector := Vector { 2.f; 3.6f }
