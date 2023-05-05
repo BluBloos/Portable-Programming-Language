@@ -281,7 +281,7 @@ char *_grammarTable[][2] =
     },
     {
         "assignment_exp",
-        "(factor)[(op,=)(op,+=)(op,^=)(op,-=)(op,*=)(op,/=)(op,%=)(op,&=)(op,|=)](expression)"
+        "(factor)[(op,=)(op,+=)(op,<<=)(op,>>=)(op,^=)(op,-=)(op,*=)(op,/=)(op,%=)(op,&=)(op,|=)](expression)"
     },
     {
         "conditional_exp",
@@ -313,21 +313,15 @@ char *_grammarTable[][2] =
     },
     {
         "relational_exp",
-        "(additive_exp)([(op,>=)(op,<=)(op,<)(op,>)](additive_exp))*"
+        "(bitshift_exp)([(op,>=)(op,<=)(op,<)(op,>)](bitshift_exp))*"
+    },
+    {
+        "bitshift_exp",
+        "(additive_exp)([(op,<<)(op,>>)](additive_exp))*"
     },
     {
         "additive_exp",
         "(term)([(op,+)(op,-)](term))*"
-    },
-    {
-        // TODO: where else would a tuple be allowed?
-        "tuple",
-        "(expression)(,(expression))+"
-    },
-    {
-        "function_call",
-        // NOTE: keyword is used here for builtin functions.
-        "[(symbol)(keyword)]\\([(tuple)(expression)]?\\)"
     },
     {
         // TODO: needs a better name.
@@ -340,10 +334,16 @@ char *_grammarTable[][2] =
         "[(object)([(op,++)(op,--)(op,!)(op,-)(op,^)(op,@)(op,~)(\\((type)\\))](factor))(\\((expression)\\))]"
     },
 
-    // TODO: need bitwise XOR, and bitwise XOR assignment.
-
-    // TODO: need left and right shift to work, as well as the left/right shift
-    // assignment.
+    {
+        // TODO: where else would a tuple be allowed?
+        "tuple",
+        "(expression)(,(expression))+"
+    },
+    {
+        "function_call",
+        // NOTE: keyword is used here for builtin functions.
+        "[(symbol)(keyword)]\\([(tuple)(expression)]?\\)"
+    },
 
 };
 
