@@ -32,12 +32,13 @@ enum tree_type {
 };
 
 struct tree_metadata {
+
     char regex_mod;
 
     // value.
     union { // kind of like the data storage for tree.
         UNICODE_CPOINT c;
-        char *str;
+        const char *str;
         uint64 num;
         double dnum; // stores all decimals (float/double).
     };

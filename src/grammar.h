@@ -29,7 +29,7 @@ def IsValidType(typeStr):
 // NOTE(Noah): Grammar definition are custom regular expressions that I invented,
 // regardless of if there are parsing libraries out there...
 struct grammar_definition {
-    const char *name; 
+    const char *name;
     struct tree_node regexTree;
 };
 
@@ -105,11 +105,11 @@ struct tree_node CreateRegexTree(Grammar &grammar, const char *regex) {
                 TreeAdoptTree(lastTree, tn);
                 n += 1 + newStr.size(); // skip over () block
             } else if (SillyStringStartsWith(newStr.c_str(), "keyword=")) {
-                struct tree_node tn = CreateTree(TREE_REGEX_KEYWORD, (newStr.c_str()+8) );
+                struct tree_node tn = CreateTree(TREE_REGEX_KEYWORD, (newStr.c_str()+strlen("keyword=")) );
                 TreeAdoptTree(lastTree, tn);
                 n += 1 + newStr.size(); // skip over () block
             } else if (SillyStringStartsWith(newStr.c_str(), "op,")) {
-                struct tree_node tn = CreateTree(TREE_REGEX_STR, SillyStringFmt("op%s", newStr.c_str()+3));
+                struct tree_node tn = CreateTree(TREE_REGEX_STR, SillyStringFmt("op%s", newStr.c_str()+strlen("op,")));
                 TreeAdoptTree(lastTree, tn);
                 n += 1 + newStr.size(); // skip over () block
             } else {
@@ -119,8 +119,8 @@ struct tree_node CreateRegexTree(Grammar &grammar, const char *regex) {
         else if (c == ']' || c == ')') {
             StretchyBufferPop(contextStack);
             TreeAdoptTree(StretchyBufferLast(contextStack), lastTree);
-        } 
-        else if (c == '?' || c == '*' || c == '+') {
+        }
+        else if (c == '?' || c == '*' || c == '+' || c == '`') {
             // NOTE(Noah): This if statement actually never evaluates to true it seems...
             // We can tree the Any/Group simply as children of a tree.
             if (lastTree.childrenCount == 0) {
@@ -189,7 +189,7 @@ char *_grammarTable[][2] =
         // TODO: this doesn't keep what keyword was matched. there is no node generated for this.
         // so we are losing information.
         "qualifier",
-        "[(keyword=static)(keyword=unsigned)]"
+        "[(keyword=static)(keyword=unsigned)]`"
     },
     {
         "pointer_type",
@@ -210,8 +210,16 @@ char *_grammarTable[][2] =
     {
         // TODO: need to add generics.
         "type",
-        "[(function_type)(pointer_type)(array_type)((qualifier)(type))(symbol)(keyword)]"
+        "[(function_type)(pointer_type)(array_type)((qualifier)(type))(symbol)(type_keyword)]"
     },
+
+    {
+        "type_keyword",
+        // TODO: is there anyway to make the below less crap?
+        // especially because it has terrible performance implications.
+        "[(keyword=float)(keyword=double)(keyword=f32)(keyword=f64)(keyword=bool)(keyword=void)(keyword=u8)(keyword=u16)(keyword=u32)(keyword=u64)(keyword=s8)(keyword=s16)(keyword=s32)(keyword=s64)(keyword=int)(keyword=char)(keyword=short)(keyword=Any)(keyword=Type)(keyword=TypeInfo)(keyword=TypeInfoMember)(keyword=struct)(keyword=enum)(keyword=enum_flag)]`"
+    },
+
     {
         "data_pack",
         "(type)?\\{(statement)*[(statement)(statement_noend)]?\\}"
@@ -253,6 +261,9 @@ char *_grammarTable[][2] =
 
 
     {
+        // TODO: right now default can only be the last case. should allow to be anywhere. then on semantic analysis
+        // stage we can verify that there is only one!
+        //
         // TODO: support duffs device.
         "switch_statement",
         "(keyword=switch)(expression)\\{((keyword=case)(expression):(statement)*)*((keyword=default):(statement)*)?\\}"

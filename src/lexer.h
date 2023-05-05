@@ -13,8 +13,6 @@ typedef unsigned int UNICODE_CPOINT;
 
 char *KEYWORDS[] = {
 
-    "struct", "enum", "enum_flag",
-
     "continue", "break", "return",
 
     "if", "else", "then", "for", "in", "while", "do",

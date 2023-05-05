@@ -36,15 +36,17 @@ void PrintAstError(struct ast_error err) {
 
 bool ParseTokensWithGrammar(
     TokenContainer &tokens, 
-    struct grammar_definition grammarDef,
-    struct tree_node &tree);
+    const grammar_definition &grammarDef,
+    struct tree_node &tree,
+    bool parentWantsVerboseAST = false);
 
 bool ParseTokensWithRegexTree(
     TokenContainer &tokens, 
-    struct tree_node regexTree,
-    struct tree_node &tree) 
+    const tree_node &regexTree,
+    tree_node &tree,
+    bool parentWantsVerboseAST = false)
 {
-    
+
     //treesParsed = [];
     //buffered_errors = [] //# Frames for each recursive func call.
     
@@ -75,15 +77,27 @@ bool ParseTokensWithRegexTree(
             // buffered_errors = []
         }
 
-        struct tree_node &child = regexTree.children[k];
-        char modifier = child.metadata.regex_mod; // mod = 0 is a NULL modifier.
+        const tree_node &child = regexTree.children[k];
         enum tree_type childType = child.type;
 
-        // None means 1 and exactly 1
+        // When there is no modifier we match 1 and exactly 1.
+        //
         // ? is the 0 or 1 modifier
         // * is the 0 or many modifier
         // + is the 1 or many modifier
-        // 0 means there was no modifier. We match 1 and exactly 1.
+        //
+        // if the modifier is equal to 0, or is equal to anything other than the three above,
+        // that is considered as the "NULL modifier" in the specific class of modifiers above.
+        //
+        // ` is the "verbose in AST" modifier.
+        //   e.g. (keyword=if) will add a node for the if keyword in AST.
+        //
+        char modifier = child.metadata.regex_mod;
+
+        bool verboseAST = (modifier == '`') || parentWantsVerboseAST; 
+
+        bool nullFrequencyModifier = (modifier != '?') && (modifier != '*') && (modifier != '+');
+
         int n = 0;
         bool infWhile = ( modifier == '*' || modifier == '+' ); 
         int re_matched = 0;
@@ -98,7 +112,7 @@ bool ParseTokensWithRegexTree(
                 // TODO(Noah): Check if there is anything smarter to do than
                 // "dummyTree"
                 struct tree_node dummyTree = CreateTree(TREE_ROOT);
-                if (ParseTokensWithRegexTree(tokens, child, dummyTree)) {
+                if (ParseTokensWithRegexTree(tokens, child, dummyTree, verboseAST)) {
                     re_matched += 1;
                     for (unsigned int i = 0; i < dummyTree.childrenCount; i++) {
                         TreeAdoptTree(tree, dummyTree.children[i]);
@@ -110,7 +124,7 @@ bool ParseTokensWithRegexTree(
                 } 
             } 
             else if (childType == TREE_REGEX_KEYWORD) {
-                char *child_data = child.metadata.str; 
+                const char *child_data = child.metadata.str; 
                 struct token tok = tokens.QueryNext();
                 // TODO(Noah): This is gross. Fix it, you lazy fuck.
                 if (tok.type == TOKEN_KEYWORD && 
@@ -119,6 +133,17 @@ bool ParseTokensWithRegexTree(
                 {
                     tokens.AdvanceNext();
                     re_matched += 1;
+
+                    if (verboseAST) {
+                        struct tree_node newTree = CreateTree(AST_KEYWORD);
+                        
+                        // TODO: is this safe? this presumes that we never dealloc the tokens and those are required
+                        // for a valid AST. OR, we can dealloc tokens, but this works because we have a
+                        // separate string store?
+                        newTree.metadata.str = tok.str;
+                        TreeAdoptTree(tree, newTree);
+                    }
+
                 } else {
                     break;
                 }
@@ -149,7 +174,7 @@ bool ParseTokensWithRegexTree(
 
             } else if (childType == TREE_REGEX_STR) {
 
-                char *child_data = child.metadata.str;    
+                const char *child_data = child.metadata.str;    
                 if ( GRAMMAR.DefExists(child_data) ) {
                     struct tree_node treeChild;
                     if (ParseTokensWithGrammar(tokens, GRAMMAR.defs[child_data], treeChild)) {
@@ -265,7 +290,7 @@ bool ParseTokensWithRegexTree(
                     bool didMatch = true;
 
                     // TODO: does the strlen below happen at compile-time?
-                    char *op = child_data + strlen("op");
+                    const char *op = child_data + strlen("op");
 
                     // NOTE(Noah): Because I made the delineation between COP and OP, it actually makes
                     // this processing gross-ish.
@@ -324,7 +349,7 @@ bool ParseTokensWithRegexTree(
         }
 
         // Find all fail cases.
-        bool fail_flag = (modifier == 0 && re_matched != 1) || 
+        bool fail_flag = ( nullFrequencyModifier && re_matched != 1) || 
            (modifier == '?' && re_matched > 1) ||
            (modifier == '+' && re_matched == 0);
 
@@ -386,8 +411,10 @@ bool ParseTokensWithRegexTree(
 
 bool ParseTokensWithGrammar(
     TokenContainer &tokens, 
-    struct grammar_definition grammarDef,
-    struct tree_node &tree) {
+    const grammar_definition &grammarDef,
+    struct tree_node &tree,
+    bool parentWantsVerboseAST)
+{
     
     if (!GRAMMAR.DefExists(grammarDef.name)) return false;
 
@@ -396,11 +423,10 @@ bool ParseTokensWithGrammar(
     // NOTE(Noah): Here we do not alloc another string.
     // The string has already been secured and alloced inside of grammarDef.
     tree = CreateTree(AST_GNODE);
-    tree.metadata.str = (char *)grammarDef.name;
+    tree.metadata.str = grammarDef.name;
     
     // Fill up the tree with any parsed children.
-    bool r = ParseTokensWithRegexTree(tokens, 
-        grammarDef.regexTree, tree);
+    bool r = ParseTokensWithRegexTree(tokens, grammarDef.regexTree, tree, parentWantsVerboseAST);
     
     //if ( SillyStringStartsWith(grammarDef.name, "program") )
         //buffered_errors += (_buffered_errors);

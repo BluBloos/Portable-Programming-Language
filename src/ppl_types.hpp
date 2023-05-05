@@ -21,7 +21,10 @@ namespace ppl {
         "int", "char", "short",
 
         // cool types.
-        "Any", "Type", "TypeInfo", "TypeInfoMember"
+        "Any", "Type", "TypeInfo", "TypeInfoMember",
+
+        // other cool types.
+        "struct", "enum", "enum_flag"
     };
 
     
@@ -47,7 +50,10 @@ enum ppl_type {
     PPL_TYPE_ANY,
     PPL_TYPE_TYPE,
     PPL_TYPE_TYPE_INFO,
-    PPL_TYPE_TYPE_INFO_MEMBER
+    PPL_TYPE_TYPE_INFO_MEMBER,
+    PPL_TYPE_STRUCT,
+    PPL_TYPE_ENUM,
+    PPL_TYPE_ENUM_FLAG
 };
 
 static const char * PplTypeToString(ppl_type type)
@@ -87,6 +93,12 @@ static const char * PplTypeToString(ppl_type type)
             return "PPL_TYPE_TYPE_INFO";
         case PPL_TYPE_TYPE_INFO_MEMBER:
             return "PPL_TYPE_TYPE_INFO_MEMBER";
+        case PPL_TYPE_STRUCT:
+            return "PPL_TYPE_STRUCT";
+        case PPL_TYPE_ENUM:
+            return "PPL_TYPE_ENUM";
+        case PPL_TYPE_ENUM_FLAG:
+            return "PPL_TYPE_ENUM_FLAG";
     }
 }
 
