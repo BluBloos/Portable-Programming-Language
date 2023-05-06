@@ -527,6 +527,7 @@ int RunPtestFromInFile(void (*ptest)(char *inFilePath, int &errors), const char 
     char *inFilePath = SillyStringFmt("%s%s", cwd, inFile);
     Timer timer = Timer(testName);
     LOGGER.InitFileLogging("w");
+    LOGGER.logContext.currFile = inFilePath;
     int errors = 0;
     ptest(inFilePath, errors);
     CheckErrors(errors);
@@ -539,6 +540,7 @@ int RunPtestFromInFile(void (*ptest)(char *inFilePath, int &errors), const char 
     char *inFilePath = SillyStringFmt("%s%s", cwd, inFile);
     Timer timer = Timer(testName);
     LOGGER.InitFileLogging("w");
+    LOGGER.logContext.currFile = inFilePath;
     int errors = 0;
     ptest(inFilePath, errors);
     CheckErrors(errors);
@@ -576,14 +578,12 @@ int RunPtestFromCwd(
     {
         do {
             if (validate(findData.name)) {
-                ptest( 
-                    SillyStringFmt(ModifyPathForPlatform("%s/%s").c_str(), dirName, findData.name),
-                    errors
-                );
+                char *fileName = SillyStringFmt(ModifyPathForPlatform("%s/%s").c_str(), dirName, findData.name);
+                LOGGER.logContext.currFile = fileName;
+                ptest(fileName, errors);
             }
-        }
-        while ( pal::fileSearchGetNext( &fSearch, &findData) );
-        
+        } while (pal::fileSearchGetNext(&fSearch, &findData));
+
         pal::fileSearchFree( &fSearch );
     }
 

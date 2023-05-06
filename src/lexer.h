@@ -651,6 +651,9 @@ bool Lex(
     RawFileReader raw = RawFileReader(inFile);
 
     enum lexer_state state = LEXER_NORMAL;
+    uint32_t stateBeginLine = 0;
+    uint32_t stateBeginChar = 0;
+    uint32_t stateBeginCharCurrLine = 0;
 
     // there is a precedence in any of the searches below where if some things are substrings of patterns,
     // they need to be checked last.
@@ -667,35 +670,60 @@ bool Lex(
 
     assert( sPatternsCount <= (sizeof(sPatterns) / sizeof(struct search_pattern)) );
 
+    auto changeState = [&](lexer_state s, uint32_t l, uint32_t c, uint32_t cl)
+    {
+        state = s;
+        stateBeginLine = l;
+        stateBeginChar = c;
+        stateBeginCharCurrLine = cl;
+    };
+
     // Go through each character one-by-one
-    int n = -1;
+    uint32_t n = -1;
+    uint32_t n_col = 0; // 
+
     UNICODE_CPOINT character = raw[0]; 
+
+    auto advanceChar = [&](uint32_t a)
+    {
+        n+=a;
+        n_col+=a;
+    };
+
+    auto advanceLine = [&](uint32_t a = 1)
+    {
+        currentLine += a;
+        n_col = 0;
+    };
+
     while (character != CP_EOF) {
         
-        n += 1;
+        advanceChar(1);
         character = raw[n];
         
         // check for newline characters.
         if (character == '\n') {
-            currentLine += 1;
+            advanceLine();
             // NOTE(Noah): no 'continue;' because comments exit on newline.  
         }
 
         // Handle comment, multiline, and quote states.
         if (state == LEXER_COMMENT) {
             if (character == '\n' || character == CP_EOF) // end condition check
-                state = LEXER_NORMAL;
+            {
+                changeState(LEXER_NORMAL, currentLine, n + 1, n_col + 1);
+            }
             continue;
         } else if (state == LEXER_MULTILINE_COMMENT) {
             if (character == '*' && raw[n+1] == '/') { // end condition check
-                state = LEXER_NORMAL;
-                n += 1;
+                advanceChar(1);
+                changeState(LEXER_NORMAL, currentLine, n + 1, n_col + 1);
             }
             continue;
         }
         else if (state == LEXER_QUOTE) {
             if (character == '"' && raw[n-1] != '\\') { // end condition check.
-                state = LEXER_NORMAL;
+                changeState(LEXER_NORMAL, currentLine, n + 1, n_col + 1);
                 tokenContainer.Append(Token(TOKEN_QUOTE, *currentToken, currentLine));
                 CurrentTokenReset();
             }
@@ -705,7 +733,7 @@ bool Lex(
                 if (raw[n+1] == 'n') {
                     CurrentTokenAddChar('\\');
                     CurrentTokenAddChar('n');
-                    n += 1;
+                    advanceChar(1);
                 }
             } else { // due to else, \\ is nulled out when used as escape character. i.e. does not appear in final string.
                 CurrentTokenAddChar(character);
@@ -717,32 +745,32 @@ bool Lex(
             
             //# check for single line comments.
             if (character == '/' && raw[n+1] == '/'){
-                state = LEXER_COMMENT;
+                changeState(LEXER_COMMENT, currentLine, n, n_col);
                 struct token token;
                 if (TokenFromLatent(token)) {
                     tokenContainer.Append(token);
                 }
                 CurrentTokenReset();
-                n += 1;
+                advanceChar(1);
                 continue;
             }
             
             //# check for multi-line comments.
             if (character == '/' && raw[n+1] == '*') {
-                state = LEXER_MULTILINE_COMMENT;
+                changeState(LEXER_MULTILINE_COMMENT, currentLine, n, n_col);
                 struct token token;
                 if (TokenFromLatent(token)) {
                     tokenContainer.Append(token);
                 }
                 CurrentTokenReset();
-                n += 1;
+                advanceChar(1);
                 continue;
             }
 
             // Check for beginning of quotes
             if (character == '"') 
             {
-                state = LEXER_QUOTE;
+                changeState(LEXER_QUOTE, currentLine, n, n_col);
                 struct token token;
                 if (TokenFromLatent(token)) {
                     tokenContainer.Append(token);
@@ -756,7 +784,7 @@ bool Lex(
                 UNICODE_CPOINT c_val = raw[n+1];
                 tokenContainer.Append(Token(TOKEN_CHARACTER_LITERAL, c_val, currentLine));
                 CurrentTokenReset();
-                n += 2;
+                advanceChar(2);
                 continue;
             }
             
@@ -792,7 +820,10 @@ bool Lex(
                     tokenContainer.Append(token);
                     CurrentTokenReset();
                 }
-                currentLine = (character == '\n') ? currentLine + 1  : currentLine;
+                if (character == '\n')
+                {
+                    advanceLine();
+                }
                 if (isTokenLatent) continue;
             }
 
@@ -839,7 +870,7 @@ bool Lex(
                     tokenContainer.Append(symbolTok);
                 if (tok.type != TOKEN_UNDEFINED) {
                     tokenContainer.Append(tok);
-                    n += skipAmount;
+                    advanceChar(skipAmount);
                     foundToken = true;
                     break;
                 }
@@ -852,7 +883,35 @@ bool Lex(
             
         } 
 
-    } 
+    }
+
+    if ((state == LEXER_QUOTE) || (state == LEXER_MULTILINE_COMMENT)) {
+
+        uint32_t    c    = stateBeginCharCurrLine;
+        uint32_t    line = stateBeginLine;
+
+        switch (state) {
+            case LEXER_QUOTE: {
+                const char *file = LOGGER.logContext.currFile;
+                const char *code = "<unknown>";
+                LOGGER.EmitUserError(file, line, c, code, "Unclosed string literal. Began at %d,%d.", line, c);
+                return false;
+            } break;
+            case LEXER_MULTILINE_COMMENT:
+            {
+                const char *file = LOGGER.logContext.currFile;
+                const char *code = "<unknown>";
+                LOGGER.EmitUserError(file, line, c, code, "Unclosed multiline comment. Began at %d,%d.", line, c);
+                return false;
+            }
+                break;
+            default:
+                if ((state != LEXER_NORMAL) || (state != LEXER_COMMENT)) {
+                    assert(false);
+                    // TODO(Compiler): did we handle all invalid closing lexer states?
+                }
+        }
+    }
 
     return true;
 }
