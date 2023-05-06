@@ -38,12 +38,14 @@ bool ParseTokensWithGrammar(
     TokenContainer &tokens, 
     const grammar_definition &grammarDef,
     struct tree_node &tree,
+    ppl_error &bestErr,
     bool parentWantsVerboseAST = false);
 
 bool ParseTokensWithRegexTree(
     TokenContainer &tokens, 
     const tree_node &regexTree,
     tree_node &tree,
+    ppl_error &bestErr,
     bool parentWantsVerboseAST = false)
 {
 
@@ -112,7 +114,7 @@ bool ParseTokensWithRegexTree(
                 // TODO(Noah): Check if there is anything smarter to do than
                 // "dummyTree"
                 struct tree_node dummyTree = CreateTree(TREE_ROOT);
-                if (ParseTokensWithRegexTree(tokens, child, dummyTree, verboseAST)) {
+                if (ParseTokensWithRegexTree(tokens, child, dummyTree, bestErr, verboseAST)) {
                     re_matched += 1;
                     for (unsigned int i = 0; i < dummyTree.childrenCount; i++) {
                         TreeAdoptTree(tree, dummyTree.children[i]);
@@ -177,7 +179,7 @@ bool ParseTokensWithRegexTree(
                 const char *child_data = child.metadata.str;    
                 if ( GRAMMAR.DefExists(child_data) ) {
                     struct tree_node treeChild;
-                    if (ParseTokensWithGrammar(tokens, GRAMMAR.defs[child_data], treeChild)) {
+                    if (ParseTokensWithGrammar(tokens, GRAMMAR.defs[child_data], treeChild, bestErr)) {
                         TreeAdoptTree(tree, treeChild);
                         re_matched += 1;
                     } else {
@@ -271,7 +273,15 @@ bool ParseTokensWithRegexTree(
                             break;
                     }
 
-                    if (!didMatch) break;
+                    if (!didMatch) {
+
+                        // emit error!
+                        bestErr.errMsg = "Expected a literal but sure as hell did not get one.";
+                        bestErr.c = tok.beginCol;
+                        bestErr.line = tok.line;
+
+                        break;
+                    }
                     re_matched += 1;
 
                 } else if ( SillyStringStartsWith(child_data, "symbol")) {
@@ -413,6 +423,7 @@ bool ParseTokensWithGrammar(
     TokenContainer &tokens, 
     const grammar_definition &grammarDef,
     struct tree_node &tree,
+    ppl_error &bestErr,
     bool parentWantsVerboseAST)
 {
     
@@ -426,7 +437,7 @@ bool ParseTokensWithGrammar(
     tree.metadata.str = grammarDef.name;
     
     // Fill up the tree with any parsed children.
-    bool r = ParseTokensWithRegexTree(tokens, grammarDef.regexTree, tree, parentWantsVerboseAST);
+    bool r = ParseTokensWithRegexTree(tokens, grammarDef.regexTree, tree, bestErr, parentWantsVerboseAST);
     
     //if ( SillyStringStartsWith(grammarDef.name, "program") )
         //buffered_errors += (_buffered_errors);

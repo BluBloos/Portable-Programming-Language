@@ -143,6 +143,8 @@ unsigned int SillyStringToUINT(char *str)
 	return result;
 }
 
+// TODO: there is pretty much a duplicate function in lexer.h
+//
 // Return true if the string can be represented as a number,
 // returns false otherwise. decimalFlag is set to true if the 
 // represented number is a decimal as opposed to an integer.
@@ -311,7 +313,10 @@ public:
     }   
 };
 
+// TODO: Make this file (ppl_core.h) a *.hpp
+
 /* OTHER COMPILATION UNITS */
+#include <ppl_error.hpp>
 #include <lexer.h>
 #ifdef PLATFORM_WINDOWS
 #include <win32_timing.h>

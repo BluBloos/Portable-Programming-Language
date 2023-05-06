@@ -4,7 +4,6 @@
 typedef unsigned int UNICODE_CPOINT;
 #define CP_EOF 0
 
-
 #include "ppl_types.hpp"
 
 // keywords that map to values such as:
@@ -190,42 +189,60 @@ struct token {
     };
     // TODO(Noah): Add support for programs with more than 4 billion lines.
     uint32 line; 
+    uint32 beginCol;
 };
 
-// TODO: below looks like a good candidate for template stuff.
+
 struct token Token() {
-    struct token t; t.type = TOKEN_UNDEFINED; t.line = 0; t.str = NULL;
+    struct token t = {};
+    t.type = TOKEN_UNDEFINED;
+    t.line = 0;
+    t.str = NULL;
+    t.beginCol = 0;
     return t;
 }
-struct token Token(enum token_type type, std::string str, unsigned int line) {
+
+struct token Token(enum token_type type, unsigned int line, uint32_t bc) {
     struct token t;
+    t.num = 0ull;
+    t.type = type;
+    t.line = line;
+    t.beginCol = bc;
+    return t;
+}
+
+struct token Token(enum token_type type, std::string str, unsigned int line, uint32_t bc) {
+    auto t = Token(type, line, bc);
     t.str = MEMORY_ARENA.StdStringAlloc(str);
-    t.type = type; t.line = line;
     return t;
 }
-struct token Token(enum token_type type, char *str, unsigned int line ) {
-    struct token t;
+
+struct token Token(enum token_type type, char *str, unsigned int line, uint32_t bc) {
+    auto t = Token(type, line, bc);
     t.str = MEMORY_ARENA.StringAlloc(str);
-    t.type = type; t.line = line;
     return t;
 }
-struct token Token(enum token_type type, UNICODE_CPOINT c, unsigned int line) {
-    struct token t; t.c = c; t.type = type; t.line = line;
+
+struct token Token(enum token_type type, UNICODE_CPOINT c, unsigned int line, uint32_t bc) {
+    auto t = Token(type, line, bc);
+    t.c = c;
+    return t;
+
+}
+
+struct token Token(enum token_type type, char c, unsigned int line, uint32_t bc) {
+    return Token(type, (UNICODE_CPOINT)c, line, bc); 
+}
+
+struct token Token(enum token_type type, double dnum, unsigned int line, uint32_t bc) {
+    auto t = Token(type, line, bc);
+    t.dnum = dnum;
     return t;
 }
-struct token Token(enum token_type type, char c, unsigned int line) {
-    return Token(type, (UNICODE_CPOINT)c, line); 
-}
-struct token Token(enum token_type type, unsigned int line) {
-    struct token t; t.num = 0; t.type = type; t.line = line;
-    return t;
-}
-struct token Token(enum token_type type, double dnum, unsigned int line) {
-    struct token t; t.dnum = dnum; t.type = type; t.line = line;
-    return t;
-}
-struct token Token(enum token_type type, uint64 num, unsigned int line) {
-    struct token t; t.num = num; t.type = type; t.line = line;
+
+struct token Token(enum token_type type, uint64 num, unsigned int line, uint32_t bc) {
+    auto t = Token(type, line, bc);
+    t.num = num;
     return t;
 }
 
@@ -379,16 +396,34 @@ class TokenContainer {
     }
 };
 
-// Globals local to lexer.cpp
+// Globals local to lexer.cpp ----------------
 std::string *currentToken;
 std::string *cleanToken;
 unsigned int currentLine = 1;
 
-bool IsNumber(std::string potNum, bool *decimalFlag, bool *floatFlag, bool *unsignedFlag)
+enum lexer_state state = LEXER_NORMAL;
+uint32_t stateBeginLine = 0;
+uint32_t stateBeginChar = 0;
+uint32_t stateBeginCol = 0;
+
+uint32_t n = -1;
+uint32_t n_col = 0; // 
+// Globals local to lexer.cpp ----------------
+
+constexpr bool EnableIsNumberFlags = true;
+constexpr bool DisableIsNumberFlags = false;
+
+template <bool enableFlags=DisableIsNumberFlags>
+static bool IsNumber(
+    std::string potNum,
+    bool *decimalFlag=nullptr, bool *floatFlag=nullptr, bool *unsignedFlag=nullptr)
 {
-    *decimalFlag = false;
-    *floatFlag   = false;
-    *unsignedFlag = false;
+    if (enableFlags)
+    {
+        *decimalFlag = false;
+        *floatFlag   = false;
+        *unsignedFlag = false;
+    }
     if (potNum == "") return false;
     if (potNum[0] == '.' || potNum[potNum.size() - 1] == '.') return false;
     for (size_t i = 0; i < potNum.size(); i++) {
@@ -406,14 +441,14 @@ bool IsNumber(std::string potNum, bool *decimalFlag, bool *floatFlag, bool *unsi
             case '9':
                 break;
             case '.':
-                *decimalFlag = true;
+                if (enableFlags) *decimalFlag = true;
                 break;
             case 'f':
-                *floatFlag = true;
+                if (enableFlags) *floatFlag = true;
                 if (i != (potNum.size() - 1)) return false;
                 break;
             case 'u':
-                *unsignedFlag = true;
+                if (enableFlags) *unsignedFlag = true;
                 if (i != (potNum.size() - 1)) return false;
                 break;
             break;
@@ -428,6 +463,7 @@ bool IsNumber(std::string potNum, bool *decimalFlag, bool *floatFlag, bool *unsi
 // returns true if the string matched the pattern.
 bool TokenFromString(
     std::string str,
+    uint32_t bc, // begin col of str in source.
     char **strPattern,
     unsigned int patternLen,
     enum token_type tokType,
@@ -441,7 +477,7 @@ bool TokenFromString(
         for( pStr = mString; (*pStr != 0 && str[k] == *pStr); (pStr++, k++) );
         if ( (*pStr == 0) && (k == str.size()) ) {
             // Means we made it through entire pattern string and the incoming string.
-            tok = Token(tokType, mString, currentLine);
+            tok = Token(tokType, mString, currentLine, bc);
             return true;
         }
     }
@@ -452,60 +488,63 @@ bool TokenFromString(
 // which by definition is a token that is preceding any other token or is preceding whitespace
 bool TokenFromLatent(struct token &token) {
     // Latent currentTokens can be literal or symbol tokens
-    if (*cleanToken != "") { 
+    if (*cleanToken != "") {
+
+        uint32_t bc = n_col - cleanToken->size();
+
         bool dFlag; bool fFlag; bool uFlag;
-        if (IsNumber(*cleanToken, &dFlag, &fFlag, &uFlag)) { 
+        if (IsNumber<EnableIsNumberFlags>(*cleanToken, &dFlag, &fFlag, &uFlag)) { 
             if (!dFlag) {
                 // NOTE: atoi works in a similar way to atof. the invalid things
                 // at the end of the string are ignored. of particular interest
                 // to us would be the `u` at the end of the string.
                 uint64_t num = atoi(cleanToken->c_str());
                 if (uFlag)
-                    token = Token(TOKEN_UINT_LITERAL, num, currentLine);
+                    token = Token(TOKEN_UINT_LITERAL, num, currentLine, bc);
                 else
-                    token = Token(TOKEN_INTEGER_LITERAL, num, currentLine);
+                    token = Token(TOKEN_INTEGER_LITERAL, num, currentLine, bc);
             } else if (!fFlag) {
                 // TODO: `atof` actually parses the exponent stuff so that sort
                 // of thing should be trivial to implement.
                 double num = atof(cleanToken->c_str());
-                token = Token(TOKEN_DOUBLE_LITERAL, num, currentLine);
+                token = Token(TOKEN_DOUBLE_LITERAL, num, currentLine, bc);
             } else {
                 // NOTE: atof ignores any invalid things at the end of the string,
                 // so `f` is ignored.
                 double num = atof(cleanToken->c_str());
-                token = Token(TOKEN_FLOAT_LITERAL, num, currentLine);
+                token = Token(TOKEN_FLOAT_LITERAL, num, currentLine, bc);
             }
         }
         // NOTE: the reason that these have dedicated tokens is because
         // we want to lock down what kind of thing these are ASAP.
         // otherwise at some point later we have to ask if the string is equal to e.g. "true".
         else if (*cleanToken == "true") {
-            token = Token(TOKEN_TRUE_LITERAL, currentLine);
+            token = Token(TOKEN_TRUE_LITERAL, currentLine, bc);
         }
         else if (*cleanToken == "false") {
-            token = Token(TOKEN_FALSE_LITERAL, currentLine);
+            token = Token(TOKEN_FALSE_LITERAL, currentLine, bc);
         }
         else if (*cleanToken == "null") {
-            token = Token(TOKEN_NULL_LITERAL, currentLine);
+            token = Token(TOKEN_NULL_LITERAL, currentLine, bc);
         }
         else {
 
             // TODO: looks like we can combine these two lists (ppl::TYPE_STRINGS and KEYWORDS).
             if (!TokenFromString(
-                    *cleanToken,
+                    *cleanToken, bc,
                     ppl::TYPE_STRINGS,
                     sizeof(ppl::TYPE_STRINGS) / sizeof(char *),
                     TOKEN_KEYWORD,
                     token
             )) {
                 if (!TokenFromString(
-                    *cleanToken,
+                    *cleanToken, bc,
                     KEYWORDS,
                     sizeof(KEYWORDS) / sizeof(char *),
                     TOKEN_KEYWORD,
                     token
                 )) {
-                    token = Token(TOKEN_SYMBOL, *cleanToken, currentLine);
+                    token = Token(TOKEN_SYMBOL, *cleanToken, currentLine, bc);
                 }
             }
         }
@@ -518,7 +557,6 @@ bool TokenFromLatent(struct token &token) {
 // Looks ahead to check for any matches with any of the strings.
 unsigned int TokenFromLookaheadString(
     RawFileReader &raw,
-    unsigned int n,
     char **strPattern,
     unsigned int patternLen,
     enum token_type tokType,
@@ -543,7 +581,7 @@ unsigned int TokenFromLookaheadString(
         if (*pStr == 0) {
             // Means we made it through entire string and matched.
             TokenFromLatent(symbolTok);
-            tok = Token(tokType, mString, currentLine);
+            tok = Token(tokType, mString, currentLine, n_col);
             return j;
         }
     }
@@ -554,19 +592,21 @@ unsigned int TokenFromLookaheadString(
 // also takes a set of test characters.
 void TokenFromChar(
     UNICODE_CPOINT character,  
-    char *test, 
+    char *setOfCharactersToTest,
     enum token_type tokType, 
     struct token &tok,
     struct token &symbolTok
 ) {
     bool charInTest = false;
-    for (char *pStr = test; *pStr != 0; pStr++) { // Go thru str till null terminator.
+
+    // Go thru str till null terminator.
+    for (char *pStr = setOfCharactersToTest; *pStr != 0; pStr++) {
         if ((uint8_t)*pStr == character)
             charInTest = true;
     }
     if (charInTest) {
         TokenFromLatent(symbolTok);
-        tok = Token(tokType, character, currentLine);
+        tok = Token(tokType, character, currentLine, n_col);
     }
 }
 
@@ -638,10 +678,18 @@ bool Lex(
     TokenContainer &tokenContainer
 ) 
 {    
-    // Generate globals
+    // Generate/reset globals
     std::string cToken = ""; currentToken = &cToken;
     std::string clToken = ""; cleanToken = &clToken;
+
     currentLine = 1;
+    state = LEXER_NORMAL;
+    stateBeginLine = 0;
+    stateBeginChar = 0;
+    stateBeginCol = 0;
+
+    n = -1;
+    n_col = 0;
 
     // # for the sake of parsing a raw input of ' '
     // # append onto raw.
@@ -649,11 +697,6 @@ bool Lex(
     
     // TODO(Noah): What if reading in the file here fails??
     RawFileReader raw = RawFileReader(inFile);
-
-    enum lexer_state state = LEXER_NORMAL;
-    uint32_t stateBeginLine = 0;
-    uint32_t stateBeginChar = 0;
-    uint32_t stateBeginCharCurrLine = 0;
 
     // there is a precedence in any of the searches below where if some things are substrings of patterns,
     // they need to be checked last.
@@ -675,12 +718,11 @@ bool Lex(
         state = s;
         stateBeginLine = l;
         stateBeginChar = c;
-        stateBeginCharCurrLine = cl;
+        stateBeginCol = cl;
     };
 
-    // Go through each character one-by-one
-    uint32_t n = -1;
-    uint32_t n_col = 0; // 
+    // the code below goes through each character one-by-one
+    // and uses the program globals `n` and `n_col`.
 
     UNICODE_CPOINT character = raw[0]; 
 
@@ -724,7 +766,7 @@ bool Lex(
         else if (state == LEXER_QUOTE) {
             if (character == '"' && raw[n-1] != '\\') { // end condition check.
                 changeState(LEXER_NORMAL, currentLine, n + 1, n_col + 1);
-                tokenContainer.Append(Token(TOKEN_QUOTE, *currentToken, currentLine));
+                tokenContainer.Append(Token(TOKEN_QUOTE, *currentToken, currentLine, stateBeginCol));
                 CurrentTokenReset();
             }
             // Check for escape sequenced characters (plus special characters).
@@ -782,7 +824,7 @@ bool Lex(
             // Check for character literals.
             if (raw[n] == '\'' && raw[n+2] == '\'') {
                 UNICODE_CPOINT c_val = raw[n+1];
-                tokenContainer.Append(Token(TOKEN_CHARACTER_LITERAL, c_val, currentLine));
+                tokenContainer.Append(Token(TOKEN_CHARACTER_LITERAL, c_val, currentLine, n_col));
                 CurrentTokenReset();
                 advanceChar(2);
                 continue;
@@ -791,11 +833,7 @@ bool Lex(
             // consume '.' in decimal literals to avoid being parsed as a TOKEN_PART. 
             // must ensure that what comes before the decimal is a number AND what comes after is also a number.
             
-            bool _df; // NOTE: here we do not care about the decimal flag.
-            bool _ff; // also do not care about the float flag.
-            bool _uf;
-            
-            if (raw[n] == '.' && IsNumber(std::string(1, raw[n+1]), &_df, &_ff, &_uf) && IsNumber(*cleanToken, &_df, &_ff, &_uf) ) {
+            if (raw[n] == '.' && IsNumber(std::string(1, raw[n+1])) && IsNumber(*cleanToken) ) {
                 CurrentTokenAddChar('.');
                 continue;
             }
@@ -806,7 +844,7 @@ bool Lex(
                 if (TokenFromLatent(token)) {
                     tokenContainer.Append(token);
                 }
-                tokenContainer.Append(Token(TOKEN_OP, '/', currentLine));
+                tokenContainer.Append(Token(TOKEN_OP, '/', currentLine, n_col));
                 CurrentTokenReset();
                 continue;
             }
@@ -848,7 +886,6 @@ bool Lex(
                     case SEARCH_P_STRING:
                     skipAmount = TokenFromLookaheadString(
                         raw,
-                        n,
                         sPattern.string_pattern,
                         sPattern.patternLen,
                         sPattern.tokType,
@@ -859,6 +896,7 @@ bool Lex(
                     case SEARCH_P_CURRENT_STRING:
                     TokenFromString(
                         StdStringFromStringAndUCP(cleanToken, character),
+                        n_col - cleanToken->size(), // beginCol.
                         sPattern.string_pattern,
                         sPattern.patternLen,
                         sPattern.tokType,
@@ -887,7 +925,7 @@ bool Lex(
 
     if ((state == LEXER_QUOTE) || (state == LEXER_MULTILINE_COMMENT)) {
 
-        uint32_t    c    = stateBeginCharCurrLine;
+        uint32_t    c    = stateBeginCol;
         uint32_t    line = stateBeginLine;
 
         switch (state) {

@@ -407,11 +407,13 @@ void ptest_Grammar(char *inFilePath, int&errors) {
             //LOGGER.Log("grammarDefName: %s", grammarDefName);
 
             struct tree_node tree = {};
-            
+
+            ppl_error bestErr = {};
+
             bool r = ParseTokensWithGrammar(
                 tokensContainer, 
                 GRAMMAR.GetDef(grammarDefName),
-                tree);
+                tree, bestErr);
             
             //bool r = false;
 
@@ -420,6 +422,28 @@ void ptest_Grammar(char *inFilePath, int&errors) {
                 DeallocTree(tree);
             }
             else {
+
+                // emit the best error that we got back.
+                {
+                    uint32_t c = bestErr.c;
+                    uint32_t line = bestErr.line;
+
+                    // TODO: The below is likely to change when #import actually works.
+                    // maybe it comes from the error because the source code that errors
+                    // is in diff file.
+                    const char *file = LOGGER.logContext.currFile;
+
+                    const char *code = 
+                        bestErr.codeContext ? bestErr.codeContext : "<unknown>"; // TODO.
+
+                    LOGGER.EmitUserError(
+                        file, line, c, code,
+                        bestErr.errMsg ? bestErr.errMsg : "<unknown>" 
+                    );
+
+                    //return false;
+                }
+
                 LOGGER.Error("ParseTokensWithGrammar failed.");
                 errors += 1;
             } 
@@ -428,8 +452,9 @@ void ptest_Grammar(char *inFilePath, int&errors) {
             LOGGER.Error("Lex failed.");
             errors += 1;
         }
+
+        fclose(inFile);
     }
-    fclose(inFile);
 }
 
 void ptest_Lexer(char *inFilePath, int &errors) {
