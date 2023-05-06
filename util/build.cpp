@@ -376,7 +376,8 @@ void ptest_Grammar(char *inFilePath, int&errors) {
         errors += 1;
     } else {
         TokenContainer tokensContainer;
-        if (Lex(inFile, tokensContainer)) {
+        RawFileReader tokenBirthplace;
+        if (Lex(inFile, tokensContainer, &tokenBirthplace)) {
             if (VERBOSE) {
                 tokensContainer.Print();
             }
@@ -408,7 +409,8 @@ void ptest_Grammar(char *inFilePath, int&errors) {
 
             struct tree_node tree = {};
 
-            ppl_error bestErr = {};
+            ppl_error_context bestErr = {};
+            bestErr.pTokenBirthplace = &tokenBirthplace;
 
             bool r = ParseTokensWithGrammar(
                 tokensContainer, 
@@ -465,7 +467,8 @@ void ptest_Lexer(char *inFilePath, int &errors) {
         errors += 1;
     } else {
         TokenContainer tokensContainer;
-        if (Lex(inFile, tokensContainer)) {
+        RawFileReader tokenBirthplace;
+        if (Lex(inFile, tokensContainer, &tokenBirthplace)) {
             if (VERBOSE) {
                 tokensContainer.Print();
             }
@@ -473,8 +476,8 @@ void ptest_Lexer(char *inFilePath, int &errors) {
             LOGGER.Error("Lex() failed.");
             errors += 1;
         }
+        fclose(inFile);
     }
-    fclose(inFile);
 }
 
 void ptest_Preparser(char *inFilePath, int &errors) {
@@ -485,7 +488,8 @@ void ptest_Preparser(char *inFilePath, int &errors) {
         errors += 1;
     } else {
         TokenContainer tokensContainer;
-        if (Lex(inFile, tokensContainer)) {
+        RawFileReader tokenBirthplace;
+        if (Lex(inFile, tokensContainer, &tokenBirthplace)) {
             if (VERBOSE) {
                 tokensContainer.Print();
             }

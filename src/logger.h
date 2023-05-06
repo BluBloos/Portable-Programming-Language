@@ -90,7 +90,7 @@ class Logger {
         va_end(args);
 
         Min(ColorHighlight);
-        Min("\n\t%s\n\n", codeContext);
+        Min("\n%s\n\n", codeContext);
         Min(ColorNormal);
     }
 

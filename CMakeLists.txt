@@ -22,3 +22,6 @@ target_include_directories(
     "${ProjectRoot}/src" "${ProjectRoot}/util" "${ProjectRoot}/src" "${ProjectRoot}/backend/src" "${ProjectRoot}/vendor")
 
 target_compile_features(${ProjectName} PRIVATE cxx_std_11)
+
+set_target_properties(${ProjectName}
+    PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${ProjectRoot}" )

@@ -18,6 +18,34 @@
 // required at all. we really only need to go some amount up the tree, and after that
 // the ancestors do not give an extra info.
 
+std::string GenerateCodeContextFromTok(ppl_error_context &ctx, struct token tok)
+{
+
+    const std::string ANSI_RED = "\033[31m";
+    const std::string ANSI_RESET = "\033[0m";
+
+    // ReadLine works fast because the lexer phase noted where in the source file it found the `\n`s.
+    ppl_str_view strView1 = ctx.pTokenBirthplace->ReadLine(tok.line - 1);  // .line begins at 1.
+    // if the index does not map to anything, we get back an empty string view.
+    ppl_str_view strView2 = ctx.pTokenBirthplace->ReadLine(tok.line);
+    ppl_str_view strView3 = ctx.pTokenBirthplace->ReadLine(tok.line + 1);
+    // ReadLine gets the lines with \n included.
+
+    std::string firstOne = std::string(strView1.str, strView1.len) + ((strView1.len) ? "\t" : "");
+    std::string secondOne = std::string(strView2.str, strView2.len) + ((strView2.len) ? "\t" : "");
+    std::string thirdOne = std::string(strView3.str, strView3.len);
+
+    // TODO: this needs to change when maybe we get more errors.
+    secondOne.insert(ctx.c - 1, ANSI_RED);
+
+//middleLineStr.insert();
+ //       middleLineStr.insert(offset + 1, ANSI_RESET);
+
+    // complete insanity below, beware.
+    return std::string("\t") + firstOne + secondOne + thirdOne;
+}
+
+#if 0
 struct ast_error {
     char *msg;
     unsigned int lineNumber;
@@ -33,19 +61,20 @@ struct ast_error CreateASTError(char *msg, unsigned int lineNumber, unsigned int
 void PrintAstError(struct ast_error err) {
     LOGGER.Error("Syntax error on line %d. %s", err.lineNumber, err.msg);
 }
+#endif
 
 bool ParseTokensWithGrammar(
     TokenContainer &tokens, 
     const grammar_definition &grammarDef,
     struct tree_node &tree,
-    ppl_error &bestErr,
+    ppl_error_context &bestErr,
     bool parentWantsVerboseAST = false);
 
 bool ParseTokensWithRegexTree(
     TokenContainer &tokens, 
     const tree_node &regexTree,
     tree_node &tree,
-    ppl_error &bestErr,
+    ppl_error_context &bestErr,
     bool parentWantsVerboseAST = false)
 {
 
@@ -279,6 +308,7 @@ bool ParseTokensWithRegexTree(
                         bestErr.errMsg = "Expected a literal but sure as hell did not get one.";
                         bestErr.c = tok.beginCol;
                         bestErr.line = tok.line;
+                        bestErr.codeContext = GenerateCodeContextFromTok(bestErr, tok ).c_str();
 
                         break;
                     }
@@ -423,7 +453,7 @@ bool ParseTokensWithGrammar(
     TokenContainer &tokens, 
     const grammar_definition &grammarDef,
     struct tree_node &tree,
-    ppl_error &bestErr,
+    ppl_error_context &bestErr,
     bool parentWantsVerboseAST)
 {
     

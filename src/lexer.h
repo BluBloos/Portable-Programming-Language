@@ -66,19 +66,83 @@ enum lexer_state {
 
 // Implements a safe way to pseudo-index into a file.
 class RawFileReader {
-    public:
+
+public:
+
     int lastChar; // What was last returned by fgetc.
     FILE *internalFile;
     int fileByteCount;
-    UNICODE_CPOINT *internalBuffer;
+
+    // TODO: deal with this.
+    UNICODE_CPOINT *internalBuffer = nullptr;
+    
+    const char *theStupidFile = nullptr; // TODO:
+
     unsigned int internalBufferSize;
     unsigned int buffCharCount;
+
+    uint32_t *lineInfos = nullptr; // stretchy buffer.
+
+    void AddLineInfo(uint32_t lineInfo)
+    {
+        StretchyBufferPush(lineInfos, lineInfo);
+    }
+
+    ppl_str_view ReadLine(uint32_t line)
+    {
+        // NOTE: we are using line+1 here because we can expect that there is one extra
+        // element in lineInfos so that the length of the last line can be retrieved.
+
+        uint32_t zeroBasedIdx = line-1;
+
+        if ( (line == 0) || ( (zeroBasedIdx+1) >= StretchyBufferCount(lineInfos))) return {};
+
+        uint32_t beginIdx = lineInfos[zeroBasedIdx];
+        uint32_t endIdx   = lineInfos[zeroBasedIdx+1];
+        ppl_str_view view = {};
+        view.str = (char*)&(theStupidFile[beginIdx]);
+        view.len = &theStupidFile[endIdx] - &theStupidFile[beginIdx];
+        return view;
+    }
+
+    // TODO: this is a hack.
+    RawFileReader()
+    {
+
+    }
+
+    RawFileReader & operator=( RawFileReader &&other )
+    {
+        lastChar = other.lastChar;
+        fileByteCount = other.fileByteCount;
+        internalFile = other.internalFile; // we don't own the file.
+
+        std::swap(internalBuffer, other.internalBuffer);
+        std::swap(theStupidFile, other.theStupidFile);
+        std::swap(lineInfos, other.lineInfos);
+
+        internalBufferSize = other.internalBufferSize;
+        buffCharCount = other.buffCharCount;
+
+        return *this;
+    }
+
+    RawFileReader &operator=(const RawFileReader &other) = delete;
+
     RawFileReader(FILE *file) : internalFile(file) {
         if (internalFile != NULL) {
+            // get the size of the file.
             int r = fseek(internalFile, 0L, SEEK_END); Assert(r == 0);
             fileByteCount = ftell(internalFile); // ftell is the number of bytes from the beginning of the file.
             Assert(fileByteCount != -1L);
-            r = fseek(internalFile, 0L, SEEK_SET); Assert(r == 0);
+            r = fseek(internalFile, 0L, SEEK_SET); Assert(r == 0); // go back to beginning.
+
+            // TODO: I did this for sanity purposes but we really should think about UTF-8 some more.
+            theStupidFile = (const char *)malloc(sizeof(char) * fileByteCount);
+            Assert(theStupidFile);
+            fread((void*)theStupidFile, sizeof(char), fileByteCount, internalFile);
+            r = fseek(internalFile, 0L, SEEK_SET); Assert(r == 0); // go back to beginning.
+
             // TODO(Noah): This is actually HIGHLY inefficient because we are multiplying the size of files by 4 when
             // representing in internal memory...
             internalBufferSize = fileByteCount;
@@ -87,11 +151,16 @@ class RawFileReader {
             buffCharCount = 0;
             lastChar = fgetc(file);
         }
+        StretchyBufferInit(lineInfos);
     }
     ~RawFileReader() {
         // NOTE(Noah): I do think destructors and OOP are a nice way for me to do memory management :)
         if (internalBuffer != NULL)
             free(internalBuffer);
+        if (lineInfos!=nullptr)
+            StretchyBufferFree(lineInfos);
+        if (theStupidFile!=nullptr)
+           free((void*)theStupidFile);
     }
     UNICODE_CPOINT _fgetucp(FILE *file) {
         // like fgetc, but returns a unicode code point instead.
@@ -675,7 +744,8 @@ char **arr, unsigned int arrSize) {
 
 bool Lex(
     FILE *inFile, 
-    TokenContainer &tokenContainer
+    TokenContainer &tokenContainer,
+    RawFileReader *pReaderOut
 ) 
 {    
     // Generate/reset globals
@@ -696,7 +766,8 @@ bool Lex(
     // raw += ' '
     
     // TODO(Noah): What if reading in the file here fails??
-    RawFileReader raw = RawFileReader(inFile);
+    *pReaderOut = std::move(RawFileReader(inFile));
+    RawFileReader &raw = *pReaderOut;
 
     // there is a precedence in any of the searches below where if some things are substrings of patterns,
     // they need to be checked last.
@@ -732,19 +803,24 @@ bool Lex(
         n_col+=a;
     };
 
-    auto advanceLine = [&](uint32_t a = 1)
+    auto advanceLine = [&]()
     {
-        currentLine += a;
+        currentLine += 1;
         n_col = 0;
+        raw.AddLineInfo(n + 1);
     };
+
+    raw.AddLineInfo(0); // for the first line.
 
     while (character != CP_EOF) {
         
         advanceChar(1);
         character = raw[n];
+
+        const bool shouldAdvanceLine = (character == '\n' || character == CP_EOF);
         
         // check for newline characters.
-        if (character == '\n') {
+        if (shouldAdvanceLine) {
             advanceLine();
             // NOTE(Noah): no 'continue;' because comments exit on newline.  
         }
@@ -851,17 +927,15 @@ bool Lex(
 
             // We want to check for a latent token if we have hit whitespace.
             if (character == ' ' || character == '\n' || character == CP_EOF) {
-                currentLine = (character == '\n') ? currentLine - 1  : currentLine;
+                // the latent token isn't on the new line, so pull this back for now.
+                currentLine = (shouldAdvanceLine) ? currentLine - 1  : currentLine;
                 struct token token;
                 bool isTokenLatent = TokenFromLatent(token);
                 if (isTokenLatent) {
                     tokenContainer.Append(token);
                     CurrentTokenReset();
                 }
-                if (character == '\n')
-                {
-                    advanceLine();
-                }
+                currentLine = (shouldAdvanceLine) ? currentLine + 1  : currentLine; // reset.
                 if (isTokenLatent) continue;
             }
 
@@ -931,14 +1005,14 @@ bool Lex(
         switch (state) {
             case LEXER_QUOTE: {
                 const char *file = LOGGER.logContext.currFile;
-                const char *code = "<unknown>";
+                const char *code = "\t<unknown>"; // TODO: use the same code printer thing we made in syntax.h
                 LOGGER.EmitUserError(file, line, c, code, "Unclosed string literal. Began at %d,%d.", line, c);
                 return false;
             } break;
             case LEXER_MULTILINE_COMMENT:
             {
                 const char *file = LOGGER.logContext.currFile;
-                const char *code = "<unknown>";
+                const char *code = "\t<unknown>";
                 LOGGER.EmitUserError(file, line, c, code, "Unclosed multiline comment. Began at %d,%d.", line, c);
                 return false;
             }

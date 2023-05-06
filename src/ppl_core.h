@@ -313,6 +313,12 @@ public:
     }   
 };
 
+struct ppl_str_view
+{
+    char *str;
+    uint32_t len;
+};
+
 // TODO: Make this file (ppl_core.h) a *.hpp
 
 /* OTHER COMPILATION UNITS */
