@@ -24,7 +24,10 @@ namespace ppl {
         "Any", "Type", "TypeInfo", "TypeInfoMember",
 
         // other cool types.
-        "struct", "enum", "enum_flag"
+        "struct", "enum", "enum_flag",
+        
+        // TODO: maybe just shorten this to "space".
+        "namespace"
     };
 
     
@@ -53,7 +56,8 @@ enum ppl_type {
     PPL_TYPE_TYPE_INFO_MEMBER,
     PPL_TYPE_STRUCT,
     PPL_TYPE_ENUM,
-    PPL_TYPE_ENUM_FLAG
+    PPL_TYPE_ENUM_FLAG,
+    PPL_TYPE_NAMESPACE,
 };
 
 static const char * PplTypeToString(ppl_type type)
@@ -99,6 +103,8 @@ static const char * PplTypeToString(ppl_type type)
             return "PPL_TYPE_ENUM";
         case PPL_TYPE_ENUM_FLAG:
             return "PPL_TYPE_ENUM_FLAG";
+        case PPL_TYPE_NAMESPACE:
+            return "PPL_TYPE_NAMESPACE";
     }
 }
 

@@ -217,7 +217,7 @@ char *_grammarTable[][2] =
         "type_keyword",
         // TODO: is there anyway to make the below less crap?
         // especially because it has terrible performance implications.
-        "[(keyword=float)(keyword=double)(keyword=f32)(keyword=f64)(keyword=bool)(keyword=void)(keyword=u8)(keyword=u16)(keyword=u32)(keyword=u64)(keyword=s8)(keyword=s16)(keyword=s32)(keyword=s64)(keyword=int)(keyword=char)(keyword=short)(keyword=Any)(keyword=Type)(keyword=TypeInfo)(keyword=TypeInfoMember)(keyword=struct)(keyword=enum)(keyword=enum_flag)]`"
+        "[(keyword=float)(keyword=double)(keyword=f32)(keyword=f64)(keyword=bool)(keyword=void)(keyword=u8)(keyword=u16)(keyword=u32)(keyword=u64)(keyword=s8)(keyword=s16)(keyword=s32)(keyword=s64)(keyword=int)(keyword=char)(keyword=short)(keyword=Any)(keyword=Type)(keyword=TypeInfo)(keyword=TypeInfoMember)(keyword=struct)(keyword=enum)(keyword=enum_flag)(keyword=namespace)]`"
     },
 
     {

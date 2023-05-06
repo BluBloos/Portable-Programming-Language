@@ -21,9 +21,6 @@ char *KEYWORDS[] = {
 
     "defer",
 
-    // TODO: maybe just shorten this to like space?
-    "namespace",
-
     // qualifiers
     "static",
     "unsigned", // TODO: do we really want this?
