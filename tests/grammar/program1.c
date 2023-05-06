@@ -5,7 +5,9 @@ A :: struct {
     aa:float;
 }
 
-b :: int = 7 // global variable!! :)
+// global variable!! :)
+b :: int = 7; c :: int = 8;
+d :: int = 9 // the semicolon is optional for compile-time vars.
 
 main :: (argc:int, largeLad : A) ->int {
 
@@ -18,7 +20,7 @@ main :: (argc:int, largeLad : A) ->int {
         ^(^u8)@largeLad = j + 1; // this should be fun.
     }
 
-        // simple scope
+    // simple scope
     {
 
         a:int = 4;

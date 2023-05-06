@@ -290,13 +290,15 @@ arrView := FOOD_SYMBOLS; // so we can do something like this,
 // FUNCTIONS:
 // ==========
 //
-MAP_HEIGHT :: 15;
-SNAKE_BODY :: '*';
-MAP_WIDTH  :: 40;
+MAP_HEIGHT :: 15
+SNAKE_BODY :: '*'
+MAP_WIDTH  :: 40
 //
-is_map_border := (x : int, y : int) -> bool {
+
+is_map_border :: (x : int, y : int) -> bool {
     return (y == 0) || (x == 0) || (x == MAP_WIDTH) || (y == MAP_HEIGHT);
 }
+
 //
 exit :: () {
     input_off(); // declarations at the global program scope do not need to be in order.
