@@ -440,13 +440,28 @@ snake := plib.Array<SnakeBody>;
 // the ppl.types namespace implements a generic array type. it operates very simply, just like stb stretchy buffers.
 // this generics idea is to compile different versions of a function based on a specific type.
 //
-genericAdd :: <T, Size : T> ( a : T, b : T ) -> T
+genericAdd :: <someConstVal : T, T> ( a : T, b : T ) -> T
 {
-    return a + b + Size;
+    return a + b + someConstVal;
 }
 //
 // so the grammar for generics is like `identifier :: < list of generic types > ...`. our generic types can be either
 // full-blown types or value type.
+//
+// the generic idea is a compile-time object that "modifies" the value to the right of it.
+// it makes that value a generic one. and so we can instantiate the diff versions.
+//
+genericAdd<3>(0, 1);
+//
+GenericArrayThing :: <T, T_b> struct {
+    capacity : T_b;
+    elems : []T;
+}
+//
+myArr := GenericArrayThing<u64> {};
+//
+genericThing2 :: <z : int> []int { 1*z, 2*z, 3*z }
+actualThing := genericThing2<3>;
 
 
 // FOR LOOPS:
