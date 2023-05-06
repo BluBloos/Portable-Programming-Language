@@ -18,31 +18,36 @@
 // required at all. we really only need to go some amount up the tree, and after that
 // the ancestors do not give an extra info.
 
-std::string GenerateCodeContextFromTok(ppl_error_context &ctx, struct token tok)
+#include <algorithm>
+
+void GenerateCodeContextFromFilePos(ppl_error_context &ctx, uint32_t line, uint32_t c, char *buf, uint32_t bufLen)
 {
 
     const std::string ANSI_RED = "\033[31m";
     const std::string ANSI_RESET = "\033[0m";
 
     // ReadLine works fast because the lexer phase noted where in the source file it found the `\n`s.
-    ppl_str_view strView1 = ctx.pTokenBirthplace->ReadLine(tok.line - 1);  // .line begins at 1.
+    ppl_str_view strView1 = ctx.pTokenBirthplace->ReadLine(line - 1);  // .line begins at 1.
     // if the index does not map to anything, we get back an empty string view.
-    ppl_str_view strView2 = ctx.pTokenBirthplace->ReadLine(tok.line);
-    ppl_str_view strView3 = ctx.pTokenBirthplace->ReadLine(tok.line + 1);
-    // ReadLine gets the lines with \n included.
+    ppl_str_view strView2 = ctx.pTokenBirthplace->ReadLine(line);
+    ppl_str_view strView3 = ctx.pTokenBirthplace->ReadLine(line + 1);
 
-    std::string firstOne = std::string(strView1.str, strView1.len) + ((strView1.len) ? "\t" : "");
-    std::string secondOne = std::string(strView2.str, strView2.len) + ((strView2.len) ? "\t" : "");
-    std::string thirdOne = std::string(strView3.str, strView3.len);
+    // ReadLine gets the lines with \n OR CP_EOF included.
 
-    // TODO: this needs to change when maybe we get more errors.
-    secondOne.insert(ctx.c - 1, ANSI_RED);
+    std::string firstOne = (strView1.len) ? 
+        std::string(strView1.str, strView1.len - 1) + "\n\t" : "";
+    std::string secondOne = (strView2.len) ? std::string(strView2.str, strView2.len - 1) + "\n\t" : "";
+    std::string thirdOne = (strView3.len) ? std::string(strView3.str, strView3.len - 1) + "\n\t" : "";
 
-//middleLineStr.insert();
- //       middleLineStr.insert(offset + 1, ANSI_RESET);
+    if ( (c > 0) && ((c-1)<secondOne.size()) ) secondOne.insert(c - 1, ANSI_RED);
 
     // complete insanity below, beware.
-    return std::string("\t") + firstOne + secondOne + thirdOne;
+    auto result = std::string("\t") + firstOne + secondOne + thirdOne;
+
+    // write out result to buf.
+    memcpy(buf, result.c_str(), std::min( (size_t)bufLen, result.size() + 1 )  );
+    // the +1 above is for the null-terminator.
+
 }
 
 #if 0
@@ -208,7 +213,7 @@ bool ParseTokensWithRegexTree(
                 const char *child_data = child.metadata.str;    
                 if ( GRAMMAR.DefExists(child_data) ) {
                     struct tree_node treeChild;
-                    if (ParseTokensWithGrammar(tokens, GRAMMAR.defs[child_data], treeChild, bestErr)) {
+                    if (ParseTokensWithGrammar(tokens, GRAMMAR.defs[child_data], treeChild, bestErr, verboseAST)) {
                         TreeAdoptTree(tree, treeChild);
                         re_matched += 1;
                     } else {
@@ -308,7 +313,8 @@ bool ParseTokensWithRegexTree(
                         bestErr.errMsg = "Expected a literal but sure as hell did not get one.";
                         bestErr.c = tok.beginCol;
                         bestErr.line = tok.line;
-                        bestErr.codeContext = GenerateCodeContextFromTok(bestErr, tok ).c_str();
+                        GenerateCodeContextFromFilePos(
+                            bestErr, tok.line, tok.beginCol, bestErr.codeContext, PPL_ERROR_MESSAGE_MAX_LENGTH);
 
                         break;
                     }

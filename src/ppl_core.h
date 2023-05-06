@@ -40,6 +40,7 @@ typedef SSIZE_T ssize_t;
 #include <unordered_map>
 #include <math.h>
 #ifdef PLATFORM_WINDOWS
+#define NOMINMAX
 #include <Windows.h>
 #include <WinCon.h>
 #endif

@@ -2,7 +2,7 @@
 #define NC_PAL_WINDOWS_HPP
 
 #if defined( _MSC_VER )
-
+#define NOMINMAX
 #include <Windows.h>
 #include <fileapi.h>
 #include <minwinbase.h>

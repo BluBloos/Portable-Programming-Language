@@ -6,6 +6,8 @@ typedef unsigned int UNICODE_CPOINT;
 
 #include "ppl_types.hpp"
 
+void GenerateCodeContextFromFilePos(ppl_error_context &ctx, uint32_t line, uint32_t c, char *buf, uint32_t bufLen);
+
 // keywords that map to values such as:
 // "true", "false", "null",
 // are mapped to their own TOKEN kind.
@@ -745,7 +747,8 @@ char **arr, unsigned int arrSize) {
 bool Lex(
     FILE *inFile, 
     TokenContainer &tokenContainer,
-    RawFileReader *pReaderOut
+    RawFileReader *pReaderOut,
+    ppl_error_context *pErrCtx
 ) 
 {    
     // Generate/reset globals
@@ -768,6 +771,7 @@ bool Lex(
     // TODO(Noah): What if reading in the file here fails??
     *pReaderOut = std::move(RawFileReader(inFile));
     RawFileReader &raw = *pReaderOut;
+    pErrCtx->pTokenBirthplace = pReaderOut;
 
     // there is a precedence in any of the searches below where if some things are substrings of patterns,
     // they need to be checked last.
@@ -1002,18 +1006,25 @@ bool Lex(
         uint32_t    c    = stateBeginCol;
         uint32_t    line = stateBeginLine;
 
+        //pErrCtx->c = c;
+        //pErrCtx->line = line;
+
         switch (state) {
             case LEXER_QUOTE: {
                 const char *file = LOGGER.logContext.currFile;
-                const char *code = "\t<unknown>"; // TODO: use the same code printer thing we made in syntax.h
-                LOGGER.EmitUserError(file, line, c, code, "Unclosed string literal. Began at %d,%d.", line, c);
+                GenerateCodeContextFromFilePos(
+                    *pErrCtx, line, c, pErrCtx->codeContext, PPL_ERROR_MESSAGE_MAX_LENGTH);
+                LOGGER.EmitUserError(
+                    file, line, c, pErrCtx->codeContext, "Unclosed string literal. Began at %d,%d.", line, c);
                 return false;
             } break;
             case LEXER_MULTILINE_COMMENT:
             {
                 const char *file = LOGGER.logContext.currFile;
-                const char *code = "\t<unknown>";
-                LOGGER.EmitUserError(file, line, c, code, "Unclosed multiline comment. Began at %d,%d.", line, c);
+                GenerateCodeContextFromFilePos(
+                    *pErrCtx, line, c, pErrCtx->codeContext, PPL_ERROR_MESSAGE_MAX_LENGTH);
+                LOGGER.EmitUserError(
+                    file, line, c, pErrCtx->codeContext, "Unclosed multiline comment. Began at %d,%d.", line, c);
                 return false;
             }
                 break;
