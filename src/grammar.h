@@ -341,8 +341,16 @@ char *_grammarTable[][2] =
     },
     {
         // TODO: needs a better name.
+        // TODO: okay so based on the way that I lay out these strings below,
+        // it almost appears like I could do some C++ magic to construct a meta-system
+        // for construction of these regex trees :)
         "factor",
-        "[(object)([(op,++)(op,--)(op,!)(op,-)(op,^)(op,@)(op,~)(\\((type)\\))](factor))(\\((expression)\\))]"
+        "["
+            "((op,.)(object))"
+            "(object)"
+            "([(op,++)(op,--)(op,!)(op,-)(op,^)(op,@)(op,~)(\\((type)\\))](factor))"
+            "(\\((expression)\\))"
+        "]"
     },
 
     {
@@ -365,6 +373,7 @@ char *_grammarTable[][2] =
 };
 
 char  *_grammarTable_LR[][3] = {
+    // NOTE: this grammar constructions works by appending beta and alpha and give the alpha the `*` modifier.
     {
         "object",
         "[(function_call)(symbol)(literal)(type)]", // beta

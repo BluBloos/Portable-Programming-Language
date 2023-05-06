@@ -336,9 +336,6 @@ exit :: () {
 
 SnakeBody :: struct {
 
-    x : int = 0;
-    y : int = 0;
-
 // STATIC KEYWORD:
 // ===============
 //
@@ -347,12 +344,15 @@ SnakeBody :: struct {
     {
 
         return {-10; -10};
-    }
+    };
 // STRUCT MEMBER FUNCTIONS:
 // ========================
 //
 // there is no vtable and no runtime polymorphism. the structs store the function pointers. these member functions
 // compile under-the-hood to take as the first parameter a pointer to the type of the object. this is the `this` pointer.
+
+    x : int = 0;
+    y : int = 0;
 
 };
 
@@ -385,18 +385,6 @@ vec = { x = 1.1f,  y = 1.2f };
 //
 arr2 := []int { 1, 2, 3, 5 }; // we do get to use commas here over `;`, which is nicer on the eyes.
 //
-// there is also a sort of special routing support for array init as well:
-//
-a2 := [10]u32 { [0] = 2, 3, [3] = 1 }; // gives an array of [ 2; 3; 0; 1; 0; 0; 0; 0; 0; 0 ].
-//
-// remember, everything is zero initialized unless explicitly marked as uninitialized.
-//
-A  := [10]u32 { [3] = 1, [0] = 2, 3 }; // gives compiler-error.
-//
-// the ^ above is not allowed. routed values to array slots must be in order when use with non-routed values.
-
-
-
 
 
 // ------ ENUMS ------
