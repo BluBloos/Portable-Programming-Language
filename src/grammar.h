@@ -280,12 +280,6 @@ char *_grammarTable[][2] =
         "statement_noend",
         "[(data_pack)(var_decl)(expression)(return_statement)(keyword=fall)(keyword=break)(keyword=continue)(if_statement)(while_statement)(for_statement)(switch_statement)]"
     },
-
-
-    {
-        "expression",
-        "[(import_expression)(data_pack)(span_expression)(assignment_exp)(conditional_exp)]"
-    },
     {
         "span_expression",
         "(literal)[(op,..=)(op,..<)](literal)"
@@ -354,14 +348,9 @@ char *_grammarTable[][2] =
     },
 
     {
-        // TODO: where else would a tuple be allowed?
-        "tuple",
-        "(expression)(,(expression))+"
-    },
-    {
         "function_call",
         // NOTE: keyword is used here for builtin functions.
-        "[(symbol)(keyword)]\\([(tuple)(expression)]?\\)"
+        "[(symbol)(keyword)]\\((expression)?\\)"
     },
 
     {
@@ -369,15 +358,19 @@ char *_grammarTable[][2] =
         "(keyword=#import)(literal)"
     }
 
-
 };
 
 char  *_grammarTable_LR[][3] = {
-    // NOTE: this grammar constructions works by appending beta and alpha and give the alpha the `*` modifier.
+    // NOTE: these grammar constructions works by appending beta and alpha and give the alpha the `*` modifier.
     {
         "object",
         "[(function_call)(symbol)(literal)(type)]", // beta
         "[(op,++)(op,--)((op,[)(expression)(op,]))((op,.)(object))]" // alpha
+    },
+    {
+        "expression",
+        "[(import_expression)(data_pack)(span_expression)(assignment_exp)(conditional_exp)]",
+        "((op,,)(expression))"
     }
 };
 
