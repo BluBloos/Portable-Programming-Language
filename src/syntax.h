@@ -78,6 +78,7 @@ bool ParseTokensWithGrammar(
 bool ParseTokensWithRegexTree(
     TokenContainer &tokens, 
     const tree_node &regexTree,
+    const grammar_definition &currGrammarCtx,
     tree_node &tree,
     ppl_error_context &errorCtx,
     bool parentWantsVerboseAST = false)
@@ -148,7 +149,7 @@ bool ParseTokensWithRegexTree(
                 // TODO(Noah): Check if there is anything smarter to do than
                 // "dummyTree"
                 struct tree_node dummyTree = CreateTree(TREE_ROOT);
-                if (ParseTokensWithRegexTree(tokens, child, dummyTree, errorCtx, verboseAST)) {
+                if (ParseTokensWithRegexTree(tokens, child, currGrammarCtx, dummyTree, errorCtx, verboseAST)) {
                     re_matched += 1;
                     for (unsigned int i = 0; i < dummyTree.childrenCount; i++) {
                         TreeAdoptTree(tree, dummyTree.children[i]);
@@ -220,14 +221,36 @@ bool ParseTokensWithRegexTree(
 
                 const char *child_data = child.metadata.str;    
                 if ( GRAMMAR.DefExists(child_data) ) {
-                    struct tree_node treeChild;
-                    if (ParseTokensWithGrammar(tokens, GRAMMAR.defs[child_data], treeChild, errorCtx, verboseAST)) {
-                        TreeAdoptTree(tree, treeChild);
-                        re_matched += 1;
+
+                    struct tree_node treeChild = CreateTree(AST_GNODE);
+                    const bool bGrammarDefExists = GRAMMAR.DefExists(child_data);
+                    
+                    if (bGrammarDefExists)
+                    {
+                        const grammar_definition &grammarDef = GRAMMAR.defs[child_data];
+
+                        // NOTE(Noah): Here we do not alloc another string.
+                        // The string has already been secured and alloced inside of grammarDef.
+                        treeChild.metadata.str = grammarDef.name;
+
+                        // Fill up the tree with any parsed children.
+                        if (bGrammarDefExists && ParseTokensWithRegexTree(
+                                tokens, grammarDef.regexTree, grammarDef, treeChild, errorCtx, verboseAST)) {
+                            TreeAdoptTree(tree, treeChild);
+                            re_matched += 1;
+
+                        } else {
+                            // Delete any children that might have been created.
+                            for (unsigned int i = 0; i < treeChild.childrenCount; i++) { DeallocTree(treeChild.children[i]); }
+                            treeChild.childrenCount = 0;
+                            break;  // didn't find grammar object we wanted.
+                        }
+
                     } else {
-                        //buffered_errors += (_buffered_errors)
-                        break; // didn't find grammar object we wanted.
+                        Assert("TODO(Compiler team): this bad, fix.");
+                        break;
                     }
+
                 }
                 // TODO(opt): the regex representation should not use strings.
                 // that is very slow. please we should just use simple enums or something instead of string
@@ -391,9 +414,9 @@ bool ParseTokensWithRegexTree(
                         constexpr auto bufSize = 256;
                         static char msgBuf[bufSize]={};
                         if (tok.type == TOKEN_OP)
-                            snprintf(msgBuf, bufSize, "Expected op '%c'.", tok.c);
+                            snprintf(msgBuf, bufSize, "Expected op '%c'. Grammar context = %s.", tok.c, currGrammarCtx.name);
                         else if (tok.type == TOKEN_COP)
-                            snprintf(msgBuf, bufSize, "Expected op '%.*s'.", strlen(tok.str), tok.str);
+                            snprintf(msgBuf, bufSize, "Expected op '%.*s'. Grammar context = %s.", strlen(tok.str), tok.str, currGrammarCtx.name);
                         errorCtx.SubmitError(
                             msgBuf,
                             tok.line, tok.beginCol, tokens.GetSavepoint()
@@ -508,7 +531,7 @@ bool ParseTokensWithGrammar(
     tree.metadata.str = grammarDef.name;
     
     // Fill up the tree with any parsed children.
-    bool r = ParseTokensWithRegexTree(tokens, grammarDef.regexTree, tree, errorCtx, parentWantsVerboseAST);
+    bool r = ParseTokensWithRegexTree(tokens, grammarDef.regexTree, grammarDef, tree, errorCtx, parentWantsVerboseAST);
     
     //if ( SillyStringStartsWith(grammarDef.name, "program") )
         //buffered_errors += (_buffered_errors);
