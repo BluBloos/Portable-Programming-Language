@@ -72,14 +72,14 @@ bool ParseTokensWithGrammar(
     TokenContainer &tokens, 
     const grammar_definition &grammarDef,
     struct tree_node &tree,
-    ppl_error_context &bestErr,
+    ppl_error_context &errorCtx,
     bool parentWantsVerboseAST = false);
 
 bool ParseTokensWithRegexTree(
     TokenContainer &tokens, 
     const tree_node &regexTree,
     tree_node &tree,
-    ppl_error_context &bestErr,
+    ppl_error_context &errorCtx,
     bool parentWantsVerboseAST = false)
 {
 
@@ -148,7 +148,7 @@ bool ParseTokensWithRegexTree(
                 // TODO(Noah): Check if there is anything smarter to do than
                 // "dummyTree"
                 struct tree_node dummyTree = CreateTree(TREE_ROOT);
-                if (ParseTokensWithRegexTree(tokens, child, dummyTree, bestErr, verboseAST)) {
+                if (ParseTokensWithRegexTree(tokens, child, dummyTree, errorCtx, verboseAST)) {
                     re_matched += 1;
                     for (unsigned int i = 0; i < dummyTree.childrenCount; i++) {
                         TreeAdoptTree(tree, dummyTree.children[i]);
@@ -205,6 +205,14 @@ bool ParseTokensWithRegexTree(
                     tokens.AdvanceNext();
                     re_matched += 1;
                 } else {
+                    constexpr auto bufSize = 256;
+                    static char msgBuf[bufSize]={};
+                    snprintf(msgBuf, bufSize, "Expected character '%c'.", child.metadata.c);
+                    errorCtx.SubmitError(
+                        msgBuf,
+                        tok.line, tok.beginCol, tokens.GetSavepoint()
+                    );
+
                     break;
                 }    
 
@@ -213,7 +221,7 @@ bool ParseTokensWithRegexTree(
                 const char *child_data = child.metadata.str;    
                 if ( GRAMMAR.DefExists(child_data) ) {
                     struct tree_node treeChild;
-                    if (ParseTokensWithGrammar(tokens, GRAMMAR.defs[child_data], treeChild, bestErr, verboseAST)) {
+                    if (ParseTokensWithGrammar(tokens, GRAMMAR.defs[child_data], treeChild, errorCtx, verboseAST)) {
                         TreeAdoptTree(tree, treeChild);
                         re_matched += 1;
                     } else {
@@ -310,11 +318,14 @@ bool ParseTokensWithRegexTree(
                     if (!didMatch) {
 
                         // emit error!
-                        bestErr.errMsg = "Expected a literal but sure as hell did not get one.";
-                        bestErr.c = tok.beginCol;
-                        bestErr.line = tok.line;
-                        GenerateCodeContextFromFilePos(
-                            bestErr, tok.line, tok.beginCol, bestErr.codeContext, PPL_ERROR_MESSAGE_MAX_LENGTH);
+                        errorCtx.SubmitError(
+                            "Expected a literal but sure as hell did not get one.",
+                            tok.line, tok.beginCol, tokens.GetSavepoint()
+                        );
+
+                        // NOTE: so the savepoint idea gets the index of the token that
+                        // is returned by QueryNext. so the savepoint here is correctly
+                        // the token that we just failed on.
 
                         break;
                     }
@@ -329,6 +340,12 @@ bool ParseTokensWithRegexTree(
                         TreeAdoptTree(tree, newTree);
                         re_matched += 1;
                     } else {
+
+                        errorCtx.SubmitError(
+                            "Expected a symbol.",
+                            tok.line, tok.beginCol, tokens.GetSavepoint()
+                        );
+
                         break;
                     }
                 } else if ( SillyStringStartsWith(child_data, "op") ) {
@@ -369,7 +386,19 @@ bool ParseTokensWithRegexTree(
                         TreeAdoptTree(tree, newTree);
                         re_matched += 1; 
                     } 
-                    else { 
+                    else {
+
+                        constexpr auto bufSize = 256;
+                        static char msgBuf[bufSize]={};
+                        if (tok.type == TOKEN_OP)
+                            snprintf(msgBuf, bufSize, "Expected op '%c'.", tok.c);
+                        else if (tok.type == TOKEN_COP)
+                            snprintf(msgBuf, bufSize, "Expected op '%.*s'.", strlen(tok.str), tok.str);
+                        errorCtx.SubmitError(
+                            msgBuf,
+                            tok.line, tok.beginCol, tokens.GetSavepoint()
+                        );
+
                         break;
                     }
 
@@ -384,6 +413,12 @@ bool ParseTokensWithRegexTree(
                         newTree.metadata.str = tok.str;
                         TreeAdoptTree(tree, newTree);
                     } else {
+
+                        errorCtx.SubmitError(
+                            "Expected a keyword.",
+                            tok.line, tok.beginCol, tokens.GetSavepoint()
+                        );
+
                         break;
                     }
                     re_matched += 1;
@@ -459,7 +494,7 @@ bool ParseTokensWithGrammar(
     TokenContainer &tokens, 
     const grammar_definition &grammarDef,
     struct tree_node &tree,
-    ppl_error_context &bestErr,
+    ppl_error_context &errorCtx,
     bool parentWantsVerboseAST)
 {
     
@@ -473,7 +508,7 @@ bool ParseTokensWithGrammar(
     tree.metadata.str = grammarDef.name;
     
     // Fill up the tree with any parsed children.
-    bool r = ParseTokensWithRegexTree(tokens, grammarDef.regexTree, tree, bestErr, parentWantsVerboseAST);
+    bool r = ParseTokensWithRegexTree(tokens, grammarDef.regexTree, tree, errorCtx, parentWantsVerboseAST);
     
     //if ( SillyStringStartsWith(grammarDef.name, "program") )
         //buffered_errors += (_buffered_errors);
