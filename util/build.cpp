@@ -408,12 +408,12 @@ void ptest_Grammar(char *inFilePath, int&errors) {
             memcpy( grammarDefName, onePastLastSlash, strlen(onePastLastSlash) - 3 );
             //LOGGER.Log("grammarDefName: %s", grammarDefName);
 
-            struct tree_node tree = {};
+            struct tree_node tree;// = {};
 
             bool r = ParseTokensWithGrammar(
                 tokensContainer, 
                 GRAMMAR.GetDef(grammarDefName),
-                tree, bestErr);
+                &tree, bestErr);
             
             //bool r = false;
 
@@ -440,6 +440,12 @@ void ptest_Grammar(char *inFilePath, int&errors) {
                         file, line, c, code,
                         bestErr.errMsg ? bestErr.errMsg : "<unknown>" 
                     );
+
+                    if (bestErr.kind == PPL_ERROR_KIND_PARSER)
+                    {
+                        LOGGER.Min("The almost-parsed AST:\n");
+                        LOGGER.Min("%s\n",bestErr.almostParsedTree);
+                    }
 
                     //return false;
                 }

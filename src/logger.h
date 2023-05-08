@@ -107,4 +107,18 @@ class Logger {
         }
         va_end(args);
     }
+
+    void vMin(const char *fmt, va_list args) {
+        // NOTE: end the copy before you end the original.
+        va_list _args;
+        va_list _args2;
+        va_copy(_args, args);
+        va_copy(_args2, _args);
+        vprintf(fmt, _args);
+        if (logFile != NULL) {
+            vfprintf(logFile, fmt, _args2);
+            va_end(_args2);
+        }
+        va_end(_args);
+    }
 };

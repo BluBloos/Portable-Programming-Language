@@ -181,7 +181,19 @@ void DeallocTree(struct tree_node &tn) {
     }
 }
 
-void PrintTree(struct tree_node &tn, unsigned int indentation) {
+static void PrintTree_DefaultPrinter(const char *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    LOGGER.vMin(fmt, args);
+    va_end(args);
+}
+
+void PrintTree(const struct tree_node &tn, unsigned int indentation, 
+    void (*printFn)(const char *fmt, ...) = nullptr )
+{
+    // TODO: printFn needs va_list kind of thing.
+    auto PrintFn = (printFn) ? printFn : PrintTree_DefaultPrinter;
 
     // NOTE(Noah): Max indentation is 80 ' ' . Any deeper AST get like, "truncated", or whatever.
     char sillyBuff[81]; // 1 extra than 80 for the null-terminator.
@@ -200,40 +212,40 @@ void PrintTree(struct tree_node &tn, unsigned int indentation) {
 
         case TREE_REGEX_STR:
             Assert(tn.metadata.str != NULL);
-            LOGGER.Min("%sSTR:%s", sillyBuff, tn.metadata.str);
+            PrintFn("%sSTR:%s", sillyBuff, tn.metadata.str);
             break;
-        case TREE_REGEX_ANY: LOGGER.Min("%sAny", sillyBuff); break;
-        case TREE_REGEX_GROUP: LOGGER.Min("%sGroup", sillyBuff); break;
+        case TREE_REGEX_ANY: PrintFn("%sAny", sillyBuff); break;
+        case TREE_REGEX_GROUP: PrintFn("%sGroup", sillyBuff); break;
         case TREE_REGEX_CHAR:
-            LOGGER.Min("%sCHAR:%c", sillyBuff, tn.metadata.c);
+            PrintFn("%sCHAR:%c", sillyBuff, tn.metadata.c);
             break;
         case TREE_REGEX_KEYWORD:
             Assert(tn.metadata.str != NULL);
-            LOGGER.Min("%sKEYWORD:%s", sillyBuff, tn.metadata.str);
+            PrintFn("%sKEYWORD:%s", sillyBuff, tn.metadata.str);
             break;
 
         // TODO: there is likely a nice metaprogramming idea here.
         // all the things to print are the enum names but trim a little of the front. 
         case AST_GNODE:
             Assert(tn.metadata.str != NULL);
-            LOGGER.Min("%sGNODE:%s", sillyBuff, tn.metadata.str);
+            PrintFn("%sGNODE:%s", sillyBuff, tn.metadata.str);
             break;
 
 #if 0
         case AST_CHARACTER_LITERAL:
-            LOGGER.Min("%sCHARACTER_LITERAL:%c", sillyBuff, tn.metadata.c);
+            PrintFn("%sCHARACTER_LITERAL:%c", sillyBuff, tn.metadata.c);
             break;
 #endif
 
         case AST_INT_LITERAL:
-            LOGGER.Min("%sINT_LITERAL:%" PRIu64 ", valueKind:%s",
+            PrintFn("%sINT_LITERAL:%" PRIu64 ", valueKind:%s",
                 sillyBuff,
                 tn.metadata.num,
                 PplTypeToString(tn.metadata.valueKind));
             break;
 
         case AST_DECIMAL_LITERAL:
-            LOGGER.Min("%sDECIMAL_LITERAL:%f, valueKind:%s",
+            PrintFn("%sDECIMAL_LITERAL:%f, valueKind:%s",
                 sillyBuff,
                 tn.metadata.dnum,
                 PplTypeToString(tn.metadata.valueKind));
@@ -241,36 +253,36 @@ void PrintTree(struct tree_node &tn, unsigned int indentation) {
 
         case AST_STRING_LITERAL:
             Assert(tn.metadata.str != NULL);
-            LOGGER.Min("%sSTRING_LITERAL:%s", sillyBuff, tn.metadata.str);
+            PrintFn("%sSTRING_LITERAL:%s", sillyBuff, tn.metadata.str);
             break;
         case AST_NULL_LITERAL:
-            LOGGER.Min("%sNULL_LITERAL", sillyBuff);
+            PrintFn("%sNULL_LITERAL", sillyBuff);
             break;
         
         case AST_SYMBOL:
             Assert(tn.metadata.str != NULL);
-            LOGGER.Min("%sSYMBOL:%s", sillyBuff, tn.metadata.str);
+            PrintFn("%sSYMBOL:%s", sillyBuff, tn.metadata.str);
             break;
         case AST_OP:
             Assert(tn.metadata.str != NULL);
-            LOGGER.Min("%sOP:%s", sillyBuff, tn.metadata.str);
+            PrintFn("%sOP:%s", sillyBuff, tn.metadata.str);
             break;
         case AST_KEYWORD:
             Assert(tn.metadata.str != NULL);
-            LOGGER.Min("%sKEYWORD:%s", sillyBuff, tn.metadata.str);
+            PrintFn("%sKEYWORD:%s", sillyBuff, tn.metadata.str);
             break;
         
     }
 
     if (tn.metadata.regex_mod > 0) {
-        LOGGER.Min("%c\n", tn.metadata.regex_mod);
+        PrintFn("%c\n", tn.metadata.regex_mod);
     } else {
-        LOGGER.Min("\n");
+        PrintFn("\n");
     }
 
     if (tn.children != NULL) {
         for (unsigned int i = 0; i < tn.childrenCount; i++) {
-            PrintTree(tn.children[i], indentation + 2);
+            PrintTree(tn.children[i], indentation + 2, PrintFn);
         }
     }
 }

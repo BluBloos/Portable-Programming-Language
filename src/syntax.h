@@ -20,6 +20,43 @@
 
 #include <algorithm>
 
+//#include <functional>
+
+static char    *g_bufferToPrintTo = nullptr; 
+static uint32_t g_bufferToPrintToLen = 0;
+static uint32_t g_lastBufPos = 0;
+
+// TODO: maybe there is C++ magic to do this is literally any other way.
+//       but right now I could not be bothered.
+void HackyPrintToBuffer(const char *fmt, ...)
+{
+
+    char *where = g_bufferToPrintTo + g_lastBufPos;
+    if (g_lastBufPos >= g_bufferToPrintToLen) {
+        Assert("TODO.");
+        return;
+    }
+
+    va_list args;
+    va_start(args, fmt);
+    int written = vsnprintf(
+        where, g_bufferToPrintToLen - g_lastBufPos,
+        fmt, args
+    );
+
+    if (written < 0) {
+        Assert("TODO.");
+    }
+    else
+    {
+        // NOTE: written is not counting the null terminator.
+        g_lastBufPos += written;
+    }
+
+    va_end(args);
+}
+
+
 void GenerateCodeContextFromFilePos(ppl_error_context &ctx, uint32_t line, uint32_t c, char *buf, uint32_t bufLen)
 {
 
@@ -71,7 +108,7 @@ void PrintAstError(struct ast_error err) {
 bool ParseTokensWithGrammar(
     TokenContainer &tokens, 
     const grammar_definition &grammarDef,
-    struct tree_node &tree,
+    struct tree_node *tree,
     ppl_error_context &errorCtx,
     bool parentWantsVerboseAST = false);
 
@@ -206,14 +243,12 @@ bool ParseTokensWithRegexTree(
                     tokens.AdvanceNext();
                     re_matched += 1;
                 } else {
-                    constexpr auto bufSize = 256;
-                    static char msgBuf[bufSize]={};
-                    snprintf(msgBuf, bufSize, "Expected character '%c'.", child.metadata.c);
-                    errorCtx.SubmitError(
-                        msgBuf,
+                    if (errorCtx.SubmitError(
+                        PPL_ERROR_KIND_PARSER,
                         tok.line, tok.beginCol, tokens.GetSavepoint()
-                    );
-
+                    )) {
+                        snprintf(errorCtx.errMsg, PPL_ERROR_MESSAGE_MAX_LENGTH, "Expected character '%c'.", child.metadata.c);
+                    }
                     break;
                 }    
 
@@ -341,10 +376,14 @@ bool ParseTokensWithRegexTree(
                     if (!didMatch) {
 
                         // emit error!
-                        errorCtx.SubmitError(
-                            "Expected a literal but sure as hell did not get one.",
+                        if (errorCtx.SubmitError(
+                            PPL_ERROR_KIND_PARSER,
                             tok.line, tok.beginCol, tokens.GetSavepoint()
-                        );
+                        ))
+                        {
+                            snprintf(errorCtx.errMsg, PPL_ERROR_MESSAGE_MAX_LENGTH,
+                            "Expected a literal but sure as hell did not get one.");
+                        }
 
                         // NOTE: so the savepoint idea gets the index of the token that
                         // is returned by QueryNext. so the savepoint here is correctly
@@ -364,10 +403,14 @@ bool ParseTokensWithRegexTree(
                         re_matched += 1;
                     } else {
 
-                        errorCtx.SubmitError(
-                            "Expected a symbol.",
+                        if (errorCtx.SubmitError(
+                            PPL_ERROR_KIND_PARSER,
                             tok.line, tok.beginCol, tokens.GetSavepoint()
-                        );
+                        ))
+                        {
+                            snprintf(errorCtx.errMsg, PPL_ERROR_MESSAGE_MAX_LENGTH,
+                            "Expected a symbol.");
+                        }
 
                         break;
                     }
@@ -411,16 +454,24 @@ bool ParseTokensWithRegexTree(
                     } 
                     else {
 
-                        constexpr auto bufSize = 256;
-                        static char msgBuf[bufSize]={};
-                        if (tok.type == TOKEN_OP)
-                            snprintf(msgBuf, bufSize, "Expected op '%c'. Grammar context = %s.", tok.c, currGrammarCtx.name);
-                        else if (tok.type == TOKEN_COP)
-                            snprintf(msgBuf, bufSize, "Expected op '%.*s'. Grammar context = %s.", strlen(tok.str), tok.str, currGrammarCtx.name);
-                        errorCtx.SubmitError(
-                            msgBuf,
+                        if (errorCtx.SubmitError(
+                            PPL_ERROR_KIND_PARSER,
                             tok.line, tok.beginCol, tokens.GetSavepoint()
-                        );
+                        ))
+                        {
+                            snprintf(errorCtx.errMsg,
+                                PPL_ERROR_MESSAGE_MAX_LENGTH,
+                                "Expected op '%.*s'. Grammar context = %s.",
+                                strlen(op),
+                                op,
+                                currGrammarCtx.name);
+
+                            g_bufferToPrintTo = errorCtx.almostParsedTree;
+                            g_bufferToPrintToLen = PPL_ERROR_PARTIAL_AST_MAX_LENGTH;
+                            g_lastBufPos         = 0;
+
+                            PrintTree(*errorCtx.currTopLevelTree, 0, HackyPrintToBuffer);
+                        }
 
                         break;
                     }
@@ -437,10 +488,14 @@ bool ParseTokensWithRegexTree(
                         TreeAdoptTree(tree, newTree);
                     } else {
 
-                        errorCtx.SubmitError(
-                            "Expected a keyword.",
+                        if (errorCtx.SubmitError(
+                            PPL_ERROR_KIND_PARSER,
                             tok.line, tok.beginCol, tokens.GetSavepoint()
-                        );
+                        ))
+                        {
+                            snprintf(errorCtx.errMsg, PPL_ERROR_MESSAGE_MAX_LENGTH,
+                            "Expected a keyword.");
+                        }
 
                         break;
                     }
@@ -516,22 +571,24 @@ bool ParseTokensWithRegexTree(
 bool ParseTokensWithGrammar(
     TokenContainer &tokens, 
     const grammar_definition &grammarDef,
-    struct tree_node &tree,
+    struct tree_node *tree,
     ppl_error_context &errorCtx,
     bool parentWantsVerboseAST)
 {
     
     if (!GRAMMAR.DefExists(grammarDef.name)) return false;
 
+    errorCtx.currTopLevelTree = tree;
+
     //buffered_errors = []
     
     // NOTE(Noah): Here we do not alloc another string.
     // The string has already been secured and alloced inside of grammarDef.
-    tree = CreateTree(AST_GNODE);
-    tree.metadata.str = grammarDef.name;
+    *tree = CreateTree(AST_GNODE);
+    tree->metadata.str = grammarDef.name;
     
     // Fill up the tree with any parsed children.
-    bool r = ParseTokensWithRegexTree(tokens, grammarDef.regexTree, grammarDef, tree, errorCtx, parentWantsVerboseAST);
+    bool r = ParseTokensWithRegexTree(tokens, grammarDef.regexTree, grammarDef, *tree, errorCtx, parentWantsVerboseAST);
     
     //if ( SillyStringStartsWith(grammarDef.name, "program") )
         //buffered_errors += (_buffered_errors);
@@ -554,10 +611,10 @@ bool ParseTokensWithGrammar(
 
     if (!r) {
         // Delete any children that might have been created.
-        for (unsigned int i = 0; i < tree.childrenCount; i++) {
-            DeallocTree(tree.children[i]);
+        for (unsigned int i = 0; i < tree->childrenCount; i++) {
+            DeallocTree(tree->children[i]);
         }
-        tree.childrenCount = 0; 
+        tree->childrenCount = 0; 
         return false;
     } 
     return true;
