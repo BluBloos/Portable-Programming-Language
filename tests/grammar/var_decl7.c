@@ -1,6 +1,6 @@
 SnakeBody :: struct {
 
-    make_default :: static () -> SnakeBody
+    make_default :: static fn() -> SnakeBody
     {
         return {-10; -10};
     }

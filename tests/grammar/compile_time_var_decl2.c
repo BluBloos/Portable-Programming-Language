@@ -1,5 +1,6 @@
-genericAdd :: <someConstVal : T, T> ( a : T, b : T ) -> T
-//genericAdd :: ( a : T, b : T ) -> T
+genericAdd ::
+    <someConstVal : T, T>
+fn ( a : T, b : T ) -> T
 {
     return a + b + someConstVal;
 }

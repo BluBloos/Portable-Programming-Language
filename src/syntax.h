@@ -530,6 +530,9 @@ bool ParseTokensWithRegexTree(
         }
             
         if (any_flag) {
+
+            Assert( tokens_savepoint >= 0 );
+
             // presuming we have not yet succeeded, and we are inside an Any block
             // this means we are trying the next child.
             // we need to reset the state of Tokens.

@@ -1,5 +1,4 @@
-switch //ppl.getchar() {
-    ppl {           
+switch ppl.getchar(); {           
     case 'D': fall;
     case 'd':
         if DIRECTION != DIRECTION_LEFT then  DIRECTION = DIRECTION_RIGHT;

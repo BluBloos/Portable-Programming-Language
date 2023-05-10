@@ -22,6 +22,8 @@ char *KEYWORDS[] = {
 
     "defer",
 
+    "fn", // function types.
+
     // qualifiers
     "static",
     "unsigned", // TODO: do we really want this?

@@ -1,4 +1,4 @@
-odd_sum::(a:int, b:int)->int
+odd_sum::fn (a:int, b:int)->int
 {
   h : int = ?;
   h <<= size_of(int);

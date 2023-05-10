@@ -1,1 +1,1 @@
-( argc : int, argv : ^^char) -> int
+fn ( argc : int, argv : ^^char) -> int

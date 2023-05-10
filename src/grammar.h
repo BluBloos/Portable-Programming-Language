@@ -196,23 +196,43 @@ char *_grammarTable[][2] =
         "(op,^)(type)"
     },
     {
-        // TODO: And can we just do `(literal)?`   ?
-        // TODO: Can we have an integer_literal    ?
+        // TODO: Change to integer_literal.
         "array_type",        
-        "(op,[)[(literal)]?(op,])(type)"
+        "(op,[)(literal)?(op,])(type)"
     },
 
     {
         "function_type",
-        "\\(((runtime_var_decl)(,(runtime_var_decl))*)?\\)((op,->)(type))?"
+        "(keyword=fn)"
+        "\\("
+            "("
+                "(runtime_var_decl)(,(runtime_var_decl))*"
+            ")?"
+        "\\)"
+        "((op,->)(type))?"
     },
 
+    // NOTE: types are merely an expression of kind Type. e.g. if we do a #run on a function that
+    // returns a Type, this is valid, and could be used with variable declarations.
+    //
+    // we're going to want to parse these as full expressions. Even if Type is not defined for things like `+`,
+    // we could emit an error on the SEMA side saying -> "Type not defined for `+`"".    
     {
-        // TODO: need to add generics.
-        "type",
-        "[(function_type)(pointer_type)(array_type)((qualifier)(type))(symbol)(type_keyword)]"
+        "type_literal",
+        "[(function_type)(pointer_type)(array_type)(type_keyword)((qualifier)(type))]"
     },
 
+    // TODO: currently this grammar definition is just a proxy.
+    {
+        "type",
+        "(conditional_exp)"
+    },
+
+    // TODO: we could make type_keyword on the lexing side be their own tokens and give them
+    // type of PPL_TYPE_TYPE. maybe call this (type_literal) and change type_literal -> type_construction.
+    //
+    // I also see value in this kind of *_literal idea.
+    // like e.g. I might want an integer_literal one, or a string_literal.
     {
         "type_keyword",
         // TODO: is there anyway to make the below less crap?
@@ -223,6 +243,11 @@ char *_grammarTable[][2] =
     {
         "data_pack",
         "(type)?\\{(statement)*[(statement)(statement_noend)]?\\}"
+    },
+
+    {
+        "untyped_data_pack",
+        "\\{(statement)*[(statement)(statement_noend)]?\\}"
     },
 
     {
@@ -272,42 +297,59 @@ char *_grammarTable[][2] =
     {
         // includes the else statement :p
         "if_statement",
-        "(keyword=if)(expression)[((keyword=then)(statement))(data_pack)]((keyword=else)(statement))?"
+        "(keyword=if)(expression)[;(keyword=then)](statement)((keyword=else)(statement))?"
     },
+
     {
         "while_statement",
-        "(keyword=while)[((statement)(expression);(statement_noend))((expression);(statement_noend))(expression)][((keyword=do)(statement))(data_pack)]"
+        "(keyword=while)"
+        "["
+            "((statement)(expression);(statement_noend))"
+            "((expression);(statement_noend))"
+            "(expression)"
+        "]"
+        "[(keyword=do);]"
+        "(statement)"
     },
 
     {
         // whether the expression is set-like is another story. that is the semantic analysis stage.
         "for_statement",
-        "(keyword=for)((symbol)(,(symbol))*(keyword=in))?(expression)[((keyword=do)(statement))(data_pack)]"
+        "(keyword=for)((symbol)(,(symbol))*(keyword=in))?(expression)[;(keyword=do)](statement)"
     },
 
 
     {
-        // TODO: right now default can only be the last case. should allow to be anywhere. then on semantic analysis
-        // stage we can verify that there is only one!
+        // TODO: In SEMA stage verify that there is just one default case label in the switch body.
         //
         // TODO: support duffs device.
         "switch_statement",
-        "(keyword=switch)(expression)\\{((keyword=case)(expression):(statement)*)*((keyword=default):(statement)*)?\\}"
+        "(keyword=switch)(expression);"
+        "\\{"
+            "("
+                "["
+                    "((keyword=case)`(expression):)"
+                    "((keyword=default)`:)"
+                "]"
+                "(statement)*"
+            ")*"
+        "\\}"
     },
 
 
     {
         "statement",
-        "[((compile_time_var_decl);?)(data_pack);([(return_statement)(runtime_var_decl)(expression)(keyword=fall)(keyword=break)(keyword=continue)];)(if_statement)(while_statement)(for_statement)(switch_statement)]"
+        "[((compile_time_var_decl);?)(untyped_data_pack);([(return_statement)(runtime_var_decl)(expression)(keyword=fall)`(keyword=break)`(keyword=continue)`];)(if_statement)(while_statement)(for_statement)(switch_statement)]"
     },
     { 
         // TODO: this grammar is sort of not correct. e.g. if_statement ends with a `;`, so how can we say that this is a statement,
         // with on end?
         "statement_noend",
-        "[(data_pack)(var_decl)(expression)(return_statement)(keyword=fall)(keyword=break)(keyword=continue)(if_statement)(while_statement)(for_statement)(switch_statement)]"
+        "[(untyped_data_pack)(var_decl)(expression)(return_statement)(keyword=fall)`(keyword=break)`(keyword=continue)`(if_statement)(while_statement)(for_statement)(switch_statement)]"
     },
     {
         "span_expression",
+        // TODO: change the below to integer_literal.
         "(literal)[(op,..=)(op,..<)](literal)"
     },
     {
@@ -368,19 +410,28 @@ char *_grammarTable[][2] =
         "["
             "((op,.)(object))"
             "(object)"
-            "([(op,++)(op,--)(op,!)(op,-)(op,^)(op,@)(op,~)(\\((type)\\))](factor))"
+            // NOTE: for now, I think the C-style cast grammar is OK.
+            // since "(\\((expression)\\))" is a subset of "((\\((type)\\)(factor))".
+            // and otherwise we will not see "((expression)(factor))" ever.
+            "([(op,++)(op,--)(op,!)(op,-)(op,*)(op,@)(op,~)(\\((type)\\))](factor))"
             "(\\((expression)\\))"
         "]"
     },
 
     {
+        "builtin_func",
+        "[(keyword=size_of)(keyword=type_of)(keyword=type_info)(keyword=offset_of)]`"
+    },
+
+    {
         "function_call",
         // NOTE: keyword is used here for builtin functions.
-        "[(symbol)(keyword)]\\((expression)?\\)"
+        "[(symbol)(builtin_func)]\\((expression)?\\)"
     },
 
     {
         "import_expression",
+        // TODO: change the below to string_literal.
         "(keyword=#import)(literal)"
     }
 
@@ -390,7 +441,7 @@ char  *_grammarTable_LR[][3] = {
     // NOTE: these grammar constructions works by appending beta and alpha and give the alpha the `*` modifier.
     {
         "object",
-        "[(function_call)(symbol)(literal)(type)]", // beta
+        "[(function_call)(symbol)(literal)(type_literal)]", // beta
         "[(op,++)(op,--)((op,[)(expression)(op,]))((op,.)(object))]" // alpha
     },
     {

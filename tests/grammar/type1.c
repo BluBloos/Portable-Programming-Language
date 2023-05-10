@@ -1,1 +1,1 @@
-(a:int) -> void
+fn (a:int) -> void

@@ -1,7 +1,6 @@
 {
-    var:int = 4;
+    var : int = 4;
     56;
-    // TODO: need to support member access as part of the grammar for a type.
-    //myVar: std.name = 78;
-    myVar: someStructInStd = 78;
+    myVar: std.vector = {};
+    myVar = (std.vector)5.f; // cast.
 }

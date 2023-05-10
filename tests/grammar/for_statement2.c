@@ -1,5 +1,5 @@
-for 0 ..= 10 {
-    if it == 5 {
+for 0 ..= 10; {
+    if it == 5; {
         continue;
     }
 
