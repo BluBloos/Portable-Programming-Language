@@ -1,0 +1,44 @@
+PPL reflection,
+
+gingerBill:
+
+"people want the omnitool",
+
+"but if you look at most tools, they are single purpose",
+- pickaxe
+- shovel
+- hoe
+
+etc.
+
+for PPL, I do get a little excited about the omnitool. but the vision of PPL cannot be so, because of the law
+of tools.
+
+what is it then with PPL?
+
+it's about a general purpose systems programming language that is better than C++,
+better than C, but like C, is fast, compiles fast, has features that we know are good
+(like compile-time execution) ...
+
+but this is all JAI. John Blow is already on the job.
+
+what is it with PPL then?
+
+it's about 1 language -> any platform.
+
+does that break the law of tools?
+And isn't that troublesome when I don't control the lang that the platform makers say is what to use for developing?
+
+Maybe the answer:
+=====
+
+PPL is the glue, man. It's the thing that you can use to have the compile-time interoperation between all the langs.
+And within a single file, not just when doing the linking.
+
+Like, it might be useful for graphics programming. We really need the compile-time stuff for HLSL and C++.
+And maybe for graphics programming on the web, we might want the C++ and javascript togetherness.
+We want the inline web assembly.
+
+Having the python connection is also this super cool shit too.
+
+Throw some Java in there?
