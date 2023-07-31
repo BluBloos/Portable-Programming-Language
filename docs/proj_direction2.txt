@@ -1,0 +1,51 @@
+the syntax of Odin and JAI are quite nice.
+so with PPL we are going to explore some of those same syntax ideas.
+
+I think the  `::` thing being just a constant is too shallow of an idea to me.
+
+`::` as a compile-time variable in the compiler metaprogram is the right play as far as I can tell.
+
+I wonder if it is possible to make something both pure but also quite pragmatic.
+maybe we haven't explored this space well enough.
+
+programming is a very mathematical thing. language design as well.
+all we are doing is communication.
+C got the right idea of sitting very close to assembly.
+and assembly got the right idea as well. assembly is 1:1 with the machine instructions.
+C abstracts patterns that you commonly write in assembly. that's the idea.
+
+we just need to think hard about the compiler as a program too.
+and the metasystems that people commonly write, so that we can make it easy to communicate those.
+
+the idea of a struct is purely a metaprogram idea. it's a description of how to layout data.
+it creates a thing that the metaprogram knows about and can reuse.
+so that's why the `::` syntax of compile-time variable to define a struct Type is the right idea.
+
+---
+
+there's also this other idea where Casey Muratori really likes operator overloading because it allows
+for nice vector maths.
+
+so we Gunna have this idea in the lang for that reason.
+
+---
+
+also, the `Any` type is a really nice idea as well.
+
+it is something that you kind of get for free with a statically typed language.
+
+if something ever becomes an Any, you just emit at that point in the program that `Any`.
+it can be done easily right from the `Id`. I mean, `Id` and `Any` are basically the same
+thing.
+
+---
+
+TODO: like,
+cast<Type>(thing)
+
+That is a lot to type! couldn't we make that much better?
+
+----
+
+no silent failures. "DONT EVER SILENTLY FAIL EVER. NEVER IN A MILLION BILLION YEARS." - jblow.
+the idea of printf having just % instead of %f could be less things to type. better.
