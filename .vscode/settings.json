@@ -26,7 +26,10 @@
         "memory": "cpp",
         "array": "cpp",
         "utility": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "atomic": "cpp",
+        "cstddef": "cpp",
+        "locale": "cpp"
     },
     "cSpell.words": [
         "metaprogram"
