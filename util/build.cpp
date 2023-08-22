@@ -49,6 +49,7 @@ HOW PPL PROGRAMS ARE BUILT */
 #include <ppl_core.h>
 void ptest_Lexer(char *inFilePath, int &errors);
 void ptest_Grammer(char *inFilePath, int &errors);
+void ptest_Codegen(char *inFilePath, int &errors);
 void ptest_Preparser(char *inFilePath, int &errors);
 void ptest_wax64(char *inFilePath, int &errors);
 void ptest_ax64(char *inFilePath, int &errors);
@@ -155,6 +156,7 @@ void PrintHelp() {
     printf("regex_gen       (re)              - Test LoadGrammer() for building custom regex trees.\n");
     printf("grammer         (g)               - Test AST generation for a single GNODE on a single unit.\n");
     printf("grammer_all     (gall)            - Test AST generation for all units in tests/grammer/.\n");
+    printf("codegen         (c)               - Test Codegen for a single file.\n");
 }
 
 // Does command then returns the result code.
@@ -304,7 +306,17 @@ int DoCommand(const char *l, const char *l2) {
               "production to test.\n");
         return RunPtestFromInFile(ptest_Grammer, "grammer", "tests/grammer/");
 
-    } else if (0 == strcmp(l, "gall") || 0 == strcmp(l, "grammer_all")) {
+    } else if (0 == strcmp(l , "c") ||  0 == strcmp(l, "codegen")) {
+
+        LoadGrammer();
+
+        return RunPtestFromInFile(
+            ptest_Codegen,
+            "codegen", 
+            "tests/"
+        );
+    } 
+    else if (0 == strcmp(l, "gall") || 0 == strcmp(l, "grammer_all")) {
         
         LoadGrammer();
         printf(
@@ -334,6 +346,59 @@ int DoCommand(const char *l, const char *l2) {
 
     printf("Unrecognised command '%s'. Enter 'help' to get a list of commands.\n", l);
     return 1;
+}
+
+void ptest_Codegen(char *inFilePath, int& errors)
+{
+    FILE *inFile = fopen(inFilePath, "r");
+    // TODO: we could use the test name here; i.e. the one that's up at the lambda level.
+    LOGGER.Log("Testing codegen for: %s", inFilePath);
+    if (inFile == NULL) {
+        LOGGER.Error("inFile of '%s' does not exist", inFilePath);
+        errors += 1;
+    } else {
+        TokenContainer tokensContainer;
+        if (Lex(inFile, tokensContainer)) {
+            if (VERBOSE) {
+                tokensContainer.Print();
+            }
+
+            // Now we try to parse for the grammer object.
+            // we know which specific grammer definition via the name of
+            // the inFile that was given.
+
+            const char *outFilePath = "program.out";
+
+            const char *grammerDefName = "program";
+            
+            struct tree_node tree = {};
+            
+            bool r = ParseTokensWithGrammer(
+                tokensContainer, 
+                GRAMMER.GetDef(grammerDefName),
+                tree);
+            
+            //bool r = false;
+
+            if (r) {
+                
+                if (VERBOSE) PrintTree(tree, 0);
+
+                RunCodegen(tree, outFilePath);
+                
+                DeallocTree(tree);
+            }
+            else {
+                LOGGER.Error("ParseTokensWithGrammer failed.");
+                errors += 1;
+            } 
+
+        } else {
+            LOGGER.Error("Lex failed.");
+            errors += 1;
+        }
+    }
+    fclose(inFile);
 }
 
 void ptest_Grammer(char *inFilePath, int&errors) {

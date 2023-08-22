@@ -312,6 +312,7 @@ public:
 // backend things :P
 #include <assembler.h>
 #include <x86_64.h>
+#include <codegen.h>
 /* OTHER COMPILATION UNITS */
 
 #endif
