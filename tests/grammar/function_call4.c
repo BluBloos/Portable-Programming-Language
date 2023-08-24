@@ -1,0 +1,1 @@
+printf( "parameter %s", argv[i]  )

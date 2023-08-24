@@ -1,16 +1,93 @@
-// TODO(Noah):
-// What if, to make the codegen part of things easier, we went ahead and added 'labels' to components
-// or children of grammer objects???
-// if I parse an if-statement,
-//     I might have component A (the expression)
-//     and component B (the body of the if statement)
-// and maybe I can change the syntax of the if-statment all that I please (on the grammer end of things)
-// but the AST that pops out is annotated, to make finding A and B easy. Let's call this
-// "linking" with A and B. 
+// TODO(Noah): Check if there might be some memory-leaks since we are doing
+// wack stuff with trees.
 
-// TODO(Noah): Really need to check if there might be some memory-leaks going on here....
-// I am doing some FuNkY things with the trees and so forth...
+// TODO: in general there are "funny" ideas that need some super fixing.
+// 1. there are no error messages if we fail to parse the grammar. that is prob
+//    the worst thing ever.
+// 2. suppose that you are parsing a program. due to the grammar of the program,
+//    it permits that we can have any amount of statements, var_decl, etc.
+//    the issue is that if some early ones are valid, and the latter half are not,
+//    there are no complaints by the system and it just throws out the invalid part.
 
+// TODO(AST cleanup): there are redundant nodes that
+// communicate zero information. the var_decl grammar node definition is an Any
+// group. thus, we should never need to have a grammar node that is "var_decl",
+// we just require the children grammar kinds i.e. compile/runtime var decl.
+
+// TODO(AST cleanup): the depth of our expression trees is very silly and not
+// required at all. we really only need to go some amount up the tree, and after that
+// the ancestors do not give an extra info.
+
+#include <algorithm>
+
+//#include <functional>
+
+static char    *g_bufferToPrintTo = nullptr; 
+static uint32_t g_bufferToPrintToLen = 0;
+static uint32_t g_lastBufPos = 0;
+
+// TODO: maybe there is C++ magic to do this is literally any other way.
+//       but right now I could not be bothered.
+void HackyPrintToBuffer(const char *fmt, ...)
+{
+
+    char *where = g_bufferToPrintTo + g_lastBufPos;
+    if (g_lastBufPos >= g_bufferToPrintToLen) {
+        Assert("TODO.");
+        return;
+    }
+
+    va_list args;
+    va_start(args, fmt);
+    int written = vsnprintf(
+        where, g_bufferToPrintToLen - g_lastBufPos,
+        fmt, args
+    );
+
+    if (written < 0) {
+        Assert("TODO.");
+    }
+    else
+    {
+        // NOTE: written is not counting the null terminator.
+        g_lastBufPos += written;
+    }
+
+    va_end(args);
+}
+
+
+void GenerateCodeContextFromFilePos(ppl_error_context &ctx, uint32_t line, uint32_t c, char *buf, uint32_t bufLen)
+{
+
+    const std::string ANSI_RED = "\033[31m";
+    const std::string ANSI_RESET = "\033[0m";
+
+    // ReadLine works fast because the lexer phase noted where in the source file it found the `\n`s.
+    ppl_str_view strView1 = ctx.pTokenBirthplace->ReadLine(line - 1);  // .line begins at 1.
+    // if the index does not map to anything, we get back an empty string view.
+    ppl_str_view strView2 = ctx.pTokenBirthplace->ReadLine(line);
+    ppl_str_view strView3 = ctx.pTokenBirthplace->ReadLine(line + 1);
+
+    // ReadLine gets the lines with \n OR CP_EOF included.
+
+    std::string firstOne = (strView1.len) ? 
+        std::string(strView1.str, strView1.len - 1) + "\n\t" : "";
+    std::string secondOne = (strView2.len) ? std::string(strView2.str, strView2.len - 1) + "\n\t" : "";
+    std::string thirdOne = (strView3.len) ? std::string(strView3.str, strView3.len - 1) + "\n\t" : "";
+
+    if ( (c > 0) && ((c-1)<secondOne.size()) ) secondOne.insert(c - 1, ANSI_RED);
+
+    // complete insanity below, beware.
+    auto result = std::string("\t") + firstOne + secondOne + thirdOne;
+
+    // write out result to buf.
+    memcpy(buf, result.c_str(), std::min( (size_t)bufLen, result.size() + 1 )  );
+    // the +1 above is for the null-terminator.
+
+}
+
+#if 0
 struct ast_error {
     char *msg;
     unsigned int lineNumber;
@@ -26,18 +103,24 @@ struct ast_error CreateASTError(char *msg, unsigned int lineNumber, unsigned int
 void PrintAstError(struct ast_error err) {
     LOGGER.Error("Syntax error on line %d. %s", err.lineNumber, err.msg);
 }
+#endif
 
-bool ParseTokensWithGrammer(
+bool ParseTokensWithGrammar(
     TokenContainer &tokens, 
-    struct grammer_definition grammerDef,
-    struct tree_node &tree);
+    const grammar_definition &grammarDef,
+    struct tree_node *tree,
+    ppl_error_context &errorCtx,
+    bool parentWantsVerboseAST = false);
 
 bool ParseTokensWithRegexTree(
     TokenContainer &tokens, 
-    struct tree_node regexTree,
-    struct tree_node &tree) 
+    const tree_node &regexTree,
+    const grammar_definition &currGrammarCtx,
+    tree_node &tree,
+    ppl_error_context &errorCtx,
+    bool parentWantsVerboseAST = false)
 {
-    
+
     //treesParsed = [];
     //buffered_errors = [] //# Frames for each recursive func call.
     
@@ -48,7 +131,7 @@ bool ParseTokensWithRegexTree(
     // Easy, we just check if regexTree is an Any.
     bool any_flag = regexTree.type == TREE_REGEX_ANY;
     bool group_flag = regexTree.type == TREE_REGEX_GROUP;
-    int k = 0;
+    unsigned int k = 0;
 
     bool global_fail_flag = (any_flag) ? true : false;
 
@@ -68,15 +151,27 @@ bool ParseTokensWithRegexTree(
             // buffered_errors = []
         }
 
-        struct tree_node &child = regexTree.children[k];
-        char modifier = child.metadata.regex_mod; // mod = 0 is a NULL modifier.
+        const tree_node &child = regexTree.children[k];
         enum tree_type childType = child.type;
 
-        // None means 1 and exactly 1
+        // When there is no modifier we match 1 and exactly 1.
+        //
         // ? is the 0 or 1 modifier
         // * is the 0 or many modifier
         // + is the 1 or many modifier
-        // 0 means there was no modifier. We match 1 and exactly 1.
+        //
+        // if the modifier is equal to 0, or is equal to anything other than the three above,
+        // that is considered as the "NULL modifier" in the specific class of modifiers above.
+        //
+        // ` is the "verbose in AST" modifier.
+        //   e.g. (keyword=if) will add a node for the if keyword in AST.
+        //
+        char modifier = child.metadata.regex_mod;
+
+        bool verboseAST = (modifier == '`') || parentWantsVerboseAST; 
+
+        bool nullFrequencyModifier = (modifier != '?') && (modifier != '*') && (modifier != '+');
+
         int n = 0;
         bool infWhile = ( modifier == '*' || modifier == '+' ); 
         int re_matched = 0;
@@ -91,9 +186,9 @@ bool ParseTokensWithRegexTree(
                 // TODO(Noah): Check if there is anything smarter to do than
                 // "dummyTree"
                 struct tree_node dummyTree = CreateTree(TREE_ROOT);
-                if (ParseTokensWithRegexTree(tokens, child, dummyTree)) {
+                if (ParseTokensWithRegexTree(tokens, child, currGrammarCtx, dummyTree, errorCtx, verboseAST)) {
                     re_matched += 1;
-                    for (int i = 0; i < dummyTree.childrenCount; i++) {
+                    for (unsigned int i = 0; i < dummyTree.childrenCount; i++) {
                         TreeAdoptTree(tree, dummyTree.children[i]);
                     }
                 } else {
@@ -103,15 +198,26 @@ bool ParseTokensWithRegexTree(
                 } 
             } 
             else if (childType == TREE_REGEX_KEYWORD) {
-                char *child_data = child.metadata.str; 
+                const char *child_data = child.metadata.str; 
                 struct token tok = tokens.QueryNext();
                 // TODO(Noah): This is gross. Fix it, you lazy fuck.
                 if (tok.type == TOKEN_KEYWORD && 
                     strlen(child_data) == strlen(tok.str) && 
                     SillyStringStartsWith(child_data, tok.str) )
                 {
-                    tokens.Next();
+                    tokens.AdvanceNext();
                     re_matched += 1;
+
+                    if (verboseAST) {
+                        struct tree_node newTree = CreateTree(AST_KEYWORD);
+                        
+                        // TODO: is this safe? this presumes that we never dealloc the tokens and those are required
+                        // for a valid AST. OR, we can dealloc tokens, but this works because we have a
+                        // separate string store?
+                        newTree.metadata.str = tok.str;
+                        TreeAdoptTree(tree, newTree);
+                    }
+
                 } else {
                     break;
                 }
@@ -134,79 +240,187 @@ bool ParseTokensWithRegexTree(
                     break; // didn't match character
                 }
                 if (didMatch) {
-                    tokens.Next();
+                    tokens.AdvanceNext();
                     re_matched += 1;
                 } else {
+                    if (errorCtx.SubmitError(
+                        PPL_ERROR_KIND_PARSER,
+                        tok.line, tok.beginCol, tokens.GetSavepoint()
+                    )) {
+                        snprintf(errorCtx.errMsg, PPL_ERROR_MESSAGE_MAX_LENGTH, "Expected character '%c'.", child.metadata.c);
+                    }
                     break;
                 }    
 
             } else if (childType == TREE_REGEX_STR) {
 
-                char *child_data = child.metadata.str;    
-                if ( GRAMMER.DefExists(child_data) ) {
-                    struct tree_node treeChild;
-                    if (ParseTokensWithGrammer(tokens, GRAMMER.defs[child_data], treeChild)) {
-                        TreeAdoptTree(tree, treeChild);
-                        re_matched += 1;
+                const char *child_data = child.metadata.str;    
+                if ( GRAMMAR.DefExists(child_data) ) {
+
+                    struct tree_node treeChild = CreateTree(AST_GNODE);
+                    const bool bGrammarDefExists = GRAMMAR.DefExists(child_data);
+                    
+                    if (bGrammarDefExists)
+                    {
+                        const grammar_definition &grammarDef = GRAMMAR.defs[child_data];
+
+                        // NOTE(Noah): Here we do not alloc another string.
+                        // The string has already been secured and alloced inside of grammarDef.
+                        treeChild.metadata.str = grammarDef.name;
+
+                        // Fill up the tree with any parsed children.
+                        if (bGrammarDefExists && ParseTokensWithRegexTree(
+                                tokens, grammarDef.regexTree, grammarDef, treeChild, errorCtx, verboseAST)) {
+                            TreeAdoptTree(tree, treeChild);
+                            re_matched += 1;
+
+                        } else {
+                            // Delete any children that might have been created.
+                            for (unsigned int i = 0; i < treeChild.childrenCount; i++) { DeallocTree(treeChild.children[i]); }
+                            treeChild.childrenCount = 0;
+                            break;  // didn't find grammar object we wanted.
+                        }
+
                     } else {
-                        //buffered_errors += (_buffered_errors)
-                        break; // didn't find grammer object we wanted.
+                        Assert("TODO(Compiler team): this bad, fix.");
+                        break;
                     }
-                } else if ( SillyStringStartsWith(child_data, "literal") ) {
+
+                }
+                // TODO(opt): the regex representation should not use strings.
+                // that is very slow. please we should just use simple enums or something instead of string
+                // comparison like this.
+                else if ( SillyStringStartsWith(child_data, "literal") ) {
                     struct token tok = tokens.QueryNext(); // # the whole LR k+1 idea :)
                     bool didMatch = true;
-                    switch(tok.type) {
-                        case TOKEN_QUOTE:
-                        {
-                            tokens.Next();
-                            struct tree_node newTree = CreateTree(TREE_AST_STRING_LITERAL);
-                            newTree.metadata.str = tok.str;
+
+                    // TODO: it would be nice if these switch statements could also warn us at compile-time
+                    // that we are missing a case. Is there an elegant way in C++ to do this or is this one
+                    // of those things that would be best done in the new language?
+
+                    switch (tok.type) {
+
+                        case TOKEN_QUOTE: {
+                            tokens.AdvanceNext();
+                            struct tree_node newTree = CreateTree(AST_STRING_LITERAL);
+                            newTree.metadata.str     = tok.str;
                             TreeAdoptTree(tree, newTree);
-                        }
-                        break;
-                        case TOKEN_DECIMAL_LITERAL:
-                        {
-                            tokens.Next();
-                            struct tree_node newTree = CreateTree(TREE_AST_DECIMAL_LITERAL, tok.dnum);
+                        } break;
+
+                        // 
+                        case TOKEN_NULL_LITERAL: {
+                            tokens.AdvanceNext();
+                            struct tree_node newTree = CreateTree(AST_NULL_LITERAL);
                             TreeAdoptTree(tree, newTree);
-                        }
-                        break;
-                        case TOKEN_INTEGER_LITERAL:
-                        {
-                            tokens.Next();
-                            struct tree_node newTree = CreateTree(TREE_AST_INT_LITERAL, tok.num);
+                        } break;
+
+                        case TOKEN_TRUE_LITERAL: {
+                            tokens.AdvanceNext();
+                            struct tree_node newTree = CreateTree(AST_INT_LITERAL, true);
                             TreeAdoptTree(tree, newTree);
-                        }
-                        break;
-                        case TOKEN_CHARACTER_LITERAL:
-                        {
-                            tokens.Next();
-                            struct tree_node newTree = CreateTree(TREE_AST_CLITERAL, tok.c);
+                        } break;
+
+                        case TOKEN_FALSE_LITERAL: {
+                            tokens.AdvanceNext();
+                            struct tree_node newTree = CreateTree(AST_INT_LITERAL, false);
                             TreeAdoptTree(tree, newTree);
-                        }
-                        break;
+                        } break;
+
+                        case TOKEN_DOUBLE_LITERAL: {
+                            tokens.AdvanceNext();
+                            struct tree_node newTree = CreateTree(AST_DECIMAL_LITERAL, (double)tok.dnum);
+                            TreeAdoptTree(tree, newTree);
+                        } break;
+                        case TOKEN_FLOAT_LITERAL: {
+                            // TODO: I know that f64 is more bits than f32, but is there e.g. a loss in precision
+                            // when we cast from double to float? some odd floating point representation thing.
+                            tokens.AdvanceNext();
+                            struct tree_node newTree = CreateTree(AST_DECIMAL_LITERAL, (float)tok.dnum);
+                            TreeAdoptTree(tree, newTree);
+                        } break;
+
+                        case TOKEN_UINT_LITERAL:
+                        {
+                            tokens.AdvanceNext();
+                            struct tree_node newTree = CreateTree(AST_INT_LITERAL, tok.num);
+                            TreeAdoptTree(tree, newTree);
+                        } break;
+
+                        case TOKEN_INTEGER_LITERAL: {
+                            tokens.AdvanceNext();
+                            
+                            // TODO: What happens if we write into the program a value that is too large
+                            // to fit into int64_t ?
+                            // or in general whenever we are looking at type stuff.
+                            // -> this should  be a compiler error about a non-explicit truncation.
+                            assert( tok.num <= uint64_t(INT64_MAX) );
+
+                            struct tree_node newTree = CreateTree(AST_INT_LITERAL, (int64_t)tok.num);
+                            TreeAdoptTree(tree, newTree);
+                        } break;
+                        case TOKEN_CHARACTER_LITERAL: {
+                            tokens.AdvanceNext();
+
+                            // TODO: revisit this stuff.
+                            assert( tok.c <= uint64_t(INT8_MAX) );
+
+                            struct tree_node newTree = CreateTree(AST_INT_LITERAL, (char)tok.c);
+                            TreeAdoptTree(tree, newTree);
+                        } break;
+
                         default:
-                        didMatch = false;
+                            didMatch = false;
+                            break;
+                    }
+
+                    if (!didMatch) {
+
+                        // emit error!
+                        if (errorCtx.SubmitError(
+                            PPL_ERROR_KIND_PARSER,
+                            tok.line, tok.beginCol, tokens.GetSavepoint()
+                        ))
+                        {
+                            snprintf(errorCtx.errMsg, PPL_ERROR_MESSAGE_MAX_LENGTH,
+                            "Expected a literal but sure as hell did not get one.");
+                        }
+
+                        // NOTE: so the savepoint idea gets the index of the token that
+                        // is returned by QueryNext. so the savepoint here is correctly
+                        // the token that we just failed on.
+
                         break;
-                    }    
-                    if (!didMatch) break;
+                    }
                     re_matched += 1;
 
                 } else if ( SillyStringStartsWith(child_data, "symbol")) {
                     struct token tok = tokens.QueryNext(); //# the whole LR k+1 idea :)
                     if (tok.type == TOKEN_SYMBOL) {
-                        tokens.Next();
-                        struct tree_node newTree = CreateTree(TREE_AST_SYMBOL);
+                        tokens.AdvanceNext();
+                        struct tree_node newTree = CreateTree(AST_SYMBOL);
                         newTree.metadata.str = tok.str;
                         TreeAdoptTree(tree, newTree);
                         re_matched += 1;
                     } else {
+
+                        if (errorCtx.SubmitError(
+                            PPL_ERROR_KIND_PARSER,
+                            tok.line, tok.beginCol, tokens.GetSavepoint()
+                        ))
+                        {
+                            snprintf(errorCtx.errMsg, PPL_ERROR_MESSAGE_MAX_LENGTH,
+                            "Expected a symbol.");
+                        }
+
                         break;
                     }
                 } else if ( SillyStringStartsWith(child_data, "op") ) {
                     struct token tok = tokens.QueryNext();
                     bool didMatch = true;
-                    char *op = child_data + 2;
+
+                    // TODO: does the strlen below happen at compile-time?
+                    const char *op = child_data + strlen("op");
+
                     // NOTE(Noah): Because I made the delineation between COP and OP, it actually makes
                     // this processing gross-ish.
                     switch(tok.type) {
@@ -219,7 +433,12 @@ bool ParseTokensWithRegexTree(
                         break;
                         case TOKEN_OP:
                         {
-                            didMatch = (strlen(op) == 1) && op[0] == tok.c;
+                            // TODO: again, we want to verify that our compile-time strings
+                            // such as particular operation types are valid (not negative).
+                            // 
+                            // I mean, better yet, for perf we should not be using strings at all
+                            // because strings are a debug thing.
+                            didMatch = (strlen(op) == 1) && ((uint8_t)op[0] == tok.c);
                         }
                         break;
                         default:
@@ -227,13 +446,33 @@ bool ParseTokensWithRegexTree(
                         break;
                     }
                     if (didMatch) {
-                        tokens.Next();
-                        struct tree_node newTree = CreateTree(TREE_AST_OP);
+                        tokens.AdvanceNext();
+                        struct tree_node newTree = CreateTree(AST_OP);
                         newTree.metadata.str = child_data;
                         TreeAdoptTree(tree, newTree);
                         re_matched += 1; 
                     } 
-                    else { 
+                    else {
+
+                        if (errorCtx.SubmitError(
+                            PPL_ERROR_KIND_PARSER,
+                            tok.line, tok.beginCol, tokens.GetSavepoint()
+                        ))
+                        {
+                            snprintf(errorCtx.errMsg,
+                                PPL_ERROR_MESSAGE_MAX_LENGTH,
+                                "Expected op '%.*s'. Grammar context = %s.",
+                                strlen(op),
+                                op,
+                                currGrammarCtx.name);
+
+                            g_bufferToPrintTo = errorCtx.almostParsedTree;
+                            g_bufferToPrintToLen = PPL_ERROR_PARTIAL_AST_MAX_LENGTH;
+                            g_lastBufPos         = 0;
+
+                            PrintTree(*errorCtx.currTopLevelTree, 0, HackyPrintToBuffer);
+                        }
+
                         break;
                     }
 
@@ -243,11 +482,21 @@ bool ParseTokensWithRegexTree(
                     // save that information.
                     struct token tok = tokens.QueryNext();
                     if (tok.type == TOKEN_KEYWORD) {
-                        tokens.Next();
-                        struct tree_node newTree = CreateTree(TREE_AST_KEYWORD);
+                        tokens.AdvanceNext();
+                        struct tree_node newTree = CreateTree(AST_KEYWORD);
                         newTree.metadata.str = tok.str;
                         TreeAdoptTree(tree, newTree);
                     } else {
+
+                        if (errorCtx.SubmitError(
+                            PPL_ERROR_KIND_PARSER,
+                            tok.line, tok.beginCol, tokens.GetSavepoint()
+                        ))
+                        {
+                            snprintf(errorCtx.errMsg, PPL_ERROR_MESSAGE_MAX_LENGTH,
+                            "Expected a keyword.");
+                        }
+
                         break;
                     }
                     re_matched += 1;
@@ -259,7 +508,7 @@ bool ParseTokensWithRegexTree(
         }
 
         // Find all fail cases.
-        bool fail_flag = (modifier == 0 && re_matched != 1) || 
+        bool fail_flag = ( nullFrequencyModifier && re_matched != 1) || 
            (modifier == '?' && re_matched > 1) ||
            (modifier == '+' && re_matched == 0);
 
@@ -281,6 +530,9 @@ bool ParseTokensWithRegexTree(
         }
             
         if (any_flag) {
+
+            Assert( tokens_savepoint >= 0 );
+
             // presuming we have not yet succeeded, and we are inside an Any block
             // this means we are trying the next child.
             // we need to reset the state of Tokens.
@@ -296,11 +548,11 @@ bool ParseTokensWithRegexTree(
 }
 
 /*
-    Returns a tree where root is simply the grammer.name
+    Returns a tree where root is simply the grammar.name
 
     Suppose regex = r"[(function_decl)(function_impl)(var_decl)(struct_decl)]*"
     - We can see that the top level is a list given by the *.
-    - So we make many an array of children under the root node, one for each of these sub grammer objects.
+    - So we make many an array of children under the root node, one for each of these sub grammar objects.
 
     Suppose regex = r"(type)(symbol)\(((lv),)*(lv)?\)[;(block)]"
     - first child is the type
@@ -312,32 +564,36 @@ bool ParseTokensWithRegexTree(
     Suppose regex = 
 
     Thus far the tree making algo is as follows. Simply go left to right through a regex, 
-    Add a child for each grammer element.
-    If there is a group, this creates an empty root under which there may be grammer element children.
+    Add a child for each grammar element.
+    If there is a group, this creates an empty root under which there may be grammar element children.
     If there is a * or ?, or any of the sort, we now have a list child that contains many tree roots.
-        - These tree roots may be single grammer element roots or empty group roots.
+        - These tree roots may be single grammar element roots or empty group roots.
     A nice prune is to remove empty group parents when there is only 1 child (keeps the tree simpler).
 */
 
-bool ParseTokensWithGrammer(
+bool ParseTokensWithGrammar(
     TokenContainer &tokens, 
-    struct grammer_definition grammerDef,
-    struct tree_node &tree) {
+    const grammar_definition &grammarDef,
+    struct tree_node *tree,
+    ppl_error_context &errorCtx,
+    bool parentWantsVerboseAST)
+{
     
-    if (!GRAMMER.DefExists(grammerDef.name)) return false;
+    if (!GRAMMAR.DefExists(grammarDef.name)) return false;
+
+    errorCtx.currTopLevelTree = tree;
 
     //buffered_errors = []
     
     // NOTE(Noah): Here we do not alloc another string.
-    // The string has already been secured and alloced inside of grammerDef.
-    tree = CreateTree(TREE_AST_GNODE);
-    tree.metadata.str = (char *)grammerDef.name;
+    // The string has already been secured and alloced inside of grammarDef.
+    *tree = CreateTree(AST_GNODE);
+    tree->metadata.str = grammarDef.name;
     
     // Fill up the tree with any parsed children.
-    bool r = ParseTokensWithRegexTree(tokens, 
-        grammerDef.regexTree, tree);
+    bool r = ParseTokensWithRegexTree(tokens, grammarDef.regexTree, grammarDef, *tree, errorCtx, parentWantsVerboseAST);
     
-    //if ( SillyStringStartsWith(grammerDef.name, "program") )
+    //if ( SillyStringStartsWith(grammarDef.name, "program") )
         //buffered_errors += (_buffered_errors);
     
     // NOTE(Noah): I know this is going to work and do what I want it to do, but 
@@ -346,11 +602,11 @@ bool ParseTokensWithGrammer(
     
     /*
     if ( fail_flag && len(trees) == 1 ) {
-        if (GRAMMER.DefExists(grammerDef.name)) {
-            for eq in g.equivalences[grammerDef.name]:
+        if (GRAMMAR.DefExists(grammarDef.name)) {
+            for eq in g.equivalences[grammarDef.name]:
                 if eq == trees[0].data:
                     fail_flag = False # redemption.
-                    return (trees[0], buffered_errors) # override upper level grammer object. Makes AST simpler.
+                    return (trees[0], buffered_errors) # override upper level grammar object. Makes AST simpler.
             
         }
     }
@@ -358,10 +614,10 @@ bool ParseTokensWithGrammer(
 
     if (!r) {
         // Delete any children that might have been created.
-        for (int i = 0; i < tree.childrenCount; i++) {
-            DeallocTree(tree.children[i]);
+        for (unsigned int i = 0; i < tree->childrenCount; i++) {
+            DeallocTree(tree->children[i]);
         }
-        tree.childrenCount = 0; 
+        tree->childrenCount = 0; 
         return false;
     } 
     return true;
@@ -370,8 +626,8 @@ bool ParseTokensWithGrammer(
 
 /*
 def Run(tokens, logger):
-    grammer = g.LoadGrammer()
-    abstractSyntaxTree, bufErrors = ParseTokensWithGrammer(tokens, grammer, grammer.defs["program"], logger)
+    grammar = g.LoadGrammar()
+    abstractSyntaxTree, bufErrors = ParseTokensWithGrammar(tokens, grammar, grammar.defs["program"], logger)
     # check if it's valid.
     if abstractSyntaxTree and tokens.QueryNext().type == "EOL":
         return abstractSyntaxTree

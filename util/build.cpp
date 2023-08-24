@@ -5,6 +5,15 @@
     NOTE: Many things I copy-and-pasted! :)
 */
 
+
+// TODO: so for these tests in general we want to not just see that things run to
+// completion but rather that the output of the test is correct.
+//
+// TODO: there is also the task of better timing. right now the timing includes any
+// printing. that is non-ideal. I would prefer that we finish timing as soon as the
+// actual work is complete.
+
+
 /* HOW PPL PROGRAMS ARE BUILT
 
 We have the PPL source file.
@@ -53,15 +62,13 @@ void ptest_Codegen(char *inFilePath, int &errors);
 void ptest_Preparser(char *inFilePath, int &errors);
 void ptest_wax64(char *inFilePath, int &errors);
 void ptest_ax64(char *inFilePath, int &errors);
-int RunPtestFromInFile(void (*ptest)(char *inFilePath, int &errors), char *testName, char *cwd);
-int RunPtestFromInFile(void (*ptest)(char *inFilePath, int &errors), char *testName, char *cwd,
-    char *inFile
-);
+int RunPtestFromInFile(void (*ptest)(char *inFilePath, int &errors), const char *testName, const char *cwd);
+int RunPtestFromInFile(void (*ptest)(char *inFilePath, int &errors), const char *testName, const char *cwd, const char *inFile);
 int RunPtestFromCwd(
     void (*ptest)(char *inFilePath, int &errors), 
-    bool (*validate)(char *fileName),
-    char *testName, 
-    char *cwd
+    bool (*validate)(const char *fileName),
+    const char *testName, 
+    const char *cwd
 );
 /* ------- TESTS.CPaP ------- */
 
@@ -168,16 +175,21 @@ int DoCommand(const char *l, const char *l2) {
         l++;
     }
 
-	if (0 == strcmp(l, "b") || 0 == strcmp(l, "build")) {
+	// TODO: I'm not even sure if this is going to work on Windows.
+    if (0 == strcmp(l, "b") || 0 == strcmp(l, "build")) {
         
-        int r = CallSystem("g++ -std=c++11 -g src/ppl.cpp -I vendor/ -I src/ -I backend/src/ -o bin/ppl -Wno-writable-strings -Wno-write-strings");
+        int r = CallSystem(
+            ModifyPathForPlatform(
+                "g++ -std=c++11 -g src/ppl.cpp -I vendor/ -I src/ -I backend/src/ -o bin/ppl -Wno-writable-strings -Wno-write-strings").c_str()
+        );
         if (r == 0) {
             printf("PPL compiler built to bin/ppl\n");
             printf("Usage: ppl <inFile> -o <outFile> -t <TARGET> [options]\n");
         }
 
-        r = CallSystem("g++ -std=c++11 -g backend/src/assembler.cpp -I vendor/ -I src/ -I backend/src/ -o bin/pplasm -Wno-writable-strings \
-            -Wno-write-strings");
+        r = CallSystem(
+            ModifyPathForPlatform("g++ -std=c++11 -g backend/src/assembler.cpp -I vendor/ -I src/ -I backend/src/ -o bin/pplasm -Wno-writable-strings \
+            -Wno-write-strings").c_str() );
         if (r == 0) {
             printf("PPL assembler built to bin/pplasm\n");
             printf("Usage: pplasm <inFile> <TARGET>\n");
@@ -190,7 +202,7 @@ int DoCommand(const char *l, const char *l2) {
         // TODO(Noah): Can be modularized via some variant on RunPtest...
         printf("NOTE: cwd is set to backend/tests/\n");
         char *inFile = GetInFile();
-        char *inFilePath = SillyStringFmt("backend/tests/%s", inFile);
+        char *inFilePath = SillyStringFmt( ModifyPathForPlatform("backend/tests/%s").c_str() , inFile);
         Timer timer = Timer("asmparse");
         int errors = 0;
         int r = passembler(inFilePath, "macOS");
@@ -202,7 +214,7 @@ int DoCommand(const char *l, const char *l2) {
 
     } else if (0  == strcmp(l, "ax64") || 0 ==strcmp(l, "pasm_x86_64")) {
 
-        return RunPtestFromInFile(ptest_ax64, "pasm", "backend/tests/");
+        return RunPtestFromInFile(ptest_ax64, "pasm", ModifyPathForPlatform("backend/tests/").c_str() );
 
     } else if (0  == strcmp(l, "ax64all") || 0 ==strcmp(l, "pasm_x86_64_all")) {
 
@@ -213,9 +225,9 @@ int DoCommand(const char *l, const char *l2) {
 
         return RunPtestFromCwd(
             ptest_ax64,
-            [](char *fileName) -> bool {
+            [](const char *fileName) -> bool {
                 if (fileName[0] != '.') {
-                    char *pStr;
+                    const char *pStr;
                     for (pStr = fileName; *pStr != 0 && *pStr != '.'; pStr++);
                     pStr++; // skp past the '.'
                     if (SillyStringEquals("pasm", pStr)) {
@@ -225,24 +237,24 @@ int DoCommand(const char *l, const char *l2) {
                 return false;
             },
             "pasm_x86_64_all",
-            "backend/tests"
+            ModifyPathForPlatform("backend/tests").c_str()
         );
 
     } else if (0  == strcmp(l, "wax64") || 0 ==strcmp(l, "win_x86_64")) {
 
         if (l2 == 0) {
-            return RunPtestFromInFile(ptest_wax64, "pasm", "backend/tests/");
+            return RunPtestFromInFile(ptest_wax64, "pasm", ModifyPathForPlatform("backend/tests/").c_str() );
         } else {
-            return RunPtestFromInFile(ptest_wax64, "pasm", "backend/tests/", (char *)l2);
+            return RunPtestFromInFile(ptest_wax64, "pasm", ModifyPathForPlatform("backend/tests/").c_str(), (char *)l2);
         }
     
     } else if (0  == strcmp(l, "wax64all") || 0 ==strcmp(l, "win_x86_64_all")) {
 
         return RunPtestFromCwd(
             ptest_wax64, 
-            [](char *fileName) -> bool {
+            [](const char *fileName) -> bool {
                 if (fileName[0] != '.') {
-                    char *pStr;
+                    const char *pStr;
                     for (pStr = fileName; *pStr != 0 && *pStr != '.'; pStr++);
                     pStr++; // skp past the '.'
                     if (SillyStringEquals("pasm", pStr)) {
@@ -252,38 +264,41 @@ int DoCommand(const char *l, const char *l2) {
                 return false;
             },
             "win_86_64_all",
-            "backend/tests"
+            ModifyPathForPlatform("backend/tests").c_str()
         );
 
     } else if (0  == strcmp(l, "l") || 0 ==strcmp(l, "lexer")) {
         
         return RunPtestFromInFile(
-            ptest_Lexer, "lexer", "tests/preparse/");
+            ptest_Lexer, "lexer", ModifyPathForPlatform("tests/preparse/").c_str() );
 
     } else if (0 == strcmp(l, "lall") || 0 == strcmp(l, "lexer_all")) {
 
         return RunPtestFromCwd(
             ptest_Lexer, 
-            [](char *fileName) -> bool {
+            [](const char *fileName) -> bool {
                 return (fileName[0] != '.');
             }, 
             "lexer_all",
-            "tests/preparse");
+            ModifyPathForPlatform("tests/preparse").c_str()
+        );
 
     } else if (0  == strcmp(l, "p") || 0 ==strcmp(l, "preparser")) {
 
         return RunPtestFromInFile(
-            ptest_Preparser, "preparser", "tests/preparse/");
+            ptest_Preparser, "preparser", ModifyPathForPlatform("tests/preparse/").c_str() );
 
     } else if (0  == strcmp(l, "pall") || 0 ==strcmp(l, "preparser_all")) {
 
+        // TODO: So like, one of the really cool things you can do with a nice compile-time metaprogramming
+        // sort of idea is, based on the system that I am compiling on, modify my strings to either do `/` or `\`.
         return RunPtestFromCwd(
             ptest_Preparser,
-            [](char *fileName) -> bool {
+            [](const char *fileName) -> bool {
                 return (fileName[0] != '.');
             },
             "preparser_all",
-            "tests/preparse"
+            ModifyPathForPlatform("tests/preparse").c_str()
         );
 
     }
@@ -292,19 +307,19 @@ int DoCommand(const char *l, const char *l2) {
         Timer timer = Timer("regex_gen");
         LOGGER.InitFileLogging("w");
         int errors = 0;
-        LoadGrammer();
+        LoadGrammar();
         CheckErrors(errors);
         timer.TimerEnd();
         return (errors > 0);
 
-    } else if (0 == strcmp(l, "g") || 0 == strcmp(l, "grammer")) {
+    } else if (0 == strcmp(l, "g") || 0 == strcmp(l, "grammar")) {
         
-        LoadGrammer();
+        LoadGrammar();
         // TODO: this printf is copy-pasta to the one for grammar_all.
         printf(
             "\nPlease note that grammar tests use the filename to derive the grammar\n"
               "production to test.\n");
-        return RunPtestFromInFile(ptest_Grammer, "grammer", "tests/grammer/");
+        return RunPtestFromInFile(ptest_Grammar, "grammar", ModifyPathForPlatform("tests/grammar/").c_str() );
 
     } else if (0 == strcmp(l , "c") ||  0 == strcmp(l, "codegen")) {
 
@@ -318,19 +333,19 @@ int DoCommand(const char *l, const char *l2) {
     } 
     else if (0 == strcmp(l, "gall") || 0 == strcmp(l, "grammer_all")) {
         
-        LoadGrammer();
+        LoadGrammar();
         printf(
             "\nPlease note that grammar tests use the filename to derive the grammar\n"
               "production to test.\n");
         return RunPtestFromCwd(
-            ptest_Grammer,
+            ptest_Grammar,
             // TODO(Noah): Maybe we abstract the lambda here beause we use the same
             // lambda twice?
-            [](char *fileName) -> bool {
+            [](const char *fileName) -> bool {
                 return (fileName[0] != '.');
             },
-            "grammer_all", 
-            "tests/grammer"
+            "grammar_all", 
+            ModifyPathForPlatform("tests/grammar").c_str()
         );
 
     } else if (0 == strcmp(l, "exit")) {
@@ -403,41 +418,50 @@ void ptest_Codegen(char *inFilePath, int& errors)
 
 void ptest_Grammer(char *inFilePath, int&errors) {
     FILE *inFile = fopen(inFilePath, "r");
-    LOGGER.Log("Testing grammer for: %s", inFilePath);
+    LOGGER.Log("Testing grammar for: %s", inFilePath);
     if (inFile == NULL) {
         LOGGER.Error("inFile of '%s' does not exist", inFilePath);
         errors += 1;
     } else {
         TokenContainer tokensContainer;
-        if (Lex(inFile, tokensContainer)) {
+        RawFileReader tokenBirthplace;
+        ppl_error_context bestErr = {};
+        if (Lex(inFile, tokensContainer, &tokenBirthplace, &bestErr)) {
             if (VERBOSE) {
                 tokensContainer.Print();
             }
 
-            // Now we try to parse for the grammer object.
-            // we know which specific grammer definition via the name of
+            // Now we try to parse for the grammar object.
+            // we know which specific grammar definition via the name of
             // the inFile that was given.
 
-            char grammerDefName[256] = {};
+            char grammarDefName[256] = {};
             
             // NOTE(Noah): Alright, so we got some truly dumbo code here :)
+            
+            #if defined(_MSC_VER)
+            char slashCharacter = '\\';
+            #else
+            char slashCharacter = '/';
+            #endif
+            
             char *onePastLastSlash; 
             for (char *pStr = inFilePath; *pStr != 0; pStr++ ) {
-                if (*pStr == '/') {
+                if (*pStr == slashCharacter) {
                     onePastLastSlash = pStr;
                 }
             }
             onePastLastSlash++; // get it to one past the last slash.
             
-            memcpy( grammerDefName, onePastLastSlash, strlen(onePastLastSlash) - 3 );
-            //LOGGER.Log("grammerDefName: %s", grammerDefName);
+            memcpy( grammarDefName, onePastLastSlash, strlen(onePastLastSlash) - 3 );
+            //LOGGER.Log("grammarDefName: %s", grammarDefName);
 
-            struct tree_node tree = {};
-            
-            bool r = ParseTokensWithGrammer(
+            struct tree_node tree;// = {};
+
+            bool r = ParseTokensWithGrammar(
                 tokensContainer, 
-                GRAMMER.GetDef(grammerDefName),
-                tree);
+                GRAMMAR.GetDef(grammarDefName),
+                &tree, bestErr);
             
             //bool r = false;
 
@@ -446,7 +470,35 @@ void ptest_Grammer(char *inFilePath, int&errors) {
                 DeallocTree(tree);
             }
             else {
-                LOGGER.Error("ParseTokensWithGrammer failed.");
+
+                // emit the best error that we got back.
+                {
+                    uint32_t c = bestErr.c;
+                    uint32_t line = bestErr.line;
+
+                    // TODO: The below is likely to change when #import actually works.
+                    // maybe it comes from the error because the source code that errors
+                    // is in diff file.
+                    const char *file = LOGGER.logContext.currFile;
+
+                    const char *code = 
+                        bestErr.codeContext ? bestErr.codeContext : "<unknown>"; // TODO.
+
+                    LOGGER.EmitUserError(
+                        file, line, c, code,
+                        bestErr.errMsg ? bestErr.errMsg : "<unknown>" 
+                    );
+
+                    if (bestErr.kind == PPL_ERROR_KIND_PARSER)
+                    {
+                        LOGGER.Min("The almost-parsed AST:\n");
+                        LOGGER.Min("%s\n",bestErr.almostParsedTree);
+                    }
+
+                    //return false;
+                }
+
+                LOGGER.Error("ParseTokensWithGrammar failed.");
                 errors += 1;
             } 
 
@@ -454,8 +506,9 @@ void ptest_Grammer(char *inFilePath, int&errors) {
             LOGGER.Error("Lex failed.");
             errors += 1;
         }
+
+        fclose(inFile);
     }
-    fclose(inFile);
 }
 
 void ptest_Lexer(char *inFilePath, int &errors) {
@@ -466,7 +519,9 @@ void ptest_Lexer(char *inFilePath, int &errors) {
         errors += 1;
     } else {
         TokenContainer tokensContainer;
-        if (Lex(inFile, tokensContainer)) {
+        RawFileReader tokenBirthplace;
+        ppl_error_context bestErr = {};
+        if (Lex(inFile, tokensContainer, &tokenBirthplace, &bestErr)) {
             if (VERBOSE) {
                 tokensContainer.Print();
             }
@@ -474,8 +529,8 @@ void ptest_Lexer(char *inFilePath, int &errors) {
             LOGGER.Error("Lex() failed.");
             errors += 1;
         }
+        fclose(inFile);
     }
-    fclose(inFile);
 }
 
 void ptest_Preparser(char *inFilePath, int &errors) {
@@ -486,7 +541,9 @@ void ptest_Preparser(char *inFilePath, int &errors) {
         errors += 1;
     } else {
         TokenContainer tokensContainer;
-        if (Lex(inFile, tokensContainer)) {
+        RawFileReader tokenBirthplace;
+        ppl_error_context bestErr = {};
+        if (Lex(inFile, tokensContainer, &tokenBirthplace, &bestErr)) {
             if (VERBOSE) {
                 tokensContainer.Print();
             }
@@ -501,6 +558,7 @@ void ptest_Preparser(char *inFilePath, int &errors) {
     fclose(inFile);
 }
 
+// TODO: this stuff works on Windows? some of the paths have `\\` so I suspect so.
 void ptest_wax64(char *inFilePath, int &errors) {
     LOGGER.Log("Testing assembler for: %s", inFilePath);
     int r = passembler(inFilePath, "macOS"); // TODO(Noah): target independent, remove macOS.
@@ -546,12 +604,13 @@ void ptest_ax64(char *inFilePath, int &errors) {
 // TODO(Noah): We can even modularize the two different version of the function that we use
 // to modularize the code!
 
-int RunPtestFromInFile(void (*ptest)(char *inFilePath, int &errors), char *testName, char *cwd) {
+int RunPtestFromInFile(void (*ptest)(char *inFilePath, int &errors), const char *testName, const char *cwd) {
     printf("NOTE: cwd is set to %s\n", cwd);
     char *inFile = GetInFile();
     char *inFilePath = SillyStringFmt("%s%s", cwd, inFile);
     Timer timer = Timer(testName);
     LOGGER.InitFileLogging("w");
+    LOGGER.logContext.currFile = inFilePath;
     int errors = 0;
     ptest(inFilePath, errors);
     CheckErrors(errors);
@@ -559,13 +618,12 @@ int RunPtestFromInFile(void (*ptest)(char *inFilePath, int &errors), char *testN
     return (errors > 0);
 }
 
-int RunPtestFromInFile(void (*ptest)(char *inFilePath, int &errors), char *testName, char *cwd,
-    char *inFile
-) {
+int RunPtestFromInFile(void (*ptest)(char *inFilePath, int &errors), const char *testName, const char *cwd, const char *inFile) {
     printf("NOTE: cwd is set to %s\n", cwd);
     char *inFilePath = SillyStringFmt("%s%s", cwd, inFile);
     Timer timer = Timer(testName);
     LOGGER.InitFileLogging("w");
+    LOGGER.logContext.currFile = inFilePath;
     int errors = 0;
     ptest(inFilePath, errors);
     CheckErrors(errors);
@@ -573,33 +631,45 @@ int RunPtestFromInFile(void (*ptest)(char *inFilePath, int &errors), char *testN
     return (errors > 0);
 }
 
+#include <tchar.h>
+#include <iostream>
+#include <string>
+
+#define NC_PAL_HPP_IMPL
+#include <nc/pal.hpp>
+
 int RunPtestFromCwd(
     void (*ptest)(char *inFilePath, int &errors), 
-    bool (*validate)(char *fileName),
-    char *testName, 
-    char *cwd
+    bool (*validate)(const char *fileName),
+    const char *testName, 
+    const char *cwd
 ) {
+
     Timer timer = Timer(testName);
     LOGGER.InitFileLogging("w");
+
+    // Initialize variables
     int errors = 0;
-    DIR *dir;
-    struct dirent *ent;
-    char *dirName = cwd;
-    if ((dir = opendir (dirName)) != NULL) {
-        while ((ent = readdir (dir)) != NULL) {
-            if (validate(ent->d_name)) {
-                ptest( 
-                    SillyStringFmt("%s/%s", dirName, ent->d_name), 
-                    errors
-                );
+
+    using namespace nc;
+
+    const char *dirName = cwd;
+    std::string searchPath = std::string(cwd) + ModifyPathForPlatform("/*");
+    pal::file_search_t fSearch;
+    pal::file_search_find_data_t findData;
+    if ( pal::createFileSearch( searchPath.c_str(), &fSearch, &findData ) )
+    {
+        do {
+            if (validate(findData.name)) {
+                char *fileName = SillyStringFmt(ModifyPathForPlatform("%s/%s").c_str(), dirName, findData.name);
+                LOGGER.logContext.currFile = fileName;
+                ptest(fileName, errors);
             }
-            //if (ent->d_name[0] != '.') {}
-        }
-        closedir (dir);
-    } else {
-        LOGGER.Error("Unable to open %s", dirName);
-        errors += 1;
+        } while (pal::fileSearchGetNext(&fSearch, &findData));
+
+        pal::fileSearchFree( &fSearch );
     }
+
     CheckErrors(errors);
     timer.TimerEnd();
     return (errors > 0);

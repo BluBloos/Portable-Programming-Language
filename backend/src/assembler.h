@@ -30,7 +30,7 @@ enum pasm_line_type {
     PASM_LINE_RET,
     // TODO(Noah): For instructions such as MOV, SUB, etc, 
     // we might want to do some semantic checking. Because as of
-    // right now, our parsing supports for invalid assembly grammers.
+    // right now, our parsing supports for invalid assembly grammars.
     PASM_LINE_MOV,
     PASM_LINE_SUB,
     PASM_LINE_ADD,
@@ -524,7 +524,7 @@ int pasm_main(int argc, char **argv) {
     } else {
 
         char *inFilePath = argv[1];
-        char *targetPlatform = argv[2];
+        // char *targetPlatform = argv[2]; // TODO: use this.
 
         FILE *inFile = fopen(inFilePath, "r");
 

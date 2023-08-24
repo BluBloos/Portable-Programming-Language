@@ -1,0 +1,1 @@
+someBitFlag := MyEnum.Flag1 | .Flag2 | .Flag3; // implicit `.`
