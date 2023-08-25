@@ -39,8 +39,14 @@ struct CG_Value
     ppl_type valueKind = PPL_TYPE_UNKNOWN;
     union {
         ppl_type v_PplType;
+        uint64_t v_Uint64;
     };
 };
+
+uint64_t ValueExtract_Uint64(CG_Value val)
+{
+    return val.v_Uint64;
+}
 
 ppl_type ValueExtract_PplType(CG_Value val)
 {
@@ -233,7 +239,7 @@ static void ExpressionInferKind(struct tree_node *ast, ppl_type *kindOut, tree_n
         if (child->childrenCount == 1)
         {
             tree_node *child2 = &child->children[0];
-            if ( strcmp(child2->metadata.str, "literal") == 0 )
+            if ( child2->type == AST_INT_LITERAL )
             {
                 kind = child2->metadata.valueKind;
                 if (TL_out)  *TL_out = child2;
@@ -285,6 +291,21 @@ static CG_Value ConstantExpressionCompute(struct tree_node *ast)
         // TODO: this thing below is stupid and slow and ideally we should already have this information.
         val.v_PplType = KeywordToPplType(keyword->metadata.str);
     }
+    else
+    {
+        switch(kind)
+        {
+            case PPL_TYPE_U8:
+            case PPL_TYPE_U16:
+            case PPL_TYPE_U32:
+            case PPL_TYPE_U64:
+            case PPL_TYPE_S8:
+            case PPL_TYPE_S16:
+            case PPL_TYPE_S32:
+            case PPL_TYPE_S64:
+            val.v_Uint64 = TL->metadata.num;
+        }   
+    }
 
     return val;
 }
@@ -298,9 +319,16 @@ static void GenerateCompileTimeVarDecl(struct tree_node *ast, PFileWriter &fileW
     tree_node *route = &ast->children[0];
     tree_node *varName = &route->children[0];
 
+    tree_node *value;
+
     ppl_type type;
 
-    if (ast->childrenCount > 2)
+    // TODO: add a thing to assert the strong type with the actual expression type that
+    // we infer.
+
+    const bool bStrongTyped = ast->childrenCount > 2;
+
+    if (bStrongTyped)
     {
         // here we have the strongly typed case.
         // ast node is ((type)(op,=)(expression))
@@ -312,20 +340,56 @@ static void GenerateCompileTimeVarDecl(struct tree_node *ast, PFileWriter &fileW
         //assert( val.valueKind == PPL_TYPE_TYPE );
         ppl_type valE = ValueExtract_PplType( val );
         type = valE;
+
+        value = &ast->children[3];
     }
     else
     {
-        // here we have the type inference case where
-        // ast node is (expression).
-        assert ( ExpressionVerifyConstant(&ast->children[1]) );
-        ExpressionInferKind(&ast->children[1], &type, nullptr);
+        value = &ast->children[1];
     }
 
-    // TODO: since the write func does not modify the string that it takes
-    // in, we can make it take a const char *.
+    assert ( ExpressionVerifyConstant(value) );
+    auto val = ConstantExpressionCompute(value);
+
+    if (!bStrongTyped)
+    {
+        type = val.valueKind;
+    }
+
+    fileWriter.write("label_");
     fileWriter.write((char*)varName->metadata.str);
-    fileWriter.write("\n");
-    fileWriter.write( (char*)PplTypeToString(type) );
+    fileWriter.write(":\n");
+
+    // TODO: implement other types.
+    switch(type)
+    {
+        // TODO: proper handle the negative types.
+        case PPL_TYPE_U8:
+        case PPL_TYPE_U16:
+        case PPL_TYPE_U32:
+        case PPL_TYPE_U64:
+        case PPL_TYPE_S8:
+        case PPL_TYPE_S16:
+        case PPL_TYPE_S32:
+        case PPL_TYPE_S64:
+        {
+            // TODO: since the write func does not modify the string that it takes
+            // in, we can make it take a const char *.
+            fileWriter.write(".db ");
+
+            // NOTE: the value extract is gonna work between any integer type,
+            // so long as we have the correct bit width.
+            uint64_t integerValue = ValueExtract_Uint64(val);
+
+            char *integerString = SillyStringFmt("%u", integerValue); 
+
+            fileWriter.write(integerString);
+        }
+        break;
+    }
+
+
+//    fileWriter.write( (char*)PplTypeToString(type) );
 }
 
 // NOTE: the goal of generate program should be to execute PASM assembly instructions.
