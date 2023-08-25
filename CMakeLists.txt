@@ -25,3 +25,7 @@ target_compile_features(${ProjectName} PRIVATE cxx_std_11)
 
 set_target_properties(${ProjectName}
     PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${ProjectRoot}" )
+
+set_target_properties(${ProjectName}
+    PROPERTIES XCODE_GENERATE_SCHEME TRUE
+    XCODE_SCHEME_WORKING_DIRECTORY "${ProjectRoot}" )
