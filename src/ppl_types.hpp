@@ -58,7 +58,82 @@ enum ppl_type {
     PPL_TYPE_ENUM,
     PPL_TYPE_ENUM_FLAG,
     PPL_TYPE_NAMESPACE,
+    PPL_TYPE_SPAN
 };
+
+static ppl_type KeywordToPplType(const char *str)
+{
+    assert (str);
+    char fc = str[0];
+    switch(fc)
+    {
+        case 'f':
+        {
+            if (strcmp(str, "float") == 0 || strcmp(str, "f32") == 0)
+            {
+                return PPL_TYPE_FLOAT;
+            }
+            return PPL_TYPE_DOUBLE;
+        } break;
+        case 'd':
+        return PPL_TYPE_DOUBLE;
+        case 'b':
+        return PPL_TYPE_BOOL;
+        case 'v':
+        return PPL_TYPE_VOID;
+        case 'u':
+        {
+            char sc = str[1];
+            switch(sc)
+            {
+                case '8':
+                return PPL_TYPE_U8;
+                case '1':
+                return PPL_TYPE_U16;
+                case '3':
+                return PPL_TYPE_U32;
+            }
+            return PPL_TYPE_U64;
+        } break;
+        case 's':
+        {
+            char sc = str[1];
+            switch(sc)
+            {
+                case '8':
+                return PPL_TYPE_S8;
+                case '1':
+                return PPL_TYPE_S16;
+                case '3':
+                return PPL_TYPE_S32;
+            }
+            return PPL_TYPE_S64;
+        } break;
+        case 'i':
+        return PPL_TYPE_S64;
+        case 'c':
+        return PPL_TYPE_CHAR;
+        case 'A':
+        return PPL_TYPE_ANY;
+        case 'T':
+        {
+            if (strcmp(str, "TypeInfo") == 0)
+                return PPL_TYPE_TYPE_INFO;
+            if (strcmp(str, "TypeInfoMember") == 0)
+                return PPL_TYPE_TYPE_INFO_MEMBER;
+            return PPL_TYPE_TYPE;
+        } break;
+        case 'e':
+        {
+            if (strcmp(str, "enum_flag") == 0)
+                return PPL_TYPE_ENUM_FLAG;
+            return PPL_TYPE_ENUM;
+        } break;
+        case 'n':
+        return PPL_TYPE_NAMESPACE;
+    }
+    return PPL_TYPE_UNKNOWN;
+}
 
 static const char * PplTypeToString(ppl_type type)
 {
@@ -105,6 +180,8 @@ static const char * PplTypeToString(ppl_type type)
             return "PPL_TYPE_ENUM_FLAG";
         case PPL_TYPE_NAMESPACE:
             return "PPL_TYPE_NAMESPACE";
+        case PPL_TYPE_SPAN:
+            return "PPL_TYPE_SPAN";
     }
 }
 
