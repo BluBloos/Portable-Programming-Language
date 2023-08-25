@@ -31,7 +31,7 @@ namespace nc {
 
             // TODO: do we need an error function?
             int (*errfunc)(const char *epath, int eerrno) = NULL;
-            if (glob(search, 0, errFunc, gb) == 0)
+            if (glob(search, 0, errfunc, gb) == 0)
             {
                 return fileSearchGetNext(fSearch, findData);
             }

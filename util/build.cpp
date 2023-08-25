@@ -57,7 +57,7 @@ HOW PPL PROGRAMS ARE BUILT */
 // NOTE(Noah): ppl.h on Windows is the parallel platforms library....I HATE EVERYTHING.
 #include <ppl_core.h>
 void ptest_Lexer(char *inFilePath, int &errors);
-void ptest_Grammer(char *inFilePath, int &errors);
+void ptest_Grammar(char *inFilePath, int &errors);
 void ptest_Codegen(char *inFilePath, int &errors);
 void ptest_Preparser(char *inFilePath, int &errors);
 void ptest_wax64(char *inFilePath, int &errors);
@@ -160,10 +160,25 @@ void PrintHelp() {
     printf("lexer_all       (lall)            - Test lexer on all units in tests/preparse/.\n");
     printf("preparser       (p)               - Test preparser on single unit.\n");
     printf("preparser_all   (pall)            - Test preparser on all units in tests/preparse/.\n");
-    printf("regex_gen       (re)              - Test LoadGrammer() for building custom regex trees.\n");
+    printf("regex_gen       (re)              - Test LoadGrammar() for building custom regex trees.\n");
     printf("grammer         (g)               - Test AST generation for a single GNODE on a single unit.\n");
     printf("grammer_all     (gall)            - Test AST generation for all units in tests/grammer/.\n");
     printf("codegen         (c)               - Test Codegen for a single file.\n");
+}
+
+// TODO: this idea is actually something that should be impl in nc::pal.
+// but it should only be so if we can do this at compile-time.
+#include <algorithm>
+std::string ModifyPathForPlatform(const char *filePath)
+{
+    // I purposefully did the most stupid thing here.
+    std::string result = std::string(filePath);
+
+#if defined(_MSC_VER)
+    std::replace(result.begin(), result.end(), '/', '\\' );
+#endif
+
+    return result;
 }
 
 // Does command then returns the result code.
@@ -323,7 +338,7 @@ int DoCommand(const char *l, const char *l2) {
 
     } else if (0 == strcmp(l , "c") ||  0 == strcmp(l, "codegen")) {
 
-        LoadGrammer();
+        LoadGrammar();
 
         return RunPtestFromInFile(
             ptest_Codegen,
@@ -373,7 +388,9 @@ void ptest_Codegen(char *inFilePath, int& errors)
         errors += 1;
     } else {
         TokenContainer tokensContainer;
-        if (Lex(inFile, tokensContainer)) {
+        RawFileReader tokenBirthplace;
+        ppl_error_context bestErr = {};
+        if (Lex(inFile, tokensContainer, &tokenBirthplace, &bestErr)) {
             if (VERBOSE) {
                 tokensContainer.Print();
             }
@@ -384,14 +401,14 @@ void ptest_Codegen(char *inFilePath, int& errors)
 
             const char *outFilePath = "program.out";
 
-            const char *grammerDefName = "program";
+            const char *grammarDefName = "program";
             
             struct tree_node tree = {};
             
-            bool r = ParseTokensWithGrammer(
+            bool r = ParseTokensWithGrammar(
                 tokensContainer, 
-                GRAMMER.GetDef(grammerDefName),
-                tree);
+                GRAMMAR.GetDef(grammarDefName),
+                &tree, bestErr);
             
             //bool r = false;
 
@@ -404,7 +421,34 @@ void ptest_Codegen(char *inFilePath, int& errors)
                 DeallocTree(tree);
             }
             else {
-                LOGGER.Error("ParseTokensWithGrammer failed.");
+                // emit the best error that we got back.
+                {
+                    uint32_t c = bestErr.c;
+                    uint32_t line = bestErr.line;
+
+                    // TODO: The below is likely to change when #import actually works.
+                    // maybe it comes from the error because the source code that errors
+                    // is in diff file.
+                    const char *file = LOGGER.logContext.currFile;
+
+                    const char *code = 
+                        bestErr.codeContext ? bestErr.codeContext : "<unknown>"; // TODO.
+
+                    LOGGER.EmitUserError(
+                        file, line, c, code,
+                        bestErr.errMsg ? bestErr.errMsg : "<unknown>" 
+                    );
+
+                    if (bestErr.kind == PPL_ERROR_KIND_PARSER)
+                    {
+                        LOGGER.Min("The almost-parsed AST:\n");
+                        LOGGER.Min("%s\n",bestErr.almostParsedTree);
+                    }
+
+                    //return false;
+                }
+
+                LOGGER.Error("ParseTokensWithGrammar failed.");
                 errors += 1;
             } 
 
@@ -416,7 +460,7 @@ void ptest_Codegen(char *inFilePath, int& errors)
     fclose(inFile);
 }
 
-void ptest_Grammer(char *inFilePath, int&errors) {
+void ptest_Grammar(char *inFilePath, int&errors) {
     FILE *inFile = fopen(inFilePath, "r");
     LOGGER.Log("Testing grammar for: %s", inFilePath);
     if (inFile == NULL) {
@@ -631,7 +675,10 @@ int RunPtestFromInFile(void (*ptest)(char *inFilePath, int &errors), const char 
     return (errors > 0);
 }
 
+#if defined(_MSC_VER)
 #include <tchar.h>
+#endif
+
 #include <iostream>
 #include <string>
 
