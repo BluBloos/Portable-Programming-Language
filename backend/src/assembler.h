@@ -688,6 +688,8 @@ enum pasm_type SillyStringGetPasmType(char *typeStr) {
         return PASM_FLOAT64;
     } else if (SillyStringStartsWith(typeStr, "[]int64")) {
         return PASM_INT64_VARIADIC;
+    } else if (SillyStringStartsWith(typeStr, "void")) {
+        return PASM_VOID;
     }
     return PASM_VOID;
 }

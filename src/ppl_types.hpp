@@ -53,12 +53,14 @@ enum ppl_type {
     PPL_TYPE_ANY,
     PPL_TYPE_TYPE,
     PPL_TYPE_TYPE_INFO,
+    PPL_TYPE_STRUCT = PPL_TYPE_TYPE_INFO,
     PPL_TYPE_TYPE_INFO_MEMBER,
-    PPL_TYPE_STRUCT,
     PPL_TYPE_ENUM,
     PPL_TYPE_ENUM_FLAG,
     PPL_TYPE_NAMESPACE,
-    PPL_TYPE_SPAN
+    PPL_TYPE_SPAN,
+    PPL_TYPE_FUNC,
+    PPL_TYPE_FUNC_SIGNATURE
 };
 
 static ppl_type KeywordToPplType(const char *str)
@@ -172,8 +174,6 @@ static const char * PplTypeToString(ppl_type type)
             return "PPL_TYPE_TYPE_INFO";
         case PPL_TYPE_TYPE_INFO_MEMBER:
             return "PPL_TYPE_TYPE_INFO_MEMBER";
-        case PPL_TYPE_STRUCT:
-            return "PPL_TYPE_STRUCT";
         case PPL_TYPE_ENUM:
             return "PPL_TYPE_ENUM";
         case PPL_TYPE_ENUM_FLAG:
@@ -182,6 +182,43 @@ static const char * PplTypeToString(ppl_type type)
             return "PPL_TYPE_NAMESPACE";
         case PPL_TYPE_SPAN:
             return "PPL_TYPE_SPAN";
+        case PPL_TYPE_FUNC:
+            return "PPL_TYPE_FUNC";
+        case PPL_TYPE_FUNC_SIGNATURE:
+            return "PPL_TYPE_FUNC_SIGNATURE";
+    }
+}
+
+const char *PplTypeToPasmHumanReadable(ppl_type type)
+{
+    switch (type) {
+        case PPL_TYPE_F32:
+            return "float32";
+        case PPL_TYPE_F64:
+            return "float64";
+        case PPL_TYPE_U8:
+            return "uint8";
+        case PPL_TYPE_U16:
+            return "uint16";
+        case PPL_TYPE_U32:
+            return "uint32";
+        case PPL_TYPE_U64:
+            return "uint64";
+        case PPL_TYPE_S8:
+            return "int8";
+        case PPL_TYPE_S16:
+            return "int16";
+        case PPL_TYPE_S32:
+            return "int32";
+        case PPL_TYPE_S64:
+            return "int64";
+        case PPL_TYPE_VOID:
+            return "void";
+        
+        // TODO: this is gonna force a PASM failure. prob want to do something more
+        // intelligent here.
+        default:
+            return "<unknown>";
     }
 }
 
