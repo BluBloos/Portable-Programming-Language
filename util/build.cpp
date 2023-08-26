@@ -416,7 +416,11 @@ void ptest_Codegen(char *inFilePath, int& errors)
                 
                 if (VERBOSE) PrintTree(tree, 0);
 
+                CG_Create(); // init the codegen system.
+                
                 RunCodegen(tree, outFilePath);
+                
+                CG_Release(); // shutdown the codegen system.
                 
                 DeallocTree(tree);
             }

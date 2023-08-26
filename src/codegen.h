@@ -34,6 +34,8 @@ struct CG_StringRef
     bool bStrongRef;
 };
 
+// TODO: this seems kind of similar to some of the structures that are generated in the earlier
+// codegen passes. we could probably make these the same thing.
 struct CG_Value
 {
     ppl_type valueKind = PPL_TYPE_UNKNOWN;
@@ -42,6 +44,80 @@ struct CG_Value
         uint64_t v_Uint64;
     };
 };
+
+// TODO: write our own hash map stuff because we want to learn how the
+// hashing algorithms work.
+// there's also other parts of this codebase where we use the hash maps.
+// use this struct there.
+//
+// we could make this version a specialization on a more generic hash map.
+//
+template <typename T_ValueKind>
+struct CG_HashMapWithStringKey
+{
+    struct CG_HashMapWithStringKey_internal
+    {
+        char *key;
+        T_ValueKind value;
+    };
+    
+    // iterator.
+    struct CG_HashMapWithStringKey_ListType
+    {
+        
+    };
+    
+    // return TRUE if hash map contains item at key, FALSE otherwise.
+    bool get(const char *key, T_ValueKind *dst)
+    {
+        size_t i = stbds_shgeti(table_internal, key);
+        bool bResult = i != -1;
+        if (bResult)
+        {
+            *dst = table_internal[i].value;
+        }
+        return bResult;
+    }
+    
+    void put(const char *str, T_ValueKind value)
+    {
+        stbds_shput(table_internal, str, value);
+    }
+    
+    CG_HashMapWithStringKey_internal *table_internal = nullptr;
+    
+    ~CG_HashMapWithStringKey()
+    {
+        stbds_shfree(table_internal);
+    }
+    
+};
+
+// =====================================================
+
+struct CG_Globals
+{
+    CG_HashMapWithStringKey<CG_Value> metaVars;
+};
+
+static CG_Globals s_cgGlobals;
+
+CG_Globals *CG_Glob()
+{
+    return &s_cgGlobals;
+}
+
+void CG_Create()
+{
+    s_cgGlobals = {};
+}
+
+void CG_Release()
+{
+    CG_Glob()->metaVars.~CG_HashMapWithStringKey();
+}
+
+// =====================================================
 
 uint64_t ValueExtract_Uint64(CG_Value val)
 {
@@ -53,13 +129,6 @@ ppl_type ValueExtract_PplType(CG_Value val)
     // TODO:
     return val.v_PplType;
 }
-
-struct CG_CompileTimeVarRecord
-{
-    CG_StringRef name;
-    ppl_type type = PPL_TYPE_UNKNOWN;
-    CG_Value val;
-};
 
 // Replace SpecialFilehandle with PFileWriter
 
@@ -310,7 +379,7 @@ static CG_Value ConstantExpressionCompute(struct tree_node *ast)
     return val;
 }
 
-static void GenerateCompileTimeVarDecl(struct tree_node *ast, PFileWriter &fileWriter)
+static void RecordAndGenerateCompileTimeVarDecl(struct tree_node *ast, PFileWriter &fileWriter)
 {
     // ast node is
     // "(route):"
@@ -355,10 +424,14 @@ static void GenerateCompileTimeVarDecl(struct tree_node *ast, PFileWriter &fileW
     {
         type = val.valueKind;
     }
-
-    fileWriter.write("label_");
+    
+    // NOTE: record the variable.
+    CG_Glob()->metaVars.put( varName->metadata.str, val );
+    
+    // NOTE: emit a comment if the switch below doesn't emit the var, just
+    // so that we don't get lots of empty space.
+    fileWriter.write("; recoding ");
     fileWriter.write((char*)varName->metadata.str);
-    fileWriter.write(":\n");
 
     // TODO: implement other types.
     switch(type)
@@ -373,6 +446,10 @@ static void GenerateCompileTimeVarDecl(struct tree_node *ast, PFileWriter &fileW
         case PPL_TYPE_S32:
         case PPL_TYPE_S64:
         {
+            fileWriter.write("\nlabel_");
+            fileWriter.write((char*)varName->metadata.str);
+            fileWriter.write(":\n");
+
             // TODO: since the write func does not modify the string that it takes
             // in, we can make it take a const char *.
             fileWriter.write(".db ");
@@ -387,16 +464,15 @@ static void GenerateCompileTimeVarDecl(struct tree_node *ast, PFileWriter &fileW
         }
         break;
     }
-
-
-//    fileWriter.write( (char*)PplTypeToString(type) );
 }
 
 // NOTE: the goal of generate program should be to execute PASM assembly instructions.
-// we'll then run those through our assembler to generate the actual .EXE 
+// we'll then run those through our assembler to generate the actual .EXE.
 void GenerateProgram(struct tree_node ast, PFileWriter &fileWriter)
 {
     // ast node is "((compile_time_var_decl);?)*"
+    
+    fileWriter.write(".section data\n");
 
     // TODO: maybe we want to use the iterator pattern. that might make things nice.
     for ( uint32 i = 0; i < ast.childrenCount; i++)
@@ -406,10 +482,29 @@ void GenerateProgram(struct tree_node ast, PFileWriter &fileWriter)
         {
             // TODO: please almighty god, let's get rid of these strings.
             if (0 == strcmp(child.metadata.str, "compile_time_var_decl")) {
-                GenerateCompileTimeVarDecl(&child, fileWriter);
+                
+                // NOTE: Record is going to store the existence of the compile-time variables
+                // in a hash map for later re-use. we can access these via their identifiers.
+                //
+                // the Generate step will emit the ROM part of the decl. any code will not be emit.
+                RecordAndGenerateCompileTimeVarDecl(&child, fileWriter);
                 fileWriter.write("\n");
             }
         }
+    }
+    
+    fileWriter.write("\n.section code\n");
+    
+    //for ( auto it = CG_Glob()->metaVars.begin(); it != CG_Glob()->metaVars.end(); it++)
+    {
+        // CG_Value val = *it;
+        
+        // if (val.valueKind == PPL_TYPE_FUNC)
+        {
+            // CG_Function func = ValueExtract_CgFunction(val);
+            
+        }
+        
     }
 }
 
