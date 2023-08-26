@@ -217,6 +217,14 @@ CG_Globals *CG_Glob()
 void CG_Create()
 {
     s_cgGlobals = {};
+    
+    // TODO: there's a fundamental issue where we push to this scratch while also
+    // storing refs to the scratch somewhere else. if there is a realloc, those refs
+    // go stale.
+    //
+    // for now the workaround is to simply alloc enough space to ensure that there is no
+    // realloc.
+    StretchyBuffer_Grow(s_cgGlobals.funcSignatureRegistryScratch, 100);
 }
 
 void CG_Release()
@@ -310,6 +318,8 @@ static CG_Value TypeExpressionCompute(tree_node *ast)
                 "\\)"
                 "((op,->)(type))?"
              */
+
+            assert(child->childrenCount >= 1);
             
             // TODO: decompose the args.
             
@@ -317,7 +327,7 @@ static CG_Value TypeExpressionCompute(tree_node *ast)
             
             ppl_type returnType;
             
-            tree_node *lastNode = &ast->children[ast->childrenCount - 1];
+            tree_node *lastNode = &child->children[child->childrenCount - 1];
             if ( strcmp(lastNode->metadata.str, "type") == 0 )
             {
                 CG_Value val = TypeExpressionCompute(lastNode);
@@ -328,7 +338,7 @@ static CG_Value TypeExpressionCompute(tree_node *ast)
             {
                 returnType = PPL_TYPE_VOID;
             }
-            
+  
             // TODO: we want to only add the signature to the scratch space in the case that it doesn't already exist.
             // TODO: looks like we might want a ValuePut_* or something. just to be symmetric with ValueExtract*
             CG_FunctionSignature newSig = {};
@@ -774,7 +784,7 @@ void GenerateProgram(struct tree_node ast, PFileWriter &fileWriter)
             const char *pasmStr = PplTypeToPasmHumanReadable(sigRef->returnType);
 
             // TODO: decompose the args.
-            const char *s = SillyStringFmt(".def %s %s()", pasmStr, tableElem.key);
+            const char *s = SillyStringFmt(".def %s %s()\n", pasmStr, tableElem.key);
             fileWriter.write((char*)s);
         }
     }

@@ -197,6 +197,7 @@ const char *PplTypeToPasmHumanReadable(ppl_type type)
         case PPL_TYPE_F64:
             return "float64";
         case PPL_TYPE_U8:
+        case PPL_TYPE_BOOL:
             return "uint8";
         case PPL_TYPE_U16:
             return "uint16";
