@@ -141,29 +141,46 @@ char *GetInFile() {
     return inFile;
 }
 
+void PrintAbout()
+{
+    printf("\n");
+    // TODO: re-enable the `build` command. for now, the compiler will actually be via the build.exe;
+    // this is laziness at its best!
+
+    printf("Program name:            Portable Programming Language (PPL) Toolsuite\n");
+    printf("Version:                 v0.1.0\n");
+    printf("How to read help menu:   <fullCmdName> (<shortCmdName>)   - <desc>\n");
+}
+
 void PrintHelp() {
     printf("\n");
-    printf(ColorHighlight "=== Common Commands ===\n" ColorNormal);
-    printf("build           (b)               - Build all cli tools.\n");
+    printf(ColorHighlight "=== Common Commands ===" ColorNormal "\n");
+    // TODO: re-enable the `build` command. for now, the compiler will actually be via the build.exe;
+    // this is laziness at its best!
+    //printf("build           (b)               - Build all cli tools.\n");
+    printf("about           (a)               - Print additional info about this program.\n");
+    printf("help            (h)               - Print this help menu.\n");
     printf("exit                              - Exit the build system.\n");
     printf("\n");
-    printf(ColorHighlight "===  PASM  Commands ===\n" ColorNormal);
+    printf(ColorHighlight "===  PASM  Commands ===" ColorNormal "\n");
     // TODO(Noah): Better naming scheme for macOS please...
     printf("pasm_x86_64     (ax64)            - pasm integration test of a single unit for x86_64 target (macOS).\n");
     printf("pasm_x86_64_all (ax64all)         - pasm integration test of all units for x86_64 target (macOS).\n");
     printf("win_x86_64      (wax64)           - pasm integration test of of a single unit for x86_64 target (Windows).\n");
     printf("win_x86_64_all  (wax64all)        - pasm integration test of all units for x86_64 target (Windows).\n");
-    printf("asmparse        (ap)              - Test pplasm parsing capability.\n");
+    printf("asmparse        (ap)              - Test pasm parsing capability.\n");
     printf("\n");
-    printf(ColorHighlight "===  PPL   Commands ===\n" ColorNormal);
+    printf(ColorHighlight "===  PPL   Commands ===" ColorNormal "\n");
     printf("lexer           (l)               - Test lexer on single unit.\n");
     printf("lexer_all       (lall)            - Test lexer on all units in tests/preparse/.\n");
     printf("preparser       (p)               - Test preparser on single unit.\n");
     printf("preparser_all   (pall)            - Test preparser on all units in tests/preparse/.\n");
     printf("regex_gen       (re)              - Test LoadGrammar() for building custom regex trees.\n");
-    printf("grammer         (g)               - Test AST generation for a single GNODE on a single unit.\n");
+    printf("grammer         (g)               - Test AST generation for a single unit.\n");
     printf("grammer_all     (gall)            - Test AST generation for all units in tests/grammer/.\n");
+    printf("\n");
     printf("codegen         (c)               - Test Codegen for a single file.\n");
+    printf("compile         (cl)              - Compile a single .PPL file to the target's executable format.\n");
 }
 
 // TODO: this idea is actually something that should be impl in nc::pal.
@@ -367,14 +384,18 @@ int DoCommand(const char *l, const char *l2) {
         
         exit(0);
 
+    } else if (0 == strcmp(l, "a") || 0 == strcmp(l, "about")) 
+    {
+        PrintAbout();
+        return 0;
+
     } else if (0 == strcmp(l, "h") || 0 == strcmp(l, "help")) {
         
         PrintHelp();
         return 0;
-
     }
 
-    printf("Unrecognised command '%s'. Enter 'help' to get a list of commands.\n", l);
+    printf("Unrecognized command '%s'. Enter 'help' to get a list of commands.\n", l);
     return 1;
 }
 
