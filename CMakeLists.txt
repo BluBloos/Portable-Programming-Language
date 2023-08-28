@@ -1,4 +1,5 @@
-# This file exists to support XCode backend for debugging compiler on macOS.
+# This file exists to support using XCode for debugging compiler on macOS.
+# I suppose it could also be for using Visual Studio on Windows.
 
 cmake_minimum_required(VERSION 3.21)
 
@@ -21,3 +22,10 @@ target_include_directories(
     "${ProjectRoot}/src" "${ProjectRoot}/util" "${ProjectRoot}/src" "${ProjectRoot}/backend/src" "${ProjectRoot}/vendor")
 
 target_compile_features(${ProjectName} PRIVATE cxx_std_11)
+
+set_target_properties(${ProjectName}
+    PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${ProjectRoot}" )
+
+set_target_properties(${ProjectName}
+    PROPERTIES XCODE_GENERATE_SCHEME TRUE
+    XCODE_SCHEME_WORKING_DIRECTORY "${ProjectRoot}" )

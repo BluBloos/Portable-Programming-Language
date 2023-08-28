@@ -10,6 +10,9 @@
     negative numbers in the source file).
 */
 
+// TODO: it would be really nice if the start of the lines could have \t.
+// that way we can have PASM files be more human-readable.
+
 #ifndef PASSEMBLER_H
 #define PASSEMBLER_H
 
@@ -30,7 +33,7 @@ enum pasm_line_type {
     PASM_LINE_RET,
     // TODO(Noah): For instructions such as MOV, SUB, etc, 
     // we might want to do some semantic checking. Because as of
-    // right now, our parsing supports for invalid assembly grammers.
+    // right now, our parsing supports for invalid assembly grammars.
     PASM_LINE_MOV,
     PASM_LINE_SUB,
     PASM_LINE_ADD,
@@ -524,7 +527,7 @@ int pasm_main(int argc, char **argv) {
     } else {
 
         char *inFilePath = argv[1];
-        char *targetPlatform = argv[2];
+        // char *targetPlatform = argv[2]; // TODO: use this.
 
         FILE *inFile = fopen(inFilePath, "r");
 
@@ -688,6 +691,8 @@ enum pasm_type SillyStringGetPasmType(char *typeStr) {
         return PASM_FLOAT64;
     } else if (SillyStringStartsWith(typeStr, "[]int64")) {
         return PASM_INT64_VARIADIC;
+    } else if (SillyStringStartsWith(typeStr, "void")) {
+        return PASM_VOID;
     }
     return PASM_VOID;
 }

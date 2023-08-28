@@ -10,6 +10,8 @@
 #define PLATFORM_UNIX
 #endif
 
+#define PPL_TODO assert(false);
+
 #include <nc_defer.h>
 
 /* PROJECT DEPENDENCIES */
@@ -19,9 +21,20 @@
 #include <cstring>
 // #include <time.h>
 #include <stdarg.h>
+
+#if !defined(_MSC_VER)
 #include <unistd.h>
-// #include <x86intrin.h>
 #include <dirent.h>
+#else
+
+// workaround because we do not have unistd.h
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+
+#endif
+
+// #include <x86intrin.h>
+
 #define STB_DS_IMPLEMENTATION
 #define STBDS_NO_SHORT_NAMES
 #include <stb_ds.h>
@@ -29,6 +42,7 @@
 #include <unordered_map>
 #include <math.h>
 #ifdef PLATFORM_WINDOWS
+#define NOMINMAX
 #include <Windows.h>
 #include <WinCon.h>
 #endif
@@ -62,15 +76,17 @@ Logger LOGGER;
 ConstMemoryArena MEMORY_ARENA(1024 * 1024 * 60); // 60 MB.
 // Compiler parameters.
 enum target_platform PLATFORM = POSIX;
-bool VERBOSE = true;
+
+bool VERBOSE = true; // TODO: hook with build system (e.g. CMake).
+
 /* PROGRAM GLOBALS */
 
 /* SILLY THINGS */
 char __silly_buff[256];
 
-// Uses printf syntax to format a string, but it returns as a paramter the pointer to the null-terminated
+// Uses printf syntax to format a string, but it returns as a parameter the pointer to the null-terminated
 // string. Be warned that every call to this function destroys the result of the last call to this function.
-char *SillyStringFmt(char *fmt, ...) {
+char *SillyStringFmt(const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
     vsprintf(__silly_buff, fmt, args);
@@ -130,6 +146,8 @@ unsigned int SillyStringToUINT(char *str)
 	return result;
 }
 
+// TODO: there is pretty much a duplicate function in lexer.h
+//
 // Return true if the string can be represented as a number,
 // returns false otherwise. decimalFlag is set to true if the 
 // represented number is a decimal as opposed to an integer.
@@ -139,7 +157,7 @@ bool SillyStringIsNumber(char *str, bool &decimalFlag) {
     unsigned int strLength = SillyStringLength(str);
     if (str[0] == '.' || str[strLength - 1] == '.')
         return false;
-    for (int i = 0; i < strLength; i++) {
+    for (unsigned int i = 0; i < strLength; i++) {
         char c = str[i];
         switch(c) {
             case '0':
@@ -231,7 +249,6 @@ static void StretchyBuffer_Growf(void **arr, int increment, int itemsize)
             In the event of a failure, errno is set to indicate the error.
         */
 
-        size_t nVal = 0;    
         std::string str = "";
 
         char c = fgetc(streamIn);    
@@ -272,7 +289,7 @@ public:
     void DecreaseIndentation(unsigned int amount) { indentation -= amount; }
     // TODO(Noah): Make this take in a char *fmt string and ... variadic arguments.
     void write(char *str) {
-        int n = 0 ;
+        size_t n = 0 ;
         std::string currentWrite = "";        
         while (n < strlen(str)) {
             char c = str[n];
@@ -284,7 +301,7 @@ public:
             } else {
                 if (freshNewline) {
                     std::string sillyWhitespace = ""; 
-                    int i = 0;
+                    unsigned int i = 0;
                     while(i++ < indentation) {sillyWhitespace += ' ';}
                     fprintf(handle, "%s", sillyWhitespace.c_str());
                 }
@@ -299,19 +316,29 @@ public:
     }   
 };
 
+struct ppl_str_view
+{
+    char *str;
+    uint32_t len;
+};
+
+// TODO: Make this file (ppl_core.h) a *.hpp
+
 /* OTHER COMPILATION UNITS */
+#include <ppl_error.hpp>
 #include <lexer.h>
 #ifdef PLATFORM_WINDOWS
 #include <win32_timing.h>
 #else
 #include <timing.h>
 #endif
-#include <grammer.h>
+#include <grammar.h>
 #include <syntax.h>
 #include <tree.h>
 // backend things :P
 #include <assembler.h>
 #include <x86_64.h>
+#include <codegen.h>
 /* OTHER COMPILATION UNITS */
 
 #endif

@@ -1,30 +1,18 @@
-#ifndef LEXER_H
+#ifndef LEXER_H // TODO: make this file a .hpp
 #define LEXER_H
+
 typedef unsigned int UNICODE_CPOINT;
 #define CP_EOF 0
 
-char * TYPES[] = {
+#include "ppl_types.hpp"
 
-    // floating point types.
-    "float", "double",
-    "f32", "f64",
+void GenerateCodeContextFromFilePos(ppl_error_context &ctx, uint32_t line, uint32_t c, char *buf, uint32_t bufLen);
 
-    "bool", "void",
-
-    // integer types.
-    "u8", "u16", "u32", "u64",
-    "s8", "s16", "s32", "s64",
-
-    // alias types that we carry over from C because we are nice.
-    "int", "char", "short",
-
-    // cool types.
-    "Any", "Type", "TypeInfo", "TypeInfoMember"
-};
+// keywords that map to values such as:
+// "true", "false", "null",
+// are mapped to their own TOKEN kind.
 
 char *KEYWORDS[] = {
-
-    "struct", "enum", "enum_flag",
 
     "continue", "break", "return",
 
@@ -32,12 +20,9 @@ char *KEYWORDS[] = {
 
     "switch", "case", "default", "fall",
 
-    "true", "false", "null",
-
     "defer",
 
-    // TODO: maybe just shorten this to like space?
-    "namespace",
+    "fn", // function types.
 
     // qualifiers
     "static",
@@ -62,19 +47,17 @@ char *KEYWORDS[] = {
 
 };
 
-char *P_DIRECTIVES[] = {
-    "#include", "#import"
-};
-
-char *OPS = "+-%*!<>=|&?[].~@^";
+char *OPS = "+-%*!<>=|&?[].~@^,";
 
 char *COMPOUND_OPS[] = {
     "&&", "||", ">=", "<=", "==", "!=", "->",
-    "+=", "-=", "*=", "/=", "%=", "&=", "|=", "++", "--"
+    "+=", "-=", "*=", "/=", "%=", "&=", "|=", "++", "--",
+    "^=", "<<=", ">>=", "<<", ">>", "..=", "..<"
 };
 
-// TODO: make `,` an operator. maybe ':' should be op as well.
-char *TOKEN_PARTS = "{}(),:";
+// TODO: maybe there should be a compound part kind of like `->`.
+// because `->` isn't really an operator.
+char *TOKEN_PARTS = "{}():";
 
 char *ENDLINE_CHAR = ";";
 
@@ -87,19 +70,83 @@ enum lexer_state {
 
 // Implements a safe way to pseudo-index into a file.
 class RawFileReader {
-    public:
+
+public:
+
     int lastChar; // What was last returned by fgetc.
     FILE *internalFile;
     int fileByteCount;
-    UNICODE_CPOINT *internalBuffer;
+
+    // TODO: deal with this.
+    UNICODE_CPOINT *internalBuffer = nullptr;
+    
+    const char *theStupidFile = nullptr; // TODO:
+
     unsigned int internalBufferSize;
     unsigned int buffCharCount;
+
+    uint32_t *lineInfos = nullptr; // stretchy buffer.
+
+    void AddLineInfo(uint32_t lineInfo)
+    {
+        StretchyBufferPush(lineInfos, lineInfo);
+    }
+
+    ppl_str_view ReadLine(uint32_t line)
+    {
+        // NOTE: we are using line+1 here because we can expect that there is one extra
+        // element in lineInfos so that the length of the last line can be retrieved.
+
+        uint32_t zeroBasedIdx = line-1;
+
+        if ( (line == 0) || ( (zeroBasedIdx+1) >= StretchyBufferCount(lineInfos))) return {};
+
+        uint32_t beginIdx = lineInfos[zeroBasedIdx];
+        uint32_t endIdx   = lineInfos[zeroBasedIdx+1];
+        ppl_str_view view = {};
+        view.str = (char*)&(theStupidFile[beginIdx]);
+        view.len = &theStupidFile[endIdx] - &theStupidFile[beginIdx];
+        return view;
+    }
+
+    // TODO: this is a hack.
+    RawFileReader()
+    {
+
+    }
+
+    RawFileReader & operator=( RawFileReader &&other )
+    {
+        lastChar = other.lastChar;
+        fileByteCount = other.fileByteCount;
+        internalFile = other.internalFile; // we don't own the file.
+
+        std::swap(internalBuffer, other.internalBuffer);
+        std::swap(theStupidFile, other.theStupidFile);
+        std::swap(lineInfos, other.lineInfos);
+
+        internalBufferSize = other.internalBufferSize;
+        buffCharCount = other.buffCharCount;
+
+        return *this;
+    }
+
+    RawFileReader &operator=(const RawFileReader &other) = delete;
+
     RawFileReader(FILE *file) : internalFile(file) {
         if (internalFile != NULL) {
+            // get the size of the file.
             int r = fseek(internalFile, 0L, SEEK_END); Assert(r == 0);
             fileByteCount = ftell(internalFile); // ftell is the number of bytes from the beginning of the file.
             Assert(fileByteCount != -1L);
-            r = fseek(internalFile, 0L, SEEK_SET); Assert(r == 0);
+            r = fseek(internalFile, 0L, SEEK_SET); Assert(r == 0); // go back to beginning.
+
+            // TODO: I did this for sanity purposes but we really should think about UTF-8 some more.
+            theStupidFile = (const char *)malloc(sizeof(char) * fileByteCount);
+            Assert(theStupidFile);
+            fread((void*)theStupidFile, sizeof(char), fileByteCount, internalFile);
+            r = fseek(internalFile, 0L, SEEK_SET); Assert(r == 0); // go back to beginning.
+
             // TODO(Noah): This is actually HIGHLY inefficient because we are multiplying the size of files by 4 when
             // representing in internal memory...
             internalBufferSize = fileByteCount;
@@ -108,11 +155,16 @@ class RawFileReader {
             buffCharCount = 0;
             lastChar = fgetc(file);
         }
+        StretchyBufferInit(lineInfos);
     }
     ~RawFileReader() {
         // NOTE(Noah): I do think destructors and OOP are a nice way for me to do memory management :)
         if (internalBuffer != NULL)
             free(internalBuffer);
+        if (lineInfos!=nullptr)
+            StretchyBufferFree(lineInfos);
+        if (theStupidFile!=nullptr)
+           free((void*)theStupidFile);
     }
     UNICODE_CPOINT _fgetucp(FILE *file) {
         // like fgetc, but returns a unicode code point instead.
@@ -160,7 +212,7 @@ class RawFileReader {
         return ch;
         */
     }
-    UNICODE_CPOINT operator[](int index) {
+    UNICODE_CPOINT operator[](unsigned int index) {
         if (index < 0 ) return CP_EOF;
         // Check if index is not accounted for by internalBuffer
         if ( !(index < buffCharCount) ) {
@@ -181,14 +233,18 @@ enum token_type {
     TOKEN_UNDEFINED,
     TOKEN_QUOTE,
     TOKEN_INTEGER_LITERAL,
-    TOKEN_DECIMAL_LITERAL,
+    TOKEN_UINT_LITERAL,
+    TOKEN_DOUBLE_LITERAL,
+    TOKEN_FLOAT_LITERAL,
     TOKEN_CHARACTER_LITERAL,
+    TOKEN_TRUE_LITERAL,
+    TOKEN_FALSE_LITERAL,
+    TOKEN_NULL_LITERAL,
     TOKEN_ENDL,
     TOKEN_OP,
     TOKEN_COP, // compouned op.
     TOKEN_PART,
     TOKEN_KEYWORD,
-    TOKEN_PDIRECTIVE, // preprocessor directives.
     TOKEN_SYMBOL
 };
 
@@ -206,93 +262,135 @@ struct token {
     };
     // TODO(Noah): Add support for programs with more than 4 billion lines.
     uint32 line; 
+    uint32 beginCol;
 };
+
+
 struct token Token() {
-    struct token t; t.type = TOKEN_UNDEFINED; t.line = 0; t.str = NULL;
-    return t;
-}
-struct token Token(enum token_type type, std::string str, unsigned int line) {
-    struct token t;
-    t.str = MEMORY_ARENA.StdStringAlloc(str);
-    t.type = type; t.line = line;
-    return t;
-}
-struct token Token(enum token_type type, char *str, unsigned int line ) {
-    struct token t;
-    t.str = MEMORY_ARENA.StringAlloc(str);
-    t.type = type; t.line = line;
-    return t;
-}
-struct token Token(enum token_type type, UNICODE_CPOINT c, unsigned int line) {
-    struct token t; t.c = c; t.type = type; t.line = line;
-    return t;
-}
-struct token Token(enum token_type type, char c, unsigned int line) {
-    return Token(type, (UNICODE_CPOINT)c, line); 
-}
-struct token Token(enum token_type type, unsigned int line) {
-    struct token t; t.num = 0; t.type = type; t.line = line;
-    return t;
-}
-struct token Token(enum token_type type, double dnum, unsigned int line) {
-    struct token t; t.dnum = dnum; t.type = type; t.line = line;
-    return t;
-}
-struct token Token(enum token_type type, uint64 num, unsigned int line) {
-    struct token t; t.num = num; t.type = type; t.line = line;
+    struct token t = {};
+    t.type = TOKEN_UNDEFINED;
+    t.line = 0;
+    t.str = NULL;
+    t.beginCol = 0;
     return t;
 }
 
+struct token Token(enum token_type type, unsigned int line, uint32_t bc) {
+    struct token t;
+    t.num = 0ull;
+    t.type = type;
+    t.line = line;
+    t.beginCol = bc;
+    return t;
+}
+
+struct token Token(enum token_type type, std::string str, unsigned int line, uint32_t bc) {
+    auto t = Token(type, line, bc);
+    t.str = MEMORY_ARENA.StdStringAlloc(str);
+    return t;
+}
+
+struct token Token(enum token_type type, char *str, unsigned int line, uint32_t bc) {
+    auto t = Token(type, line, bc);
+    t.str = MEMORY_ARENA.StringAlloc(str);
+    return t;
+}
+
+struct token Token(enum token_type type, UNICODE_CPOINT c, unsigned int line, uint32_t bc) {
+    auto t = Token(type, line, bc);
+    t.c = c;
+    return t;
+
+}
+
+struct token Token(enum token_type type, char c, unsigned int line, uint32_t bc) {
+    return Token(type, (UNICODE_CPOINT)c, line, bc); 
+}
+
+struct token Token(enum token_type type, double dnum, unsigned int line, uint32_t bc) {
+    auto t = Token(type, line, bc);
+    t.dnum = dnum;
+    return t;
+}
+
+struct token Token(enum token_type type, uint64 num, unsigned int line, uint32_t bc) {
+    auto t = Token(type, line, bc);
+    t.num = num;
+    return t;
+}
+
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
+#include <algorithm>
+
 // NOTE(Noah): I am unsure if this naming convention matches the rest of everything in this code
 // project, but it makes sense because we are defining function for operating on a specific data type.
-void TokenPrint(struct token tok) {
+void TokenPrint(struct token tok)
+{
     LOGGER.Min("%d, ", tok.line);
-    switch(tok.type) {
+    switch (tok.type) {
         case TOKEN_UNDEFINED:
-        LOGGER.Min("TOKEN_UNDEFINED\n");
-        break;
-        case TOKEN_QUOTE:
-        Assert(tok.str != NULL);
-        LOGGER.Min("TOKEN_QUOTE: %s\n", tok.str);
-        break;
+            LOGGER.Min("TOKEN_UNDEFINED\n");
+            break;
+        case TOKEN_QUOTE: {
+            Assert(tok.str != NULL);
+            std::string betterStr = std::string(tok.str);
+            std::replace(betterStr.begin(), betterStr.end(), ' ', '_');
+            LOGGER.Min("TOKEN_QUOTE: %s\n", betterStr.c_str());
+        } break;
+
+        // NOTE: we added -Wall so that
+        // if any enum is missing from this switch that the compiler screams at us.
+
+        case TOKEN_TRUE_LITERAL:
+            LOGGER.Min("TOKEN_TRUE_LITERAL\n");
+            break;
+        case TOKEN_FALSE_LITERAL:
+            LOGGER.Min("TOKEN_FALSE_LITERAL\n");
+            break;
+        case TOKEN_NULL_LITERAL:
+            LOGGER.Min("TOKEN_NULL_LITERAL\n");
+            break;
+        case TOKEN_UINT_LITERAL:
+            LOGGER.Min("TOKEN_UINT_LITERAL: %" PRIu64 "\n", tok.num);
+            break;
         case TOKEN_INTEGER_LITERAL:
-        LOGGER.Min("TOKEN_INTEGER_LITERAL: %d\n", tok.num);
-        break;
-        case TOKEN_DECIMAL_LITERAL:
-        LOGGER.Min("TOKEN_DECIMAL_LITERAL: %f\n", tok.dnum);
-        break;
-        case TOKEN_CHARACTER_LITERAL:
-        {
+            LOGGER.Min("TOKEN_INTEGER_LITERAL: %" PRIu64 "\n", tok.num);
+            break;
+        case TOKEN_DOUBLE_LITERAL:
+        // TODO: for doubles we have something else than %f, right?
+            LOGGER.Min("TOKEN_DOUBLE_LITERAL: %f\n", tok.dnum);
+            break;
+        case TOKEN_FLOAT_LITERAL:
+            LOGGER.Min("TOKEN_FLOAT_LITERAL: %f\n", tok.dnum);
+            break;
+        case TOKEN_CHARACTER_LITERAL: {
             char utf8Buff[5];
             u8_toutf8(utf8Buff, 5, &tok.c, 1);
             LOGGER.Min("TOKEN_CHARACTER_LITERAL: %s\n", utf8Buff);
-        }
-        break;
+        } break;
+
         case TOKEN_ENDL:
-        LOGGER.Min("TOKEN_ENDL\n");
-        break;
+            LOGGER.Min("TOKEN_ENDL\n");
+            break;
         case TOKEN_OP:
-        LOGGER.Min("TOKEN_OP: %c\n", tok.c);
-        break;
+            LOGGER.Min("TOKEN_OP: %c\n", tok.c);
+            break;
         case TOKEN_COP:
-        Assert(tok.str != NULL);
-        LOGGER.Min("TOKEN_COP: %s\n", tok.str);
-        break;
+            Assert(tok.str != NULL);
+            LOGGER.Min("TOKEN_COP: %s\n", tok.str);
+            break;
         case TOKEN_PART:
-        LOGGER.Min("TOKEN_PART: %c\n", tok.c);
-        break;
+            LOGGER.Min("TOKEN_PART: %c\n", tok.c);
+            break;
         case TOKEN_KEYWORD:
-        Assert(tok.str != NULL);
-        LOGGER.Min("TOKEN_KEYWORD: %s\n", tok.str);
-        break;
-        case TOKEN_PDIRECTIVE:
-        Assert(tok.str != NULL);
-        LOGGER.Min("TOKEN_PDIRECTIVE: %s\n", tok.str);
-        break;
+            Assert(tok.str != NULL);
+            LOGGER.Min("TOKEN_KEYWORD: %s\n", tok.str);
+            break;
         case TOKEN_SYMBOL:
-        Assert(tok.str != NULL);
-        LOGGER.Min("TOKEN_SYMBOL: %s\n", tok.str);
-        break;
+            Assert(tok.str != NULL);
+            LOGGER.Min("TOKEN_SYMBOL: %s\n", tok.str);
+            break;
     }
 }
 
@@ -320,7 +418,7 @@ class TokenContainer {
     void ResetSavepoint(unsigned int check) { 
         _checkpoint = check;
     }
-    struct token Next() {
+    struct token AdvanceNext() {
         if (_checkpoint < tokenCount) {
             return tokens[_checkpoint++];
         }
@@ -344,11 +442,10 @@ class TokenContainer {
         }
     }
     void Append(struct token tok) {
-        if (tokenCount < containerSize) {
-            //tokens[tokenCount++] = tok; // invokes copy constructor.
-            memcpy(&tokens[tokenCount++], &tok, sizeof(struct token));
-        } else {
-            containerSize += 100;
+        // realloc.
+        if (tokenCount >= containerSize) 
+        {
+            containerSize += 100; // TODO: consider more advanced strat here?
             struct token* _tokens = (struct token *)realloc(tokens, containerSize * sizeof(struct token));
             if (_tokens == NULL) {
                 // Going to try doing a realloc ourselves.
@@ -361,28 +458,50 @@ class TokenContainer {
                 tokens = _tokens;
             }
         }
+        // append.
+        memcpy(&tokens[tokenCount++], &tok, sizeof(struct token));
     }
     void Print() {
-        for (int i = 0; i < tokenCount; i++) {
+        for (unsigned int i = 0; i < tokenCount; i++) {
             struct token &tok = tokens[i];
             TokenPrint(tok);
         }
     }
 };
 
-// Globals local to lexer.cpp
+// Globals local to lexer.cpp ----------------
 std::string *currentToken;
 std::string *cleanToken;
 unsigned int currentLine = 1;
 
-bool IsNumber(std::string potNum, bool &decimalFlag) {
-    if (potNum == "") 
-        return false;
-    if (potNum[0] == '.' || potNum[potNum.size() - 1] == '.')
-        return false;
-    for (int i = 0; i < potNum.size(); i++) {
+enum lexer_state state = LEXER_NORMAL;
+uint32_t stateBeginLine = 0;
+uint32_t stateBeginChar = 0;
+uint32_t stateBeginCol = 0;
+
+uint32_t n = -1;
+uint32_t n_col = 0; // 
+// Globals local to lexer.cpp ----------------
+
+constexpr bool EnableIsNumberFlags = true;
+constexpr bool DisableIsNumberFlags = false;
+
+template <bool enableFlags=DisableIsNumberFlags>
+static bool IsNumber(
+    std::string potNum,
+    bool *decimalFlag=nullptr, bool *floatFlag=nullptr, bool *unsignedFlag=nullptr)
+{
+    if (enableFlags)
+    {
+        *decimalFlag = false;
+        *floatFlag   = false;
+        *unsignedFlag = false;
+    }
+    if (potNum == "") return false;
+    if (potNum[0] == '.' || potNum[potNum.size() - 1] == '.') return false;
+    for (size_t i = 0; i < potNum.size(); i++) {
         char character = potNum[i];
-        switch(character) {
+        switch (character) {
             case '0':
             case '1':
             case '2':
@@ -393,38 +512,116 @@ bool IsNumber(std::string potNum, bool &decimalFlag) {
             case '7':
             case '8':
             case '9':
-            break;
+                break;
             case '.':
-            decimalFlag = true;
+                if (enableFlags) *decimalFlag = true;
+                break;
+            case 'f':
+                if (enableFlags) *floatFlag = true;
+                if (i != (potNum.size() - 1)) return false;
+                break;
+            case 'u':
+                if (enableFlags) *unsignedFlag = true;
+                if (i != (potNum.size() - 1)) return false;
+                break;
             break;
             default:
-            return false;
+                return false;
         }
-    } 
+    }
     return true;
+}
+
+// given str will match a token from the pattern list.
+// returns true if the string matched the pattern.
+bool TokenFromString(
+    std::string str,
+    uint32_t bc, // begin col of str in source.
+    char **strPattern,
+    unsigned int patternLen,
+    enum token_type tokType,
+    struct token &tok
+) {
+//    tok = Token();
+    for (unsigned int i = 0; i < patternLen; i++) {
+        char *mString = strPattern[i];
+        char *pStr;
+        int k = 0;
+        for( pStr = mString; (*pStr != 0 && str[k] == *pStr); (pStr++, k++) );
+        if ( (*pStr == 0) && (k == str.size()) ) {
+            // Means we made it through entire pattern string and the incoming string.
+            tok = Token(tokType, mString, currentLine, bc);
+            return true;
+        }
+    }
+    return false;
 }
 
 // Checks for a token from a latent currentToken 
 // which by definition is a token that is preceding any other token or is preceding whitespace
 bool TokenFromLatent(struct token &token) {
     // Latent currentTokens can be literal or symbol tokens
-    if (*cleanToken != "") { 
-        bool dFlag;
-        if (IsNumber(*cleanToken, dFlag)) { 
+    if (*cleanToken != "") {
+
+        uint32_t bc = n_col - cleanToken->size();
+
+        bool dFlag; bool fFlag; bool uFlag;
+        if (IsNumber<EnableIsNumberFlags>(*cleanToken, &dFlag, &fFlag, &uFlag)) { 
             if (!dFlag) {
-                unsigned int num = atoi(cleanToken->c_str());
-                token = Token(TOKEN_INTEGER_LITERAL, num, currentLine);
-            } else {
+                // NOTE: atoi works in a similar way to atof. the invalid things
+                // at the end of the string are ignored. of particular interest
+                // to us would be the `u` at the end of the string.
+                uint64_t num = atoi(cleanToken->c_str());
+                if (uFlag)
+                    token = Token(TOKEN_UINT_LITERAL, num, currentLine, bc);
+                else
+                    token = Token(TOKEN_INTEGER_LITERAL, num, currentLine, bc);
+            } else if (!fFlag) {
+                // TODO: `atof` actually parses the exponent stuff so that sort
+                // of thing should be trivial to implement.
                 double num = atof(cleanToken->c_str());
-                token = Token(TOKEN_DECIMAL_LITERAL, num, currentLine);
+                token = Token(TOKEN_DOUBLE_LITERAL, num, currentLine, bc);
+            } else {
+                // NOTE: atof ignores any invalid things at the end of the string,
+                // so `f` is ignored.
+                double num = atof(cleanToken->c_str());
+                token = Token(TOKEN_FLOAT_LITERAL, num, currentLine, bc);
             }
         }
-        else if (*cleanToken == "true")
-            token = Token(TOKEN_INTEGER_LITERAL, (unsigned int)1, currentLine);
-        else if (*cleanToken == "false")
-            token = Token(TOKEN_INTEGER_LITERAL, (unsigned int)0, currentLine);
-        else
-            token = Token(TOKEN_SYMBOL, *cleanToken, currentLine);
+        // NOTE: the reason that these have dedicated tokens is because
+        // we want to lock down what kind of thing these are ASAP.
+        // otherwise at some point later we have to ask if the string is equal to e.g. "true".
+        else if (*cleanToken == "true") {
+            token = Token(TOKEN_TRUE_LITERAL, currentLine, bc);
+        }
+        else if (*cleanToken == "false") {
+            token = Token(TOKEN_FALSE_LITERAL, currentLine, bc);
+        }
+        else if (*cleanToken == "null") {
+            token = Token(TOKEN_NULL_LITERAL, currentLine, bc);
+        }
+        else {
+
+            // TODO: looks like we can combine these two lists (ppl::TYPE_STRINGS and KEYWORDS).
+            if (!TokenFromString(
+                    *cleanToken, bc,
+                    ppl::TYPE_STRINGS,
+                    sizeof(ppl::TYPE_STRINGS) / sizeof(char *),
+                    TOKEN_KEYWORD,
+                    token
+            )) {
+                if (!TokenFromString(
+                    *cleanToken, bc,
+                    KEYWORDS,
+                    sizeof(KEYWORDS) / sizeof(char *),
+                    TOKEN_KEYWORD,
+                    token
+                )) {
+                    token = Token(TOKEN_SYMBOL, *cleanToken, currentLine, bc);
+                }
+            }
+        }
+
         return true;
     }
     return false;
@@ -433,25 +630,31 @@ bool TokenFromLatent(struct token &token) {
 // Looks ahead to check for any matches with any of the strings.
 unsigned int TokenFromLookaheadString(
     RawFileReader &raw,
-    unsigned int n,
     char **strPattern,
     unsigned int patternLen,
     enum token_type tokType,
     struct token &tok,
     struct token &symbolTok
 ) {
-    for (int i = 0; i < patternLen; i++) {
+    for (unsigned int i = 0; i < patternLen; i++) {
         char *mString = strPattern[i];
         int k = n;
         int j = 0;
         char *pStr;
-        for( pStr = mString; (raw[k++] == *pStr && *pStr != 0); pStr++ ) {
-            j++;
-        }
+
+        // NOTE: the idea here that we compare the unicode codepoint to the char
+        // is that our things that we are looking ahead we assume to always be
+        // just plain ASCII (and not the extended ascii).
+
+        // TODO: we need to do some sort of a compile-time check on the strings
+        // then for sanity that this is indeed the case.
+
+        for (pStr = mString; (raw[k++] == (uint8_t)*pStr && *pStr != 0); pStr++) { j++; }
+
         if (*pStr == 0) {
             // Means we made it through entire string and matched.
             TokenFromLatent(symbolTok);
-            tok = Token(tokType, mString, currentLine);
+            tok = Token(tokType, mString, currentLine, n_col);
             return j;
         }
     }
@@ -462,41 +665,21 @@ unsigned int TokenFromLookaheadString(
 // also takes a set of test characters.
 void TokenFromChar(
     UNICODE_CPOINT character,  
-    char *test, 
+    char *setOfCharactersToTest,
     enum token_type tokType, 
     struct token &tok,
     struct token &symbolTok
 ) {
     bool charInTest = false;
-    for (char *pStr = test; *pStr != 0; pStr++) { // Go thru str till null terminator.
-        if (*pStr == character)
+
+    // Go thru str till null terminator.
+    for (char *pStr = setOfCharactersToTest; *pStr != 0; pStr++) {
+        if ((uint8_t)*pStr == character)
             charInTest = true;
     }
     if (charInTest) {
         TokenFromLatent(symbolTok);
-        tok = Token(tokType, character, currentLine);
-    }
-}
-
-// given str will match a token from the pattern list.
-void TokenFromString(
-    std::string str,
-    char **strPattern,
-    unsigned int patternLen,
-    enum token_type tokType,
-    struct token &tok,
-    struct token &symbolTok
-) {
-    for (int i = 0; i < patternLen; i++) {
-        char *mString = strPattern[i];
-        char *pStr;
-        int k = 0;
-        for( pStr = mString; (*pStr != 0 && str[k] == *pStr); (pStr++, k++) );
-        if (*pStr == 0) {
-            // Means we made it through entire string and matched.
-            // TokenFromLatent(symbolTok);
-            tok = Token(tokType, mString, currentLine);
-        }
+        tok = Token(tokType, character, currentLine, n_col);
     }
 }
 
@@ -542,6 +725,8 @@ struct search_pattern {
 
 struct search_pattern sPatterns[7];
 
+static unsigned int sPatternsCount=0;
+
 struct search_pattern CreateSearchPattern( enum search_pattern_type sType, enum token_type tokType, char *pattern) {
     struct search_pattern sPattern;
     sPattern.sType = sType;
@@ -563,67 +748,107 @@ char **arr, unsigned int arrSize) {
 
 bool Lex(
     FILE *inFile, 
-    TokenContainer &tokenContainer
+    TokenContainer &tokenContainer,
+    RawFileReader *pReaderOut,
+    ppl_error_context *pErrCtx
 ) 
 {    
-    // Generate globals
+    // Generate/reset globals
     std::string cToken = ""; currentToken = &cToken;
     std::string clToken = ""; cleanToken = &clToken;
+
     currentLine = 1;
+    state = LEXER_NORMAL;
+    stateBeginLine = 0;
+    stateBeginChar = 0;
+    stateBeginCol = 0;
+
+    n = -1;
+    n_col = 0;
 
     // # for the sake of parsing a raw input of ' '
     // # append onto raw.
     // raw += ' '
     
     // TODO(Noah): What if reading in the file here fails??
-    RawFileReader raw = RawFileReader(inFile);
+    *pReaderOut = std::move(RawFileReader(inFile));
+    RawFileReader &raw = *pReaderOut;
+    pErrCtx->pTokenBirthplace = pReaderOut;
 
-    enum lexer_state state = LEXER_NORMAL;
+    // there is a precedence in any of the searches below where if some things are substrings of patterns,
+    // they need to be checked last.
 
-    sPatterns[0] = CreateSearchPattern(
+    sPatternsCount = 0;
+
+    sPatterns[sPatternsCount++] = CreateSearchPattern(
         SEARCH_P_STRING, TOKEN_COP, COMPOUND_OPS, sizeof(COMPOUND_OPS) / sizeof(char*));
-    sPatterns[1] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_OP, OPS);
-    sPatterns[2] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_ENDL, ENDLINE_CHAR);
-    sPatterns[3] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_PART, TOKEN_PARTS);
-    sPatterns[4] = CreateSearchPattern(
-        SEARCH_P_CURRENT_STRING, TOKEN_KEYWORD, KEYWORDS, sizeof(KEYWORDS) / sizeof(char*));
-    sPatterns[5] = CreateSearchPattern(
-        SEARCH_P_STRING, TOKEN_PDIRECTIVE, P_DIRECTIVES, sizeof(P_DIRECTIVES) / sizeof(char *)
-    );
-    sPatterns[6] = CreateSearchPattern(
-        SEARCH_P_CURRENT_STRING, TOKEN_KEYWORD, TYPES, sizeof(TYPES) / sizeof(char *)
-    );
+    sPatterns[sPatternsCount++] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_OP, OPS); // some ops are substrings of compound ops.
 
-    // Go through each character one-by-one
-    int n = -1;
+    sPatterns[sPatternsCount++] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_ENDL, ENDLINE_CHAR);
+    sPatterns[sPatternsCount++] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_PART, TOKEN_PARTS);
+
+
+    assert( sPatternsCount <= (sizeof(sPatterns) / sizeof(struct search_pattern)) );
+
+    auto changeState = [&](lexer_state s, uint32_t l, uint32_t c, uint32_t cl)
+    {
+        state = s;
+        stateBeginLine = l;
+        stateBeginChar = c;
+        stateBeginCol = cl;
+    };
+
+    // the code below goes through each character one-by-one
+    // and uses the program globals `n` and `n_col`.
+
     UNICODE_CPOINT character = raw[0]; 
+
+    auto advanceChar = [&](uint32_t a)
+    {
+        n+=a;
+        n_col+=a;
+    };
+
+    auto advanceLine = [&]()
+    {
+        currentLine += 1;
+        n_col = 0;
+        raw.AddLineInfo(n + 1);
+    };
+
+    raw.AddLineInfo(0); // for the first line.
+
     while (character != CP_EOF) {
         
-        n += 1;
+        advanceChar(1);
         character = raw[n];
+
+        const bool shouldAdvanceLine = (character == '\n' || character == CP_EOF);
         
         // check for newline characters.
-        if (character == '\n') {
-            currentLine += 1;
+        if (shouldAdvanceLine) {
+            advanceLine();
             // NOTE(Noah): no 'continue;' because comments exit on newline.  
         }
 
         // Handle comment, multiline, and quote states.
         if (state == LEXER_COMMENT) {
             if (character == '\n' || character == CP_EOF) // end condition check
-                state = LEXER_NORMAL;
+            {
+                changeState(LEXER_NORMAL, currentLine, n + 1, n_col + 1);
+            }
             continue;
         } else if (state == LEXER_MULTILINE_COMMENT) {
             if (character == '*' && raw[n+1] == '/') { // end condition check
-                state = LEXER_NORMAL;
-                n += 1;
+                advanceChar(1);
+                changeState(LEXER_NORMAL, currentLine, n + 1, n_col + 1);
             }
             continue;
         }
         else if (state == LEXER_QUOTE) {
             if (character == '"' && raw[n-1] != '\\') { // end condition check.
-                state = LEXER_NORMAL;
-                tokenContainer.Append(Token(TOKEN_QUOTE, *currentToken, currentLine));
+                changeState(LEXER_NORMAL, currentLine, n + 1, n_col + 1);
+                tokenContainer.Append(Token(TOKEN_QUOTE, *currentToken, currentLine, stateBeginCol));
                 CurrentTokenReset();
             }
             // Check for escape sequenced characters (plus special characters).
@@ -632,7 +857,7 @@ bool Lex(
                 if (raw[n+1] == 'n') {
                     CurrentTokenAddChar('\\');
                     CurrentTokenAddChar('n');
-                    n += 1;
+                    advanceChar(1);
                 }
             } else { // due to else, \\ is nulled out when used as escape character. i.e. does not appear in final string.
                 CurrentTokenAddChar(character);
@@ -644,32 +869,32 @@ bool Lex(
             
             //# check for single line comments.
             if (character == '/' && raw[n+1] == '/'){
-                state = LEXER_COMMENT;
+                changeState(LEXER_COMMENT, currentLine, n, n_col);
                 struct token token;
                 if (TokenFromLatent(token)) {
                     tokenContainer.Append(token);
                 }
                 CurrentTokenReset();
-                n += 1;
+                advanceChar(1);
                 continue;
             }
             
             //# check for multi-line comments.
             if (character == '/' && raw[n+1] == '*') {
-                state = LEXER_MULTILINE_COMMENT;
+                changeState(LEXER_MULTILINE_COMMENT, currentLine, n, n_col);
                 struct token token;
                 if (TokenFromLatent(token)) {
                     tokenContainer.Append(token);
                 }
                 CurrentTokenReset();
-                n += 1;
+                advanceChar(1);
                 continue;
             }
 
             // Check for beginning of quotes
             if (character == '"') 
             {
-                state = LEXER_QUOTE;
+                changeState(LEXER_QUOTE, currentLine, n, n_col);
                 struct token token;
                 if (TokenFromLatent(token)) {
                     tokenContainer.Append(token);
@@ -681,16 +906,16 @@ bool Lex(
             // Check for character literals.
             if (raw[n] == '\'' && raw[n+2] == '\'') {
                 UNICODE_CPOINT c_val = raw[n+1];
-                tokenContainer.Append(Token(TOKEN_CHARACTER_LITERAL, c_val, currentLine));
+                tokenContainer.Append(Token(TOKEN_CHARACTER_LITERAL, c_val, currentLine, n_col));
                 CurrentTokenReset();
-                n += 2;
+                advanceChar(2);
                 continue;
             }
             
             // consume '.' in decimal literals to avoid being parsed as a TOKEN_PART. 
             // must ensure that what comes before the decimal is a number AND what comes after is also a number.
-            bool _df;
-            if (raw[n] == '.' && IsNumber(std::string(1, raw[n+1]), _df) && IsNumber(*cleanToken, _df) ) {
+            
+            if (raw[n] == '.' && IsNumber(std::string(1, raw[n+1])) && IsNumber(*cleanToken) ) {
                 CurrentTokenAddChar('.');
                 continue;
             }
@@ -701,27 +926,29 @@ bool Lex(
                 if (TokenFromLatent(token)) {
                     tokenContainer.Append(token);
                 }
-                tokenContainer.Append(Token(TOKEN_OP, '/', currentLine));
+                tokenContainer.Append(Token(TOKEN_OP, '/', currentLine, n_col));
                 CurrentTokenReset();
                 continue;
             }
 
-            // We want to check for symbols if we have hit whitespace.
+            // We want to check for a latent token if we have hit whitespace.
             if (character == ' ' || character == '\n' || character == CP_EOF) {
-                currentLine = (character == '\n') ? currentLine - 1  : currentLine;
+                // the latent token isn't on the new line, so pull this back for now.
+                currentLine = (shouldAdvanceLine) ? currentLine - 1  : currentLine;
                 struct token token;
                 bool isTokenLatent = TokenFromLatent(token);
                 if (isTokenLatent) {
                     tokenContainer.Append(token);
                     CurrentTokenReset();
                 }
-                currentLine = (character == '\n') ? currentLine + 1  : currentLine;
+                currentLine = (shouldAdvanceLine) ? currentLine + 1  : currentLine; // reset.
                 if (isTokenLatent) continue;
             }
 
-            // Go through all search patterns.
+            // Go through all search patterns. Some search patterns just check the current character.
+            // some search patterns are lookahead.
             bool foundToken = false;
-            for (int i = 0; i < sizeof(sPatterns) / sizeof(struct search_pattern); i++) {
+            for (size_t i = 0; i < sPatternsCount; i++) {
                 struct search_pattern sPattern = sPatterns[i];
                 struct token tok = Token();
                 struct token symbolTok = Token();
@@ -739,7 +966,6 @@ bool Lex(
                     case SEARCH_P_STRING:
                     skipAmount = TokenFromLookaheadString(
                         raw,
-                        n,
                         sPattern.string_pattern,
                         sPattern.patternLen,
                         sPattern.tokType,
@@ -750,11 +976,11 @@ bool Lex(
                     case SEARCH_P_CURRENT_STRING:
                     TokenFromString(
                         StdStringFromStringAndUCP(cleanToken, character),
+                        n_col - cleanToken->size(), // beginCol.
                         sPattern.string_pattern,
                         sPattern.patternLen,
                         sPattern.tokType,
-                        tok,
-                        symbolTok
+                        tok
                     );
                     break;
                 }
@@ -762,7 +988,7 @@ bool Lex(
                     tokenContainer.Append(symbolTok);
                 if (tok.type != TOKEN_UNDEFINED) {
                     tokenContainer.Append(tok);
-                    n += skipAmount;
+                    advanceChar(skipAmount);
                     foundToken = true;
                     break;
                 }
@@ -775,13 +1001,48 @@ bool Lex(
             
         } 
 
-    } 
+    }
+
+    if ((state == LEXER_QUOTE) || (state == LEXER_MULTILINE_COMMENT)) {
+
+        uint32_t    c    = stateBeginCol;
+        uint32_t    line = stateBeginLine;
+
+        //pErrCtx->c = c;
+        //pErrCtx->line = line;
+
+        switch (state) {
+            case LEXER_QUOTE: {
+                const char *file = LOGGER.logContext.currFile;
+                GenerateCodeContextFromFilePos(
+                    *pErrCtx, line, c, pErrCtx->codeContext, PPL_ERROR_MESSAGE_MAX_LENGTH);
+                LOGGER.EmitUserError(
+                    file, line, c, pErrCtx->codeContext, "Unclosed string literal. Began at %d,%d.", line, c);
+                return false;
+            } break;
+            case LEXER_MULTILINE_COMMENT:
+            {
+                const char *file = LOGGER.logContext.currFile;
+                GenerateCodeContextFromFilePos(
+                    *pErrCtx, line, c, pErrCtx->codeContext, PPL_ERROR_MESSAGE_MAX_LENGTH);
+                LOGGER.EmitUserError(
+                    file, line, c, pErrCtx->codeContext, "Unclosed multiline comment. Began at %d,%d.", line, c);
+                return false;
+            }
+                break;
+            default:
+                if ((state != LEXER_NORMAL) || (state != LEXER_COMMENT)) {
+                    assert(false);
+                    // TODO(Compiler): did we handle all invalid closing lexer states?
+                }
+        }
+    }
 
     return true;
 }
 
 /* TODO(Noah):
-    Next step for PPL on 2020.03.22 is to implement the preparsing stuff.
+    Next step for PPL on 2021.03.22 is to implement the preparsing stuff.
     So my thought process right now is that we are going to have different 
     containers. One container for the main compilation unit.
     And a container for each import statement.
@@ -789,7 +1050,7 @@ bool Lex(
     structure of buckets.
 
     Each bucket is literally a unit of source code that we are going to want to run 
-    through the entire pipeline (grammer generation and so forth).
+    through the entire pipeline (grammar generation and so forth).
 
     At the time of bucket creation we are also going to want to generate some sort of
     context around the buckets (like what is the qualification for this bucket).

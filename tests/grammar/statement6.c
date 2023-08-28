@@ -1,0 +1,1 @@
+playerRect :: PPL.Rectangle = {};

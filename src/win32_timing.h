@@ -22,9 +22,9 @@ class Timer {
     public:
     LARGE_INTEGER LastCounter;
     LONGLONG PerfCountFrequency64;
-    char *msg;
+    const char *msg;
     bool active;
-    Timer(char *msg) : msg(msg), active(true) {
+    Timer(const char *msg) : msg(msg), active(true) {
         LARGE_INTEGER PerfCountFrequency;
         QueryPerformanceFrequency(&PerfCountFrequency);
         PerfCountFrequency64 = PerfCountFrequency.QuadPart;

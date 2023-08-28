@@ -8,12 +8,16 @@ _site/*
 log.txt
 design/*
 bin/*
+build/*
 tests/*.cpp
 tests/*
 !/tests/*.c
 *.o
 !tests/preparse/
-!tests/grammer
+!tests/grammar
 JOURNAL.md
 .DS_Store
 node_modules
+*.rdbg
+buildxcode/*
+program.out

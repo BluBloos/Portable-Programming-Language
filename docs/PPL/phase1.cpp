@@ -74,13 +74,6 @@ a19 := 'a';       // this is a char.
 a20 := 0u;        // this is an unsigned int.
 a21 := true;      // this is a bool.
 a22 := a21;       // also a bool. uses the type of a21.
-#if 0
-{
-a24   := 0b10;        // this is an int.
-a25   := 1_000_000;   // this is an int.
-a26   := 1.0e9;       // this is a  float.
-var3  := 0xFA;        // this is an int.
-}
 
 
 // DEFAULT INITIALIZATION:
@@ -276,14 +269,6 @@ plib :: #import "ppl.types";
 //
 // the `#` idea shows up when we are dealing with compile-time things.
 // `#import` is specifically a statement that gets executed at compile-time by the compilation meta-program.
-//
-#if 0 {
-// this is the legacy include idea. a simple file-system based copy-pasta.
-#include "someFile.ppl";
-
-// compat for foreign things.
-legacyMath :: #translate_c99 #include "math.h";
-}
 
 
 // ARRAYS:
@@ -305,13 +290,15 @@ arrView := FOOD_SYMBOLS; // so we can do something like this,
 // FUNCTIONS:
 // ==========
 //
-MAP_HEIGHT :: 15;
-SNAKE_BODY :: '*';
-MAP_WIDTH  :: 40;
+MAP_HEIGHT :: 15
+SNAKE_BODY :: '*'
+MAP_WIDTH  :: 40
 //
-is_map_border := (x : int, y : int) -> bool {
+
+is_map_border :: (x : int, y : int) -> bool {
     return (y == 0) || (x == 0) || (x == MAP_WIDTH) || (y == MAP_HEIGHT);
 }
+
 //
 exit :: () {
     input_off(); // declarations at the global program scope do not need to be in order.
@@ -349,9 +336,6 @@ exit :: () {
 
 SnakeBody :: struct {
 
-    x : int = 0;
-    y : int = 0;
-
 // STATIC KEYWORD:
 // ===============
 //
@@ -360,12 +344,15 @@ SnakeBody :: struct {
     {
 
         return {-10; -10};
-    }
+    };
 // STRUCT MEMBER FUNCTIONS:
 // ========================
 //
 // there is no vtable and no runtime polymorphism. the structs store the function pointers. these member functions
 // compile under-the-hood to take as the first parameter a pointer to the type of the object. this is the `this` pointer.
+
+    x : int = 0;
+    y : int = 0;
 
 };
 
@@ -377,29 +364,19 @@ buildBridge :: ( brickCount : int, height : float ) -> Bridge {
     return Bridge {};
 }
 
-#if 0
-{ // so this is what does not work.
-buildBridge(  brickCount = 10, height = 1.f  );
-// the problem with this syntax is that there is a confusion between variable assignment
-// of something that is already called e.g. `brickCount`.
-}
 
-// the solution:
+buildBridge( brickCount = 10, height = 1.f );
 //
-// the `:` is used in other grammar construct to link an identifier to an object.
-// so we could look at the idea here as linking the function parameter to the incoming object value.
-buildBridge( brickCount : 10, height : 1.f );
+// so while `identifier` = `value` could have some confusion about what identifier this is refer
+// to, there is going to be some hella shadowing going on when in specific contexts,
+// such as the one above; i.e. within a function call.
 //
-// the `identifier : value` is actually a unique grammar syntax idea thus far. and therefore it could be a grammar object.
-// maybe we call `identifier :` an "identifier link".
-// so the runtime variable decl of before is actually `"identifier link" type = value`  OR  `"identifier link" type`
+// or the idea below, within the assignment of a data pack to a variable. 
 //
-// so the `"identifier link" value` grammar construction is a "routed value", or maybe even a "named value".
-//
-vec := Vector {  x : 1.1f;  y : 1.2f;  }; // so this works too from the side of struct init.
+vec := Vector {  x = 1.1f;  y = 1.2f;  };
 //
 // but now also consider,
-vec = { x : 1.1f,  y : 1.2f };
+vec = { x = 1.1f,  y = 1.2f };
 //
 // this is also grammatically valid. instead of the data pack containing many statements, there is just one statement of type Tuple.
 // the assignment operator `=` will look at the data pack and "unpack" the stuff differently based on if it sees a Tuple or exp-statements.
@@ -408,18 +385,6 @@ vec = { x : 1.1f,  y : 1.2f };
 //
 arr2 := []int { 1, 2, 3, 5 }; // we do get to use commas here over `;`, which is nicer on the eyes.
 //
-// there is also a sort of special routing support for array init as well:
-//
-a2 := [10]u32 { [0] : 2, 3, [3] : 1 }; // gives an array of [ 2; 3; 0; 1; 0; 0; 0; 0; 0; 0 ].
-//
-// remember, everything is zero initialized unless explicitly marked as uninitialized.
-//
-A  := [10]u32 { [3] : 1, [0] : 2, 3 }; // gives compiler-error.
-//
-// the ^ above is not allowed. routed values to array slots must be in order when use with non-routed values.
-
-
-
 
 
 // ------ ENUMS ------
@@ -475,13 +440,28 @@ snake := plib.Array<SnakeBody>;
 // the ppl.types namespace implements a generic array type. it operates very simply, just like stb stretchy buffers.
 // this generics idea is to compile different versions of a function based on a specific type.
 //
-genericAdd :: <T, Size : T> ( a : T, b : T ) -> T
+genericAdd :: <someConstVal : T, T> ( a : T, b : T ) -> T
 {
-    return a + b + Size;
+    return a + b + someConstVal;
 }
 //
 // so the grammar for generics is like `identifier :: < list of generic types > ...`. our generic types can be either
 // full-blown types or value type.
+//
+// the generic idea is a compile-time object that "modifies" the value to the right of it.
+// it makes that value a generic one. and so we can instantiate the diff versions.
+//
+genericAdd<3>(0, 1);
+//
+GenericArrayThing :: <T, T_b> struct {
+    capacity : T_b;
+    elems : []T;
+}
+//
+myArr := GenericArrayThing<u64> {};
+//
+genericThing2 :: <z : int> []int { 1*z, 2*z, 3*z }
+actualThing := genericThing2<3>;
 
 
 // FOR LOOPS:
@@ -499,7 +479,7 @@ init_snake := () {
         snake.push(body);
     }
 
-    snake[0] = SnakeBody {x : 5; y : 3};
+    snake[0] = SnakeBody {x = 5; y = 3};
 }
 
 move_snake := ()
@@ -571,7 +551,7 @@ this_func_is_not_called := ()
     // Can I have a runtime variable be equal to a set of integers?
     z : Span = 0 ..= 3; // so like, the set construction syntax gives back the Span type.
     // Span is just a struct of two integers :p
-    z = Span { begin : 0; end : 3 }; // end is inclusive.
+    z = Span { begin = 0; end = 3 }; // end is inclusive.
 
     b : []int = a[ z ];
     // if take a "slice" of an array, I just get back another array. this is natural since again all arrays are just
@@ -783,7 +763,7 @@ generate_food_symbol := ()
     foodSymbolNum = plib.rand() % 5;
 }
 
-snake_eats_itself := () -> bool
+snake_eats_itself := () -> bool {
 
 // TUPLES:
 // =======
@@ -817,7 +797,7 @@ draw := ()
             else if is_snake_body(j, i) then hTerm.print("%c", SNAKE_BODY);
             else if is_food(j, i) {
 
-                symbol : FOOD_SYMBOLS[foodSymbolNum];
+                symbol := FOOD_SYMBOLS[foodSymbolNum];
                 hTerm.print("%c", symbol);
 
             } else then hTerm.print(" ");
@@ -836,7 +816,7 @@ is_out_of_border := () -> bool
 is_snake_body := (x : int, y : int) -> bool
 {
     for snake {
-        if (it.y == y) && (it.x == x) then true;
+        if (it.y == y) && (it.x == x) then return true;
     }
     return false;
 }
@@ -851,37 +831,4 @@ input_off := ()
     hTerm := pal.get_or_create_terminal();
     hTerm.reset_attributes();
 }
-
-
-// DUFFS DEVICE:
-// =============
-//
-#if 0 {
-    duffs_device :: () {
-        to : ^short; 
-        from : ^short;
-        count : u32;
-        {
-            n : u32 = (count + 7) / 8;
-            switch count % 8 {
-                case 0: do { ^to = ^from++; fall;
-                case 7:      ^to = ^from++; fall;
-                case 6:      ^to = ^from++; fall;
-                case 5:      ^to = ^from++; fall;
-                case 4:      ^to = ^from++; fall;
-                case 3:      ^to = ^from++; fall;
-                case 2:      ^to = ^from++; fall;
-                case 1:      ^to = ^from++;
-                        } while --n > 0;
-            }
-        }
-    }
-}
-//
-// SYNTAX:
-// =======
-//
-// The thing to note about the example above is that the case labels are not required to
-// be directly descendant to the switch statement in the AST. they can be anywhere pretty much
-// and just denote a location to jump to.
 
