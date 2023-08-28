@@ -34,6 +34,11 @@ struct CG_StringRef
         this->len = str.len;
         this->bStrongRef = true;
     }
+    
+    const char *Get()
+    {
+        return str; // TODO: what if the string we were looking at was deallocated?
+    }
 
     const char *str;
     size_t len;
@@ -320,14 +325,51 @@ static CG_Value TypeExpressionCompute(tree_node *ast)
              */
 
             assert(child->childrenCount >= 1);
-            
-            // TODO: decompose the args.
-            
+
             val.valueKind = PPL_TYPE_FUNC_SIGNATURE;
-            
-            ppl_type returnType;
-            
+            ppl_type   returnType;
             tree_node *lastNode = &child->children[child->childrenCount - 1];
+
+            CG_FunctionSignature newSig = {};
+
+            for (uint32_t i = 0; i < child->childrenCount; i++) {
+                tree_node *c = &child->children[i];
+                // assert( strcmp(c->metadata.str, "runtime_var_decl") == 0 );
+
+                // ast node is
+                /*
+                 "(route)"
+                 "["
+                     "("
+                         "(type)"
+                         "("
+                             "(op,=)"
+                             "[(op,?)(expression)]"
+                         ")?"
+                     ")"
+                     "((op,=)(expression))"
+                 "]"
+                 */
+                if (strcmp(c->metadata.str, "runtime_var_decl") == 0) {
+                    tree_node *route   = &c->children[0];
+                    tree_node *varName = &route->children[0];
+
+                    // TODO: support default args, which is when the runtime_var_decl includes the expression.
+
+                    assert(c->childrenCount >= 2);
+
+                    tree_node *type = &c->children[1];
+
+                    CG_Value val = TypeExpressionCompute(type);
+                    assert(val.valueKind == PPL_TYPE_TYPE);  // TODO(user-error).
+
+                    newSig.params[newSig.paramCount]        = ValueExtract_PplType(val);
+                    newSig.paramIdents[newSig.paramCount++] = varName->metadata.str;
+                } else {
+                    break;
+                }
+            }
+
             if ( strcmp(lastNode->metadata.str, "type") == 0 )
             {
                 CG_Value val = TypeExpressionCompute(lastNode);
@@ -341,7 +383,6 @@ static CG_Value TypeExpressionCompute(tree_node *ast)
   
             // TODO: we want to only add the signature to the scratch space in the case that it doesn't already exist.
             // TODO: looks like we might want a ValuePut_* or something. just to be symmetric with ValueExtract*
-            CG_FunctionSignature newSig = {};
             newSig.returnType = returnType;
             CG_FunctionSignature &newSigRef = StretchyBufferPush( CG_Glob()->funcSignatureRegistryScratch, newSig );
             val.v_CgFunctionSignature = CG_Span<CG_FunctionSignature>( &newSigRef, 1 );
@@ -392,12 +433,6 @@ struct CG_ExpressionInfo
     CG_ExpressionInfo() : funcSig() {}
 };
 
-// TODO: we really want something like ExpressionGatherInfo where it computes useful info
-// such as what the total value kind of the expression is, but also what the actual value of
-// the expression is. this kind of work is related and therefore we want to group this stuff.
-// but it is also the case where we want the version that special cases just to get the kind
-// of the expr, cuz that's less work than computing the total value.
-//
 // TODO: right now the TL_out mechanism isn't really fully coded. not really sure exactly what we
 // want to do there.
 static void ExpressionInferInfo(struct tree_node *ast, CG_ExpressionInfo *infoOut)
@@ -784,8 +819,21 @@ void GenerateProgram(struct tree_node ast, PFileWriter &fileWriter)
             const char *pasmStr = PplTypeToPasmHumanReadable(sigRef->returnType);
 
             // TODO: decompose the args.
-            const char *s = SillyStringFmt(".def %s %s()\n", pasmStr, tableElem.key);
+            const char *s = SillyStringFmt(".def %s %s(", pasmStr, tableElem.key);
             fileWriter.write((char*)s);
+            
+            for (uint32_t i = 0; i < sigRef->paramCount; i++)
+            {
+                const char *s = PplTypeToPasmHumanReadable(sigRef->params[i]);
+                const char *fs;
+                if (i == sigRef->paramCount - 1)
+                    fs = SillyStringFmt("%s %s", s, sigRef->paramIdents[i].Get());
+                else
+                    fs = SillyStringFmt("%s %s, ", s, sigRef->paramIdents[i].Get());
+                fileWriter.write((char*)fs);
+            }
+            
+            fileWriter.write(")\n");
         }
     }
 }
