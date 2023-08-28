@@ -3,7 +3,7 @@ b :: int = 7; c :: int = 8;
 
 main :: fn () -> int
 {
-    printf("Hello, World!\n");
+    // printf("Hello, World!\n");
     return d ? b : c;
 }
 

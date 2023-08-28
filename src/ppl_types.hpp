@@ -60,7 +60,12 @@ enum ppl_type {
     PPL_TYPE_NAMESPACE,
     PPL_TYPE_SPAN,
     PPL_TYPE_FUNC,
-    PPL_TYPE_FUNC_SIGNATURE
+    PPL_TYPE_FUNC_SIGNATURE,
+
+    // array types. recall that array types are just views of some base array.
+    // the base array is just a view too, but it's a view of the whole thing.
+    PPL_TYPE_CHAR_ARRAY,
+    PPL_TYPE_STRING = PPL_TYPE_CHAR_ARRAY
 };
 
 static ppl_type KeywordToPplType(const char *str)
@@ -186,6 +191,8 @@ static const char * PplTypeToString(ppl_type type)
             return "PPL_TYPE_FUNC";
         case PPL_TYPE_FUNC_SIGNATURE:
             return "PPL_TYPE_FUNC_SIGNATURE";
+        case PPL_TYPE_CHAR_ARRAY:
+            return "PPL_TYPE_CHAR_ARRAY";
     }
 }
 

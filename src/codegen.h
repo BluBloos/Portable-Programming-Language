@@ -1,6 +1,17 @@
 #ifndef CODEGEN_H
 #define CODEGEN_H
 
+#define PPL_TYPE_INTEGER_CASE case PPL_TYPE_U8:\
+case PPL_TYPE_U16:\
+case PPL_TYPE_U32:\
+case PPL_TYPE_U64:\
+case PPL_TYPE_S8:\
+case PPL_TYPE_S16:\
+case PPL_TYPE_S32:\
+case PPL_TYPE_S64:
+
+#define CG_MAX_TUPLE_ELEMS 10
+
 // NOTE: CG = codegen
 
 struct CG_String
@@ -209,7 +220,9 @@ struct CG_Globals
     // stretchy buffer.
     CG_FunctionSignature *funcSignatureRegistryScratch;
     
-    CG_Globals() : funcSignatureRegistryScratch(nullptr) {}
+    uint64_t labelUID;
+    
+    CG_Globals() : funcSignatureRegistryScratch(nullptr), labelUID(0) {}
 };
 
 static CG_Globals s_cgGlobals;
@@ -237,6 +250,9 @@ void CG_Release()
     auto g = CG_Glob();
     g->metaVars.~CG_HashMapWithStringKey();
     StretchyBufferFree(g->funcSignatureRegistryScratch);
+    
+    // TODO: it's kind of annoying that we have to define the init value twice for this member of Glob.
+    g->labelUID = 0;
 }
 
 // =====================================================
@@ -365,6 +381,8 @@ static CG_Value TypeExpressionCompute(tree_node *ast)
 
                     newSig.params[newSig.paramCount]        = ValueExtract_PplType(val);
                     newSig.paramIdents[newSig.paramCount++] = varName->metadata.str;
+                    
+                    assert(newSig.paramCount <= CG_MAX_FUNCTION_PARAMETERS);
                 } else {
                     break;
                 }
@@ -416,7 +434,8 @@ static CG_Value TypeExpressionCompute(tree_node *ast)
 struct CG_ExpressionInfo
 {
     // the top-level node that we can use after inferring the type to do further processing.
-    // this is useful at least for the reason that our AST trees are too deep; via this
+    // the "further processing" is typically related to the value of the expression.
+    // this is useful at least for the reason that our AST trees are too deep in some cases; via this
     // we can make them shorter.
     tree_node *TL;
 
@@ -483,7 +502,7 @@ static void ExpressionInferInfo(struct tree_node *ast, CG_ExpressionInfo *infoOu
             if (val.valueKind == PPL_TYPE_FUNC_SIGNATURE)
             {
                 infoOut->funcSig = val;
-                infoOut->TL = fc;
+                infoOut->TL = child;
                 
                 kind = PPL_TYPE_FUNC;
             }
@@ -619,6 +638,13 @@ static void ExpressionInferInfo(struct tree_node *ast, CG_ExpressionInfo *infoOu
                 kind = child2->metadata.valueKind;
                 if (infoOut)  infoOut->TL = child2;
             }
+#if 0
+            else if ( child2->type == AST_STRING_LITERAL )
+            {
+                kind = PPL_TYPE_STRING;
+                if (infoOut)  infoOut->TL = child2;
+            }
+#endif
             else if ( strcmp(child2->metadata.str, "type_literal") == 0 )
             {
                 kind = PPL_TYPE_TYPE;
@@ -748,14 +774,7 @@ static void RecordAndGenerateCompileTimeVarDecl(struct tree_node *ast, PFileWrit
     switch(type)
     {
         // TODO: proper handle the negative types.
-        case PPL_TYPE_U8:
-        case PPL_TYPE_U16:
-        case PPL_TYPE_U32:
-        case PPL_TYPE_U64:
-        case PPL_TYPE_S8:
-        case PPL_TYPE_S16:
-        case PPL_TYPE_S32:
-        case PPL_TYPE_S64:
+        PPL_TYPE_INTEGER_CASE
         {
             fileWriter.write("\nlabel_");
             fileWriter.write((char*)varName->metadata.str);
@@ -777,11 +796,275 @@ static void RecordAndGenerateCompileTimeVarDecl(struct tree_node *ast, PFileWrit
     }
 }
 
+struct CG_Tuple
+{
+    tree_node *elems[CG_MAX_TUPLE_ELEMS];
+    uint32_t elemCount;
+    
+    CG_Tuple() : elemCount(0) {}
+};
+
+// NOTE: getting the tuple is as simple as flattening the tree.
+void CollectTupleFromExpression(struct tree_node *exp, CG_Tuple *builder)
+{
+    builder->elems[builder->elemCount++] = exp;
+    assert(builder->elemCount <= CG_MAX_TUPLE_ELEMS);
+
+    if (exp->childrenCount > 1)
+    {
+        assert(exp->children[0].type == AST_OP);
+        CollectTupleFromExpression(&exp->children[1], builder);
+    }
+    
+    return;
+}
+
+// TODO: there are lot of places in this codegen pass where we do the recursion, but that's not good.
+// that kind of idea does not scale well and is generally not performant.
+// replace the recursion with the usage of a stack idea.
+
+// TODO: handle when the result of the expression is wider than 64 bits, or is a float. for now, we just do integers in a single register.
+// NOTE: this will generate the code from an expression to build the result for immediate usage.
+// the result of the expression will be stored to r2 (pasm).
+void GenerateExpressionImmediate(struct tree_node *ast, PFileWriter &fileWriter, uint32_t indentation, const char *parentFuncName)
+{
+    // TODO:
+    assert(indentation == 1);
+    const char *indentationStr = "\t";
+    
+    // ast node is
+    /*
+     "[(import_expression)(data_pack)(span_expression)(assignment_exp)(conditional_exp)]",
+     "((op,,)(expression))*"
+     */
+    
+    // TODO: handle the Tuple expressions more generally. right now we only handle for function params.
+    assert(ast->childrenCount >= 1);
+    
+    auto c = &ast->children[0];
+    
+    if (strcmp(c->metadata.str, "assignment_exp") == 0)
+    {
+        PPL_TODO;
+    }
+    else if (
+             strcmp(c->metadata.str, "logical_or_exp") == 0 ||
+             strcmp(c->metadata.str, "logical_and_exp") == 0 ||
+             strcmp(c->metadata.str, "equality_exp") == 0 ||
+             strcmp(c->metadata.str, "relational_exp") == 0 ||
+             strcmp(c->metadata.str, "bitwise_or_exp") == 0 ||
+             strcmp(c->metadata.str, "bitwise_xor_exp") == 0 ||
+             strcmp(c->metadata.str, "bitwise_and_exp") == 0 ||
+             strcmp(c->metadata.str, "bitshift_exp") == 0 ||
+             strcmp(c->metadata.str, "additive_exp") == 0 ||
+             strcmp(c->metadata.str, "term") == 0 ||
+             strcmp(c->metadata.str, "factor") == 0 ||
+             strcmp(c->metadata.str, "object") == 0
+             )
+    {
+        GenerateExpressionImmediate(c, fileWriter, indentation, parentFuncName);
+    }
+    else if (strcmp(c->metadata.str, "function_call") == 0)
+    {
+        tree_node *callee = &c->children[0];
+        assert(callee->childrenCount >= 1);
+        auto calleeName = callee->children[0].metadata.str;
+        
+        // collect the arguments.
+        CG_Tuple args;
+        CollectTupleFromExpression(&c->children[1], &args);
+        
+        // generate the args.
+        // TODO: this can of course be more efficient. I'm perfectly fine at this stage of the project to emit poor asm.
+        // the goal right now is to just get things working.
+        for (uint32_t i = 1; i < args.elemCount; i++)
+        {
+            GenerateExpressionImmediate(args.elems[i], fileWriter, indentation, parentFuncName);
+            auto s = SillyStringFmt("%smov r%d, r2\n", indentationStr, i+2);
+            fileWriter.write(s);
+        }
+        
+        // NOTE: the leftmost one goes into r2.
+        GenerateExpressionImmediate(args.elems[0], fileWriter, indentation, parentFuncName);
+        
+        auto s = SillyStringFmt("%scall %s(", indentationStr, calleeName);
+        fileWriter.write(s);
+        
+        for (uint32_t i = 0; i < args.elemCount; i++)
+        {
+            const char * s;
+            if (i == args.elemCount - 1)
+                s = SillyStringFmt("r%d", 2+i);
+            else
+                s = SillyStringFmt("r%d, ", 2+i);
+            fileWriter.write((char*)s);
+        }
+        
+        fileWriter.write(")\n");
+        
+    }
+    else if ( c->type == AST_SYMBOL )
+    {
+        // TODO: handle lookup for runtime variables. right now we just lookup the compile-time ones.
+        
+        CG_Value val;
+        if ( CG_Glob()->metaVars.get( c->metadata.str, &val) )
+        {
+            switch(val.valueKind)
+            {
+                    // TODO: handle types other than integer.
+                    PPL_TYPE_INTEGER_CASE
+                    {
+                        auto s = SillyStringFmt(
+                                                "%smov r2, %u\n",
+                                                indentationStr, ValueExtract_Uint64(val));
+                        fileWriter.write(s);
+                    }break;
+                default:
+                    PPL_TODO;
+            }
+        }
+        else
+        {
+            // TODO: want a user error. I'm thinking something like CgEmitError;
+            PPL_TODO;
+        }
+    }
+    else if (strcmp(c->metadata.str, "conditional_exp") == 0)
+    {
+#define FUNC_TERN_LABEL_FMT          "label_%s_tern_%d"
+#define FUNC_TERN_LABEL_NO_LABEL_FMT "%s_tern_%d"
+    
+        if (c->childrenCount == 1)
+        {
+            GenerateExpressionImmediate(&c->children[0], fileWriter, indentation, parentFuncName);
+        }
+        else
+        {
+            fileWriter.write("; conditional_exp\n");
+            auto cond = &c->children[0];
+            auto a = &c->children[1];
+            auto b = &c->children[2];
+            
+            uint64_t label1 = CG_Glob()->labelUID++;
+            uint64_t label2 = CG_Glob()->labelUID++;
+            
+            
+            GenerateExpressionImmediate(cond, fileWriter, indentation, parentFuncName);
+            
+            auto s = SillyStringFmt(
+                                    "%sbgt r2, 0, " FUNC_TERN_LABEL_NO_LABEL_FMT "\n",
+                                    indentationStr,
+                                    parentFuncName, label1
+                                    );
+            fileWriter.write(s);
+            
+            GenerateExpressionImmediate(b, fileWriter, indentation, parentFuncName);
+            
+            s = SillyStringFmt(
+                               "%sbr " FUNC_TERN_LABEL_NO_LABEL_FMT "\n"
+                               FUNC_TERN_LABEL_FMT ":\n",
+                               indentationStr,
+                               parentFuncName, label2,
+                               parentFuncName, label1);
+            
+            fileWriter.write(s);
+
+            GenerateExpressionImmediate(a, fileWriter, indentation, parentFuncName);
+            
+            s = SillyStringFmt(FUNC_TERN_LABEL_FMT ":\n", parentFuncName, label2);
+            fileWriter.write(s);
+        }
+#undef FUNC_TERN_LABEL_FMT
+#undef FUNC_TERN_LABEL_NO_LABEL_FMT
+    }
+}
+
+#define FUNC_END_LABEL_FMT          "label_%s_end"
+#define FUNC_END_LABEL_NO_LABEL_FMT "%s_end"
+
+void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t indentation, const char *parentFuncName)
+{
+    // TODO: support arbitrary indentations.
+    assert(indentation == 1);
+    const char *indentationStr = "\t";
+    
+    // ast node is either (statement) or (statement_noend).
+
+    // for statement, we have that
+    //  "["
+    //  "((compile_time_var_decl);?)"
+    //  "(untyped_data_pack)"
+    //  ";"
+    //  "([(return_statement)(runtime_var_decl)(expression)(keyword=fall)`(keyword=break)`(keyword=continue)`];)"
+    //  "(if_statement)(while_statement)(for_statement)(switch_statement)
+    //  "]"
+    
+    assert(ast->childrenCount == 1);
+    
+    // TODO: once again, we want to get rid of this string stuff.
+    auto c = &ast->children[0];
+    auto n = c->metadata.str;
+    if (strcmp(n, "compile_time_var_decl") == 0 )
+    {
+        PPL_TODO;
+    }
+    else if (strcmp(n, "runtime_time_var_decl") == 0 )
+    {
+        PPL_TODO;
+    }
+    else if (strcmp(n, "untyped_data_pack") == 0 )
+    {
+        PPL_TODO;
+    }
+    else if (strcmp(n, "return_statement") == 0 )
+    {
+        // ast node is "(keyword=return)(expression)"
+        assert(c->childrenCount == 1);
+        auto exp = &c->children[0];
+        
+        fileWriter.write("; return_statement\n");
+
+        // NOTE: handle the expresssion if a value needs to be return.
+        GenerateExpressionImmediate(exp, fileWriter, 1, parentFuncName);
+        
+        auto s = SillyStringFmt("%sbr " FUNC_END_LABEL_NO_LABEL_FMT "\n", indentationStr, parentFuncName);
+        fileWriter.write(s);
+    }
+    else if (strcmp(n, "expression") == 0 )
+    {
+        PPL_TODO;
+    }
+    // TODO: handle the keywords of fall, break, continue.
+    else if (strcmp(n, "if_statement") == 0 )
+    {
+        PPL_TODO;
+    }
+    else if (strcmp(n, "while_statement") == 0 )
+    {
+        PPL_TODO;
+    }
+    else if (strcmp(n, "for_statement") == 0 )
+    {
+        PPL_TODO;        
+    }
+    else if (strcmp(n, "switch_statement") == 0 )
+    {
+        PPL_TODO;        
+    }
+}
+
 // NOTE: the goal of generate program should be to generate our PASM IR.
 // we'll then run those through the assembler component to generate the actual .EXE.
 void GenerateProgram(struct tree_node ast, PFileWriter &fileWriter)
 {
     // ast node is "((compile_time_var_decl);?)*"
+
+    // TODO: we want to only include these function headers if the user requests them.
+    fileWriter.write(
+        ".extern p_decl void ppl_console_print(int64, []int64)\n"
+        ".extern p_decl void ppl_exit(int32)\n\n"
+         );
     
     fileWriter.write(".section data\n");
 
@@ -834,8 +1117,48 @@ void GenerateProgram(struct tree_node ast, PFileWriter &fileWriter)
             }
             
             fileWriter.write(")\n");
+
+            tree_node *funcCode = func.code;
+            
+            // TODO: we need to emit the register saving.
+            // right now it's okay we are not doing it because there is only the main function.
+            
+            // NOTE: we start at node 1 since we know that for functions, the first node is the (type) node.
+            // we aren't going to have a function where it was an untyped data pack.
+            for (uint32_t i = 1; i < funcCode->childrenCount; i++)
+            {
+                auto c = &funcCode->children[i];
+                assert(strcmp(c->metadata.str, "statement") == 0 || strcmp(c->metadata.str, "statement_noend") == 0 );
+                GenerateStatement(c, fileWriter, 1, tableElem.key);
+            }
+
+            // TODO: maybe in a future version we do this a little differently. right now we check if
+            // we are emit for the `main` func, and if so, we always make the last instruction ppl_exit().
+            // otherwise, we do a `ret` instruction.
+
+            if ( strcmp(tableElem.key, "main") == 0 )
+            {
+                // TODO: emit the register restore.
+                auto s = SillyStringFmt(
+                                        FUNC_END_LABEL_FMT ":\n"
+                                        "\tcall ppl_exit(r2)\n", tableElem.key);
+                fileWriter.write(s);
+            }
+            else
+            {
+                // TODO: emit the register restore.
+                auto s = SillyStringFmt(
+                                        FUNC_END_LABEL_FMT ":\n"
+                                        "\tret\n", tableElem.key);
+                fileWriter.write(s);
+            }
         }
     }
 }
 
 #endif
+
+#undef CG_MAX_TUPLE_ELEMS
+#undef FUNC_END_LABEL_FMT
+#undef FUNC_END_LABEL_NO_LABEL_FMT
+#undef PPL_TYPE_INTEGER_CASE

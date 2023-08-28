@@ -10,6 +10,8 @@
 #define PLATFORM_UNIX
 #endif
 
+#define PPL_TODO assert(false);
+
 #include <nc_defer.h>
 
 /* PROJECT DEPENDENCIES */
