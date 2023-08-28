@@ -150,6 +150,7 @@ void PrintAbout()
     printf("Program name:            Portable Programming Language (PPL) Toolsuite\n");
     printf("Version:                 v0.1.0\n");
     printf("How to read help menu:   <fullCmdName> (<shortCmdName>)   - <desc>\n");
+    printf("Program dependencies:    Netwide Assembler (nasm) must be available from the cmdline.\n");
 }
 
 void PrintHelp() {
@@ -362,6 +363,42 @@ int DoCommand(const char *l, const char *l2) {
             "codegen", 
             "tests/"
         );
+    } 
+    else if (0 == strcmp(l , "cl") ||  0 == strcmp(l, "compile")) {
+
+        LoadGrammar();
+
+        auto result = RunPtestFromInFile(
+            ptest_Codegen,
+            "codegen", 
+            "tests/"
+        );
+
+        // TODO: right now it is very jank where the previous pass writes to a file on disk.
+        // then we take that file on disk and run our assembler on it.
+        //
+        // ideally, we want to have an in-memory representation of the PASM.
+        if (result == 0)
+        {
+#if defined(PLATFORM_WINDOWS)
+        PPL_TODO;
+#elif defined(PLATFORM_MAC)
+            int r = passembler("program.out", "macOS"
+                // TODO: yuk, why are we using string to declare to the passembler that it's macos?
+                // IIRC, this was because we wanted both the program interface and also the cli interface.
+                // but we could fix this by having an enum that we just translate internally to the same path as the string.
+                // or have a flag that passembler() takes in to indicate that we are calling internally vs. cmdline.
+            );
+            r = pasm_x86_64(pasm_lines, "bin/out.x86_64", MAC_OS);
+            DeallocPasm();
+            r = CallSystem("nasm -o bin/out.o -f macho64 bin/out.x86_64");
+            r = CallSystem("nasm -o bin/exit.o -f macho64 backend/pstdlib/macOS/exit.s");
+            r = CallSystem("nasm -o bin/print.o -f macho64 backend/pstdlib/macOS/console/print.s");
+            r = CallSystem("nasm -g -o bin/stub.o -f macho64 backend/pstdlib/macOS/stub.s");
+            r = CallSystem("ld -o bin/out -static bin/out.o bin/exit.o bin/print.o bin/stub.o");
+#endif
+        }
+
     } 
     else if (0 == strcmp(l, "gall") || 0 == strcmp(l, "grammer_all")) {
         

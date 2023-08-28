@@ -830,7 +830,9 @@ void GenerateExpressionImmediate(struct tree_node *ast, PFileWriter &fileWriter,
 {
     // TODO:
     assert(indentation == 1);
-    const char *indentationStr = "\t";
+    //const char *indentationStr = "\t";
+    // TODO:
+    const char *indentationStr = "";
     
     // ast node is
     /*
@@ -987,7 +989,10 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
 {
     // TODO: support arbitrary indentations.
     assert(indentation == 1);
-    const char *indentationStr = "\t";
+    
+    // TODO:
+    //const char *indentationStr = "\t";
+    const char *indentationStr = "";
     
     // ast node is either (statement) or (statement_noend).
 
@@ -1141,7 +1146,7 @@ void GenerateProgram(struct tree_node ast, PFileWriter &fileWriter)
                 // TODO: emit the register restore.
                 auto s = SillyStringFmt(
                                         FUNC_END_LABEL_FMT ":\n"
-                                        "\tcall ppl_exit(r2)\n", tableElem.key);
+                                        "call ppl_exit(r2_32)\n", tableElem.key);
                 fileWriter.write(s);
             }
             else
@@ -1149,7 +1154,7 @@ void GenerateProgram(struct tree_node ast, PFileWriter &fileWriter)
                 // TODO: emit the register restore.
                 auto s = SillyStringFmt(
                                         FUNC_END_LABEL_FMT ":\n"
-                                        "\tret\n", tableElem.key);
+                                        "ret\n", tableElem.key);
                 fileWriter.write(s);
             }
         }

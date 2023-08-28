@@ -10,6 +10,9 @@
     negative numbers in the source file).
 */
 
+// TODO: it would be really nice if the start of the lines could have \t.
+// that way we can have PASM files be more human-readable.
+
 #ifndef PASSEMBLER_H
 #define PASSEMBLER_H
 
