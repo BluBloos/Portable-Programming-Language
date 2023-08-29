@@ -1098,6 +1098,21 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
     }
 }
 
+uint8_t CG_ConvertEscapedChar(uint8_t c)
+{
+    switch(c)
+    {
+        case 'n':
+            c = 10;
+            break;
+        case '\\':
+            break;
+        default:
+            PPL_TODO;
+    }
+    return c;
+}
+
 // NOTE: the goal of generate program should be to generate our PASM IR.
 // we'll then run those through the assembler component to generate the actual .EXE.
 void GenerateProgram(struct tree_node ast, PFileWriter &fileWriter)
@@ -1235,9 +1250,20 @@ void GenerateProgram(struct tree_node ast, PFileWriter &fileWriter)
 
                 CG_String string = ValueExtract_CgString(tableElem.value);
 
+                bool handleEscape = false;
                 for (uint32_t i = 0; i < string.len; i++)
                 {
                     uint8_t c = string.backing[i];
+                    
+                    if (handleEscape)
+                    {
+                        // TODO: does the escaped char thing code exist anywhere else in this codebase?
+                        c = CG_ConvertEscapedChar(c);
+                        handleEscape = false;
+                    } else if (c == '\\') {
+                        handleEscape = true;
+                        continue;
+                    }
                     auto s = SillyStringFmt(".db %d\n", c);
                     fileWriter.write(s);
                 }

@@ -3,9 +3,9 @@ b :: int = 7; c :: int = 8;
 main :: fn () -> int
 {
     return d ? ppl_console_print(
-        "Hello: %d", b) :
+        "Hello: %d\n", b) :
                ppl_console_print(
-        "Hellohi: %d", c);
+        "Hellohi: %d\n", c);
 }
 
 d :: 0

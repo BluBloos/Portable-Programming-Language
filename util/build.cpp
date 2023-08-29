@@ -182,6 +182,7 @@ void PrintHelp() {
     printf("\n");
     printf("codegen         (c)               - Test Codegen for a single file.\n");
     printf("compile         (cl)              - Compile a single .PPL file to the target's executable format.\n");
+    printf("run             (r)               - Run the most recently compiled .PPL file.\n");
 }
 
 // TODO: this idea is actually something that should be impl in nc::pal.
@@ -363,7 +364,16 @@ int DoCommand(const char *l, const char *l2) {
             "codegen", 
             "tests/"
         );
-    } 
+    }
+    else if (0 == strcmp(l , "r") ||  0 == strcmp(l, "run")) {
+#if defined(PLATFORM_MAC)
+        int r = CallSystem("bin/out");
+        LOGGER.Success("Return code: %d", r);
+#elif defined(PLATFORM_WINDOWS)
+        PPL_TODO;
+#endif
+        return 0;
+    }
     else if (0 == strcmp(l , "cl") ||  0 == strcmp(l, "compile")) {
 
         LoadGrammar();
@@ -391,7 +401,7 @@ int DoCommand(const char *l, const char *l2) {
                 // but we could fix this by having an enum that we just translate internally to the same path as the string.
                 // or have a flag that passembler() takes in to indicate that we are calling internally vs. cmdline.
             );
-            errors += 0 != CallSystem("mkdir bin");
+            CallSystem("mkdir bin");
             errors += 0 != pasm_x86_64(pasm_lines, "bin/out.x86_64", MAC_OS);
             DeallocPasm();
             errors += 0 != CallSystem("nasm -o bin/out.o -f macho64 bin/out.x86_64");
