@@ -15,9 +15,12 @@ tests/*
 *.o
 !tests/preparse/
 !tests/grammar
+!tests/codegen
 JOURNAL.md
 .DS_Store
 node_modules
 *.rdbg
 buildxcode/*
 program.out
+package
+package.zip
