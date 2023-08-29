@@ -72,7 +72,7 @@ int RunPtestFromCwd(
 );
 /* ------- TESTS.CPaP ------- */
 
-void CheckErrors(int errors) {
+void PrintIfError(int errors) {
     if (errors > 0)
         LOGGER.Error("Completed with %d error(s)", errors);
     else
@@ -241,7 +241,7 @@ int DoCommand(const char *l, const char *l2) {
         int r = passembler(inFilePath, "macOS");
         DeallocPasm();
         errors = (r != 0 );
-        CheckErrors(errors);
+        PrintIfError(errors);
         timer.TimerEnd();
         return (errors > 0);
 
@@ -341,7 +341,7 @@ int DoCommand(const char *l, const char *l2) {
         LOGGER.InitFileLogging("w");
         int errors = 0;
         LoadGrammar();
-        CheckErrors(errors);
+        PrintIfError(errors);
         timer.TimerEnd();
         return (errors > 0);
 
@@ -383,21 +383,26 @@ int DoCommand(const char *l, const char *l2) {
 #if defined(PLATFORM_WINDOWS)
         PPL_TODO;
 #elif defined(PLATFORM_MAC)
-            int r = passembler("program.out", "macOS"
+            int &r = result;
+            r &= passembler("program.out", "macOS"
                 // TODO: yuk, why are we using string to declare to the passembler that it's macos?
                 // IIRC, this was because we wanted both the program interface and also the cli interface.
                 // but we could fix this by having an enum that we just translate internally to the same path as the string.
                 // or have a flag that passembler() takes in to indicate that we are calling internally vs. cmdline.
             );
-            r = pasm_x86_64(pasm_lines, "bin/out.x86_64", MAC_OS);
+            r &= pasm_x86_64(pasm_lines, "bin/out.x86_64", MAC_OS);
             DeallocPasm();
-            r = CallSystem("nasm -o bin/out.o -f macho64 bin/out.x86_64");
-            r = CallSystem("nasm -o bin/exit.o -f macho64 backend/pstdlib/macOS/exit.s");
-            r = CallSystem("nasm -o bin/print.o -f macho64 backend/pstdlib/macOS/console/print.s");
-            r = CallSystem("nasm -g -o bin/stub.o -f macho64 backend/pstdlib/macOS/stub.s");
-            r = CallSystem("ld -o bin/out -static bin/out.o bin/exit.o bin/print.o bin/stub.o");
+            r &= CallSystem("nasm -o bin/out.o -f macho64 bin/out.x86_64");
+            r &= CallSystem("nasm -o bin/exit.o -f macho64 backend/pstdlib/macOS/exit.s");
+            r &= CallSystem("nasm -o bin/print.o -f macho64 backend/pstdlib/macOS/console/print.s");
+            r &= CallSystem("nasm -g -o bin/stub.o -f macho64 backend/pstdlib/macOS/stub.s");
+            r &= CallSystem("ld -o bin/out -static bin/out.o bin/exit.o bin/print.o bin/stub.o");
 #endif
         }
+
+        PrintIfError(result);
+
+        return result;
 
     } 
     else if (0 == strcmp(l, "gall") || 0 == strcmp(l, "grammer_all")) {
@@ -719,7 +724,7 @@ int RunPtestFromInFile(void (*ptest)(char *inFilePath, int &errors), const char 
     LOGGER.logContext.currFile = inFilePath;
     int errors = 0;
     ptest(inFilePath, errors);
-    CheckErrors(errors);
+    PrintIfError(errors);
     timer.TimerEnd();
     return (errors > 0);
 }
@@ -732,7 +737,7 @@ int RunPtestFromInFile(void (*ptest)(char *inFilePath, int &errors), const char 
     LOGGER.logContext.currFile = inFilePath;
     int errors = 0;
     ptest(inFilePath, errors);
-    CheckErrors(errors);
+    PrintIfError(errors);
     timer.TimerEnd();
     return (errors > 0);
 }
@@ -779,7 +784,7 @@ int RunPtestFromCwd(
         pal::fileSearchFree( &fSearch );
     }
 
-    CheckErrors(errors);
+    PrintIfError(errors);
     timer.TimerEnd();
     return (errors > 0);
 }
