@@ -43,7 +43,19 @@ if not os.path.exists(docs_dir):
     os.mkdir(docs_dir)
 
 # copy the primary toolchain binary for the user.
-shutil.copy(os.path.join("bin", "ppl"), os.path.join(package_dir, "ppl"))
+
+macos_binary = os.path.join("bin", "ppl")
+windows_binary = os.path.join("bin", "ppl.exe")
+
+on_macos = os.path.exists( macos_binary )
+on_windows = os.path.exists( windows_binary )
+
+if on_macos:
+    shutil.copy(macos_binary, os.path.join(package_dir, "ppl"))
+    shutil.copy("nasm", os.path.join(package_dir, "nasm"))
+elif on_windows:
+    shutil.copy(windows_binary, os.path.join(package_dir, "ppl.exe"))
+
 shutil.copy("LICENSE.txt", os.path.join(package_dir, "LICENSE.txt"))
 shutil.copy("README.txt", os.path.join(package_dir, "README.txt"))
 
@@ -54,9 +66,8 @@ docs_whitelist = ["phase1.cpp", "phase2.cpp"]
 
 def copy_files(source_dir, destination_dir, file_list):
     for file_path in file_list:
-        file_name = os.path.basename(file_path)
-        source_path = os.path.join(source_dir, file_name)
-        destination_path = os.path.join(destination_dir, file_name)
+        source_path = os.path.join(source_dir, file_path)
+        destination_path = os.path.join(destination_dir, file_path) # keep directory structure.
         shutil.copy(source_path, destination_path)
 
 # Copy the whitelisted files
@@ -69,8 +80,6 @@ copy_files( os.path.join("docs", "PPL"), docs_dir, docs_whitelist)
 # shutil.copytree("_site", os.path.join(package_dir, "_site"))
 
 shutil.copytree( os.path.join("backend", "tests"), backend_dir)
-
-# Copy the `backend/pstdlib` folder to `package/pstdlib`.
 shutil.copytree( os.path.join("backend", "pstdlib"), os.path.join(package_dir, "pstdlib"))
 
 # Create a zip file of the package.
