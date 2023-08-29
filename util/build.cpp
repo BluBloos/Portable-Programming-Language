@@ -151,6 +151,7 @@ void PrintAbout()
     printf("Version:                 v0.1.0\n");
     printf("How to read help menu:   <fullCmdName> (<shortCmdName>)   - <desc>\n");
     printf("Program dependencies:    Netwide Assembler (nasm) must be available from the cmdline.\n");
+    printf("                         link.exe from Visual Studio Community 2022.\n");
 }
 
 void PrintHelp() {
@@ -383,6 +384,7 @@ int DoCommand(const char *l, const char *l2) {
 #if defined(PLATFORM_WINDOWS)
             int &r = result;
             r &= passembler("program.out", "macOS"); // TODO(Noah): target independent, remove macOS.
+            r &= CallSystem("mkdir bin");
             r &= pasm_x86_64(pasm_lines, "bin\\out.x86_64", MAC_OS); // TODO(Noah): target independent, remove macOS.
             DeallocPasm();
             r &= CallSystem("nasm -g -o bin\\out.obj -f win64 bin\\out.x86_64");
