@@ -105,6 +105,7 @@ struct CG_Value
         uint64_t v_Uint64;
         CG_Function v_CgFunction; // a function literal (function definition, if you will).
         CG_Span<CG_FunctionSignature> v_CgFunctionSignature;
+        CG_String v_CgString;
     };
     
     CG_Value() : valueKind(PPL_TYPE_UNKNOWN), v_CgFunction() {}
@@ -213,6 +214,8 @@ CG_HashMapWithStringKey_ListType<T_ValueKind> CG_HashMapWithStringKey_ListType<T
 struct CG_Globals
 {
     CG_HashMapWithStringKey<CG_Value> metaVars;
+    
+    CG_HashMapWithStringKey<const char *> stringLiterals;
 
     // TODO: I'm finding in a lot of cases that the stretchy buffer is a concept used quite a bit in this codebase.
     // right now I denote these with the comment of `stretchy buffer`, but should prob make a dynamic array utility thing.
@@ -249,6 +252,7 @@ void CG_Release()
 {
     auto g = CG_Glob();
     g->metaVars.~CG_HashMapWithStringKey();
+    g->stringLiterals.~CG_HashMapWithStringKey();
     StretchyBufferFree(g->funcSignatureRegistryScratch);
     
     // TODO: it's kind of annoying that we have to define the init value twice for this member of Glob.
@@ -278,6 +282,11 @@ CG_Function ValueExtract_CgFunction(CG_Value val)
 CG_Span<CG_FunctionSignature> ValueExtract_CgFunctionSignature(CG_Value val)
 {
     return val.v_CgFunctionSignature;
+}
+
+CG_String ValueExtract_CgString(CG_Value val)
+{
+    return val.v_CgString;
 }
 
 // Replace SpecialFilehandle with PFileWriter
@@ -638,13 +647,11 @@ static void ExpressionInferInfo(struct tree_node *ast, CG_ExpressionInfo *infoOu
                 kind = child2->metadata.valueKind;
                 if (infoOut)  infoOut->TL = child2;
             }
-#if 0
             else if ( child2->type == AST_STRING_LITERAL )
             {
-                kind = PPL_TYPE_STRING;
-                if (infoOut)  infoOut->TL = child2;
+                // TODO: we need to support when the compile-time variable is a string.
+                PPL_TODO;
             }
-#endif
             else if ( strcmp(child2->metadata.str, "type_literal") == 0 )
             {
                 kind = PPL_TYPE_TYPE;
@@ -716,7 +723,7 @@ static CG_Value ConstantExpressionCompute(struct tree_node *ast)
     return val;
 }
 
-static void RecordAndGenerateCompileTimeVarDecl(struct tree_node *ast, PFileWriter &fileWriter)
+static void RecordCompileTimeVarDecl(struct tree_node *ast, PFileWriter &fileWriter)
 {
     // ast node is
     // "(route):"
@@ -769,31 +776,6 @@ static void RecordAndGenerateCompileTimeVarDecl(struct tree_node *ast, PFileWrit
     // so that we don't get lots of empty space.
     fileWriter.write("; recording ");
     fileWriter.write((char*)varName->metadata.str);
-
-    // TODO: implement other types.
-    switch(type)
-    {
-        // TODO: proper handle the negative types.
-        PPL_TYPE_INTEGER_CASE
-        {
-            fileWriter.write("\nlabel_");
-            fileWriter.write((char*)varName->metadata.str);
-            fileWriter.write(":\n");
-
-            // TODO: since the write func does not modify the string that it takes
-            // in, we can make it take a const char *.
-            fileWriter.write(".db ");
-
-            // NOTE: the value extract is gonna work between any integer type,
-            // so long as we have the correct bit width.
-            uint64_t integerValue = ValueExtract_Uint64(val);
-
-            char *integerString = SillyStringFmt("%u", integerValue); 
-
-            fileWriter.write(integerString);
-        }
-        break;
-    }
 }
 
 struct CG_Tuple
@@ -807,13 +789,22 @@ struct CG_Tuple
 // NOTE: getting the tuple is as simple as flattening the tree.
 void CollectTupleFromExpression(struct tree_node *exp, CG_Tuple *builder)
 {
-    builder->elems[builder->elemCount++] = exp;
-    assert(builder->elemCount <= CG_MAX_TUPLE_ELEMS);
-
-    if (exp->childrenCount > 1)
+    if (exp->childrenCount >= 3)
     {
-        assert(exp->children[0].type == AST_OP);
-        CollectTupleFromExpression(&exp->children[1], builder);
+        builder->elems[builder->elemCount++] = &exp->children[0];
+        assert(builder->elemCount <= CG_MAX_TUPLE_ELEMS);
+
+        assert(exp->children[1].type == AST_OP);
+        CollectTupleFromExpression(&exp->children[2], builder);
+    }
+    else if (exp->childrenCount == 1)
+    {
+        builder->elems[builder->elemCount++] = exp;
+        assert(builder->elemCount <= CG_MAX_TUPLE_ELEMS);
+    }
+    else
+    {
+        PPL_TODO;
     }
     
     return;
@@ -866,11 +857,59 @@ void GenerateExpressionImmediate(struct tree_node *ast, PFileWriter &fileWriter,
     {
         GenerateExpressionImmediate(c, fileWriter, indentation, parentFuncName);
     }
+    else if (c->type == AST_STRING_LITERAL)
+    {
+        
+        CG_String newStr;
+        newStr.backing = (char *)c->metadata.str; // TODO: discarding qualifiers.
+        newStr.len = strlen(newStr.backing);
+        
+        CG_Value val;
+        val.valueKind = PPL_TYPE_STRING;
+        val.v_CgString = newStr;
+
+        // when we use the metadata.str as the key, it's OK. it's a null terminated string.
+        // the problem is that it cannot be used as a label within the ASM source.
+        
+        // what we can do is have a label generator. this can give back `msg%d` with increasing integer
+        // values. that should be good for many strings.
+        //
+        // we can create a hash map and use metadata.str as the key, with the `msg%d` label as the value.
+        // we'll use the `msg%d` as the key for the variable in the metavars table.
+        //
+        // so this is a nice little indirection we've got going here.
+        
+        const char *label;
+        if (!CG_Glob()->stringLiterals.get(c->metadata.str, &label))
+        {
+            // the label doesn't exist yet - generate it.
+            auto s = SillyStringFmt("msg%u", CG_Glob()->labelUID++ );
+            
+            
+            // TODO: I'm pretty sure that this currently causes issues.
+            // where if we keep the compiler instance running, we are going to have memory allocate
+            // and never dealloc. we also might overflow the arena.
+            label = MEMORY_ARENA.StringAlloc((char *)s);
+            
+            // record the mapping from string literal to the label.
+            CG_Glob()->stringLiterals.put( c->metadata.str, label );
+            
+            // record the metavariable.
+            CG_Glob()->metaVars.put( label, val );
+        }
+        
+        auto s = SillyStringFmt("%smov r2, %s\n", indentationStr, label);
+        fileWriter.write(s);
+    }
+    else if (c->type == AST_INT_LITERAL)
+    {
+        PPL_TODO;
+    }
     else if (strcmp(c->metadata.str, "function_call") == 0)
     {
         tree_node *callee = &c->children[0];
-        assert(callee->childrenCount >= 1);
-        auto calleeName = callee->children[0].metadata.str;
+        assert(callee->type == AST_SYMBOL);
+        auto calleeName = callee->metadata.str;
         
         // collect the arguments.
         CG_Tuple args;
@@ -1070,8 +1109,6 @@ void GenerateProgram(struct tree_node ast, PFileWriter &fileWriter)
         ".extern p_decl void ppl_console_print(int64, []int64)\n"
         ".extern p_decl void ppl_exit(int32)\n\n"
          );
-    
-    fileWriter.write(".section data\n");
 
     // TODO: maybe we want to use the iterator pattern. that might make things nice.
     for ( uint32 i = 0; i < ast.childrenCount; i++)
@@ -1086,7 +1123,7 @@ void GenerateProgram(struct tree_node ast, PFileWriter &fileWriter)
                 // in a hash map for later re-use. we can access these via their identifiers.
                 //
                 // the Generate step will emit the ROM part of the decl. any code will not be emit.
-                RecordAndGenerateCompileTimeVarDecl(&child, fileWriter);
+                RecordCompileTimeVarDecl(&child, fileWriter);
                 fileWriter.write("\n");
             }
         }
@@ -1157,6 +1194,61 @@ void GenerateProgram(struct tree_node ast, PFileWriter &fileWriter)
                                         "ret\n", tableElem.key);
                 fileWriter.write(s);
             }
+        }
+    }
+    
+    fileWriter.write(".section data\n");
+    
+    // generate the compile-time variable.
+    for ( auto it = CG_Glob()->metaVars.begin(); it != CG_Glob()->metaVars.end(); it++ )
+    {
+        CG_HashMapWithStringKey_Element<CG_Value> tableElem = *it;
+        
+        auto s = tableElem.key;
+
+        switch(tableElem.value.valueKind)
+        {
+            PPL_TYPE_INTEGER_CASE
+            {
+                fileWriter.write("\nlabel_");
+                fileWriter.write((char*)s);
+                fileWriter.write(":\n");
+
+                // TODO: since the write func does not modify the string that it takes
+                // in, we can make it take a const char *.
+                fileWriter.write(".db ");
+
+                // NOTE: the value extract is gonna work between any integer type,
+                // so long as we have the correct bit width.
+                uint64_t integerValue = ValueExtract_Uint64(tableElem.value);
+
+                char *integerString = SillyStringFmt("%u", integerValue);
+
+                fileWriter.write(integerString);
+            } break;
+            case PPL_TYPE_STRING:
+            {
+                
+                fileWriter.write("\nlabel_");
+                fileWriter.write((char*)s);
+                fileWriter.write(":\n");
+
+                CG_String string = ValueExtract_CgString(tableElem.value);
+
+                for (uint32_t i = 0; i < string.len; i++)
+                {
+                    uint8_t c = string.backing[i];
+                    auto s = SillyStringFmt(".db %d\n", c);
+                    fileWriter.write(s);
+                }
+                
+                fileWriter.write(".db 0");
+                
+            }   break;
+            case PPL_TYPE_FUNC:
+                break; // we can ignore since handled in .section code
+            default:
+                PPL_TODO;
         }
     }
 }
