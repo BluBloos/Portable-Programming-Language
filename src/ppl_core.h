@@ -289,6 +289,7 @@ public:
     void DecreaseIndentation(unsigned int amount) { indentation -= amount; }
     // TODO(Noah): Make this take in a char *fmt string and ... variadic arguments.
     void write(char *str) {
+        assert(handle);
         size_t n = 0 ;
         std::string currentWrite = "";        
         while (n < strlen(str)) {

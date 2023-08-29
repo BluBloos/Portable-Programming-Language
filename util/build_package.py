@@ -26,6 +26,10 @@ docs_dir = os.path.join(package_dir, "docs")
 
 if not os.path.exists(package_dir):
     os.mkdir(package_dir)
+else:
+    # clean the old directory.
+    shutil.rmtree(package_dir)
+    os.mkdir(package_dir)
 
 if not os.path.exists(tests_dir):
     os.mkdir(tests_dir)
@@ -80,7 +84,7 @@ copy_files( os.path.join("docs", "PPL"), docs_dir, docs_whitelist)
 # shutil.copytree("_site", os.path.join(package_dir, "_site"))
 
 shutil.copytree( os.path.join("backend", "tests"), backend_dir)
-shutil.copytree( os.path.join("backend", "pstdlib"), os.path.join(package_dir, "pstdlib"))
+shutil.copytree( os.path.join("backend", "pstdlib"), os.path.join(package_dir, "backend", "pstdlib"))
 
 # Create a zip file of the package.
 with zipfile.ZipFile("package.zip", "w", zipfile.ZIP_DEFLATED) as zipf:

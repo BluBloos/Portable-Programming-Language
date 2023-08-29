@@ -390,6 +390,7 @@ int DoCommand(const char *l, const char *l2) {
                 // but we could fix this by having an enum that we just translate internally to the same path as the string.
                 // or have a flag that passembler() takes in to indicate that we are calling internally vs. cmdline.
             );
+            r &= CallSystem("mkdir bin");
             r &= pasm_x86_64(pasm_lines, "bin/out.x86_64", MAC_OS);
             DeallocPasm();
             r &= CallSystem("nasm -o bin/out.o -f macho64 bin/out.x86_64");
