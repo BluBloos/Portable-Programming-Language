@@ -156,7 +156,7 @@ int FileWriter_WriteFunParamPassing(PFileWriter &fileWriter,
         fileWriter.write("push rbx\n"); // saved frame pointer
         stackBytesPushed += 8;
     } else if (!variadicMode) {
-        int lastIndex = (_types != NULL) ? StretchyBufferCount(_types) : StretchyBufferCount(types);
+        int lastIndex = ((_types != NULL) ? StretchyBufferCount(_types) : StretchyBufferCount(types)) - 1;
         enum pasm_type type = (_types != NULL) ? _types[lastIndex].type : types[lastIndex];
         if (type == PASM_INT64_VARIADIC) {
             fileWriter.write("mov rax, rsp\n");
