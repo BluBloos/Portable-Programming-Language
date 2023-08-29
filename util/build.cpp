@@ -367,6 +367,8 @@ int DoCommand(const char *l, const char *l2) {
     else if (0 == strcmp(l , "cl") ||  0 == strcmp(l, "compile")) {
 
         LoadGrammar();
+        
+        int errors = 0;
 
         auto result = RunPtestFromInFile(
             ptest_Codegen,
@@ -383,27 +385,30 @@ int DoCommand(const char *l, const char *l2) {
 #if defined(PLATFORM_WINDOWS)
         PPL_TODO;
 #elif defined(PLATFORM_MAC)
-            int &r = result;
-            r &= passembler("program.out", "macOS"
+            errors += 0 != passembler("program.out", "macOS"
                 // TODO: yuk, why are we using string to declare to the passembler that it's macos?
                 // IIRC, this was because we wanted both the program interface and also the cli interface.
                 // but we could fix this by having an enum that we just translate internally to the same path as the string.
                 // or have a flag that passembler() takes in to indicate that we are calling internally vs. cmdline.
             );
-            r &= CallSystem("mkdir bin");
-            r &= pasm_x86_64(pasm_lines, "bin/out.x86_64", MAC_OS);
+            errors += 0 != CallSystem("mkdir bin");
+            errors += 0 != pasm_x86_64(pasm_lines, "bin/out.x86_64", MAC_OS);
             DeallocPasm();
-            r &= CallSystem("nasm -o bin/out.o -f macho64 bin/out.x86_64");
-            r &= CallSystem("nasm -o bin/exit.o -f macho64 backend/pstdlib/macOS/exit.s");
-            r &= CallSystem("nasm -o bin/print.o -f macho64 backend/pstdlib/macOS/console/print.s");
-            r &= CallSystem("nasm -g -o bin/stub.o -f macho64 backend/pstdlib/macOS/stub.s");
-            r &= CallSystem("ld -o bin/out -static bin/out.o bin/exit.o bin/print.o bin/stub.o");
+            errors += 0 != CallSystem("nasm -o bin/out.o -f macho64 bin/out.x86_64");
+            errors += 0 != CallSystem("nasm -o bin/exit.o -f macho64 backend/pstdlib/macOS/exit.s");
+            errors += 0 != CallSystem("nasm -o bin/print.o -f macho64 backend/pstdlib/macOS/console/print.s");
+            errors += 0 != CallSystem("nasm -g -o bin/stub.o -f macho64 backend/pstdlib/macOS/stub.s");
+            errors += 0 != CallSystem("ld -o bin/out -static bin/out.o bin/exit.o bin/print.o bin/stub.o");
 #endif
         }
+        else
+        {
+            errors += 1;
+        }
 
-        PrintIfError(result);
+        PrintIfError(errors);
 
-        return result;
+        return (errors > 1);
 
     } 
     else if (0 == strcmp(l, "gall") || 0 == strcmp(l, "grammer_all")) {
