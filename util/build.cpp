@@ -381,7 +381,17 @@ int DoCommand(const char *l, const char *l2) {
         if (result == 0)
         {
 #if defined(PLATFORM_WINDOWS)
-        PPL_TODO;
+            int &r = result;
+            r &= passembler("program.out", "macOS"); // TODO(Noah): target independent, remove macOS.
+            r &= pasm_x86_64(pasm_lines, "bin\\out.x86_64", MAC_OS); // TODO(Noah): target independent, remove macOS.
+            DeallocPasm();
+            r &= CallSystem("nasm -g -o bin\\out.obj -f win64 bin\\out.x86_64");
+            r &= CallSystem("nasm -g -o bin\\exit.obj -f win64 backend\\pstdlib\\Windows\\exit.s");
+            r &= CallSystem("nasm -g -o bin\\stub.obj -f win64 backend\\pstdlib\\Windows\\stub.s");
+            r &= CallSystem("nasm -g -o bin\\print.obj -f win64 backend\\pstdlib\\Windows\\console\\print.s");
+            // TODO(Noah): Remove dependency on Visual Studio linker.
+            r &= CallSystem("link /LARGEADDRESSAWARE /subsystem:console /entry:start bin\\out.obj bin\\exit.obj bin\\stub.obj bin\\print.obj \
+                /OUT:bin\\out.exe Kernel32.lib");
 #elif defined(PLATFORM_MAC)
             int &r = result;
             r &= passembler("program.out", "macOS"
