@@ -16,6 +16,31 @@
 #ifndef PASSEMBLER_H
 #define PASSEMBLER_H
 
+struct pasm_globals {
+    // we can use this hash map to store constant values of string temporaries.
+    PPL_HashMapWithStringKey<const char*> stringMap;
+
+    int localRsp = 0;
+};
+
+static pasm_globals s_pasmGlobals;
+
+pasm_globals *Pasm_Glob()
+{
+    return &s_pasmGlobals;
+}
+
+void Pasm_Create()
+{
+    s_pasmGlobals = {};
+}
+
+void Pasm_Release()
+{
+    s_pasmGlobals.stringMap.~PPL_HashMapWithStringKey();
+}
+
+
 enum pasm_line_type {
     PASM_LINE_UNDEFINED = 0,
     PASM_LINE_SECTION_CODE,
@@ -26,6 +51,8 @@ enum pasm_line_type {
     PASM_LINE_DATA_BYTE_STRING,
     PASM_LINE_FCALL,
     PASM_LINE_FDEF,
+    PASM_LINE_LET,   // create a stack variable.
+    PASM_LINE_UNLET, // pop stack variable.
     PASM_LINE_SAVE,
     PASM_LINE_RESTORE,
     PASM_LINE_BRANCH,
@@ -69,6 +96,11 @@ struct pasm_fdecl {
     enum pasm_type returnType;
     char *name;
     enum pasm_type *params; // Stretchy buffer.
+};
+
+struct pasm_let {
+    char *name;
+    enum pasm_type type;
 };
 
 enum pasm_fparam_type {
@@ -166,6 +198,7 @@ struct pasm_line {
         enum pasm_register *data_save; // Stretchy buffer.
         int data_int;
         struct pasm_fptriad data_fptriad;
+        struct pasm_let data_let; // also used for unlet.
     };
 };
 
@@ -185,6 +218,14 @@ struct pasm_fdecl PasmFdeclEmpty() {
     return pfdecl;
 }
 
+struct pasm_let PasmLetEmpty()
+{
+    struct pasm_let plet;
+    plet.name = NULL;
+    plet.type = PASM_VOID;
+    return plet;
+}
+
 struct pasm_line PasmLineEmpty() {
     struct pasm_line pl;
     pl.lineType = PASM_LINE_UNDEFINED;
@@ -192,6 +233,7 @@ struct pasm_line PasmLineEmpty() {
     pl.data_fdecl = PasmFdeclEmpty();
     pl.data_fcall = PasmFcallEmpty();
     pl.data_int = 0;
+    pl.data_let = PasmLetEmpty();
     return pl;
 }
 
@@ -353,6 +395,18 @@ void PasmLinePrint(struct pasm_line pl) {
             }
         }
         break;
+        case PASM_LINE_LET:
+        {
+            LOGGER.Min("PASM_LINE_LET\n");
+            LOGGER.Min("  name:%s\n", pl.data_let.name);
+            LOGGER.Min("  type:"); PasmTypePrint(pl.data_let.type);
+        } break;
+        case PASM_LINE_UNLET:
+        {
+            LOGGER.Min("PASM_LINE_UNLET\n");
+            LOGGER.Min("  name:%s\n", pl.data_let.name);
+            LOGGER.Min("  type:"); PasmTypePrint(pl.data_let.type);
+        } break;
         case PASM_LINE_DATA_BYTE_STRING:
         LOGGER.Min("PASM_LINE_DATA_BYTE_STRING\n");
         LOGGER.Min("  %s\n", pl.data_cptr);
@@ -482,35 +536,42 @@ void DeallocPasm() {
     stbds_shfree(label_table);
 }
 
-/* Given a fparam that is of type PASM_FPARAM_LABEL,
-   check if this label corresponds with a stack variable.
-   If it does, adjust the fparam to be PASM_FPARAM_STACKVAR
-   and set data_sv accordingly. */
-void StackVarFromFplabel(struct pasm_fparam *fparam) {
+// TODO: is there any sort of way we can do this without looping through all
+// the variables and doing a string compare for each?
+// that seems prohibitively slow. it doesn't seem like we need a stack
+// that supports many levels. it just seems like we need a bucket of key, value
+// pairs.
+bool StackVarFromLabel(char *label, struct pasm_stackvar *sv)
+{
     // TODO(Noah): check if the label is in the label table.
     //
     // we start by going right to see if this is a local var.
-    bool exists = false;
-    struct pasm_stackvar sv;
     int j = StretchyBufferCount(_sv_table) - 1;
     while (StretchyBufferCount(_sv_table) && 
         !SillyStringStartsWith(_sv_table[j].name, 
             "0scope")) 
     {
-        if (SillyStringEquals(fparam->data_cptr, 
-            _sv_table[j].name)) 
+        auto s =  _sv_table[j].name;
+        if (SillyStringEquals(label, s))
         {
-            exists = true;
-            sv = _sv_table[j];    
-            break;
+            *sv = _sv_table[j];  
+            return true;
         }   
         j--;
     }
-    if (exists) {
+    return false;
+}
+
+/* Given a fparam that is of type PASM_FPARAM_LABEL,
+   check if this label corresponds with a stack variable.
+   If it does, adjust the fparam to be PASM_FPARAM_STACKVAR
+   and set data_sv accordingly. */
+void StackVarFromFplabel(struct pasm_fparam *fparam) {
+    struct pasm_stackvar sv;
+    if (StackVarFromLabel(fparam->data_cptr, &sv)) {
         fparam->type = PASM_FPARAM_STACKVAR;
         fparam->data_sv = sv;
     }
-
 }
 
 // USAGE:
@@ -520,6 +581,9 @@ int pasm_main(int argc, char **argv) {
     // StretchyBufferInit(pasm_lines);
     pasm_lines = NULL;
     _sv_table = NULL;
+
+    // TODO: move other globals into the Pasm_Glob.
+    Pasm_Create();
 
     if (argc < 3) {
         LOGGER.Error("Not enough arguments");
@@ -620,6 +684,36 @@ int pasm_main(int argc, char **argv) {
                 }
             }
             break;
+
+            // NOTE(Noah): this works because the idea with the second pass is to resolve
+            // labels (FPARAM_LABEL) to stack variables (FPARAM_STACKVARS). 
+            // even though it goes as FPARAM*, we also use such labels for the operands to
+            // things like a MOV instruction, e.g.
+            case PASM_LINE_LET:
+            {
+                // we're always assuming that we are within a scope already.
+                assert( StretchyBufferCount(_sv_table) > 0 );
+
+                int addr = Pasm_Glob()->localRsp;
+
+                // TODO: 
+                addr -= 8;
+
+                // now we go through the named params of FDEF and put them on the stack.
+                struct pasm_stackvar sv;
+                sv.type = pl.data_let.type;
+                sv.name = pl.data_let.name;
+                // TODO(Noah): Implement other sizings than 64-bit.
+                sv.addr = addr;
+                StretchyBufferPush(_sv_table, sv);
+            } break;
+            // TODO: we're gonna need unlet if we want functions to have subscopes.
+            // but for now, this should be OK.
+            case PASM_LINE_UNLET:
+            {
+                PPL_TODO;
+            } break;            
+
             case PASM_LINE_ADD:
             case PASM_LINE_SUB:
             case PASM_LINE_MOV:
@@ -663,8 +757,9 @@ int pasm_main(int argc, char **argv) {
     }
 
     StretchyBufferFree(_sv_table);
-    return 0;
+    Pasm_Release();
 
+    return 0;
 }
 
 enum pasm_type SillyStringGetPasmType(char *typeStr) {
@@ -770,7 +865,48 @@ void HandleLine(char *line) {
                 PASM_LINE_SECTION_DATA;
             StretchyBufferPush(pasm_lines, pline);
 
-        } else if (directive == "def") {
+        } else if (directive == "let") {
+            pasm_line pline = PasmLineEmpty();
+            pline.lineType = PASM_LINE_LET;
+
+            pline.data_let.type = HandleType(&line);
+            line++; // Skip over ' '
+
+            SillyStringRemove0xA(line);
+
+            const char *c_line;
+            if ( !Pasm_Glob()->stringMap.get(line, &c_line) )
+            {
+                // NOTE: recall that we need to alloc the strings since the caller of HandleLine
+                // deallocs the line after we return.
+                c_line = MEMORY_ARENA.StringAlloc(line);
+                Pasm_Glob()->stringMap.put(line, c_line);                
+            }
+
+            pline.data_let.name = (char*)c_line; // TODO: cast.
+
+            StretchyBufferPush(pasm_lines, pline);
+        } else if (directive == "unlet") {
+            pasm_line pline = PasmLineEmpty();
+            pline.lineType = PASM_LINE_UNLET;
+
+            pline.data_let.type = HandleType(&line);
+            line++; // Skip over ' '
+
+            SillyStringRemove0xA(line);
+
+            const char *c_line;
+            if ( !Pasm_Glob()->stringMap.get(line, &c_line) )
+            {
+                c_line = MEMORY_ARENA.StringAlloc(line);
+                Pasm_Glob()->stringMap.put(line, c_line);                
+            }
+
+            pline.data_let.name = (char*)c_line; // TODO: cast.
+
+            StretchyBufferPush(pasm_lines, pline);
+        } 
+        else if (directive == "def") {
 
             pasm_line pline = PasmLineEmpty();
             pline.lineType = PASM_LINE_FDEF;
@@ -869,6 +1005,7 @@ void HandleLine(char *line) {
             pline.lineType = PASM_LINE_FCALL;
             while (*line++ != ' ');
             pline.data_fcall.name = HandleSillyStringUntil(&line, "(");
+            pline.data_fcall.params = NULL; // TODO: we found that by this point, this was not NULL. how can that be?
             line++; // skip past the '('
             // Now we have to check for the parameters.
             while(*line != ')') {

@@ -111,111 +111,13 @@ struct CG_Value
     CG_Value() : valueKind(PPL_TYPE_UNKNOWN), v_CgFunction() {}
 };
 
-// TODO: write our own hash map stuff because we want to learn how the
-// hashing algorithms work.
-// there's also other parts of this codebase where we use the hash maps.
-// use this struct there.
-//
-// we could also make this version a specialization on a more generic hash map.
-//
-
-template <typename T_ValueKind>
-struct CG_HashMapWithStringKey_Element
-{
-    char *key;
-    T_ValueKind value;
-};
-
-template <typename T_ValueKind>
-struct CG_HashMapWithStringKey;
-
-// iterator for hash map.
-template <typename T_ValueKind>
-class CG_HashMapWithStringKey_ListType {
-public:
-    CG_HashMapWithStringKey_Element<T_ValueKind> operator*() { return *this->elem; }
-
-    bool operator!=(CG_HashMapWithStringKey_ListType &other) const { return (other.elem != this->elem); }
-
-    // `this++`.
-    CG_HashMapWithStringKey_ListType operator++(int);
-
-    CG_HashMapWithStringKey_Element<T_ValueKind> *elem;
-    CG_HashMapWithStringKey<T_ValueKind>         *parent;
-
-    CG_HashMapWithStringKey_ListType(
-        CG_HashMapWithStringKey<T_ValueKind> *parent, CG_HashMapWithStringKey_Element<T_ValueKind> *inval) :
-        elem(inval), parent(parent)
-    {}
-};
-
-// TODO: some of this hash map is untested. maybe we should verify that the endVal is good.
-template <typename T_ValueKind>
-struct CG_HashMapWithStringKey
-{
-
-    CG_HashMapWithStringKey_ListType<T_ValueKind> begin()
-    {
-        auto start = CG_HashMapWithStringKey_ListType<T_ValueKind> { this, table_internal ? &table_internal[0] : nullptr};
-
-        while( start.elem && start.elem->key == nullptr ) start.elem += 1;
-        
-        return start;
-    };
-    
-    CG_HashMapWithStringKey_ListType<T_ValueKind>& end()
-    {
-        return this->endVal;
-    };
-    
-    // return TRUE if hash map contains item at key, FALSE otherwise.
-    bool get(const char *key, T_ValueKind *dst)
-    {
-        size_t i = stbds_shgeti(table_internal, key);
-        bool bResult = i != -1;
-        if (bResult)
-        {
-            *dst = table_internal[i].value;
-        }
-        return bResult;
-    }
-    
-    void put(const char *str, T_ValueKind value)
-    {
-        stbds_shput(table_internal, str, value);
-        size_t end = stbds_shlen(table_internal);
-        endVal = CG_HashMapWithStringKey_ListType<T_ValueKind> {this, &table_internal[end-1] + 1};
-    }
-
-    CG_HashMapWithStringKey_ListType<T_ValueKind> endVal = {this, nullptr};
-    CG_HashMapWithStringKey_Element<T_ValueKind> *table_internal = nullptr;
-    
-    ~CG_HashMapWithStringKey()
-    {
-        stbds_shfree(table_internal);
-    }
-    
-};
-
-template <typename T_ValueKind>
-CG_HashMapWithStringKey_ListType<T_ValueKind> CG_HashMapWithStringKey_ListType<T_ValueKind>::operator++(int)
-{
-    auto r = *this;
-    
-    this->elem += 1;
-    
-    while( this->elem->key == nullptr && *this != parent->endVal ) this->elem += 1;
-    
-    return r;
-}
-
 // =====================================================
 
 struct CG_Globals
 {
-    CG_HashMapWithStringKey<CG_Value> metaVars;
+    PPL_HashMapWithStringKey<CG_Value> metaVars;
     
-    CG_HashMapWithStringKey<const char *> stringLiterals;
+    PPL_HashMapWithStringKey<const char *> stringLiterals;
 
     // TODO: I'm finding in a lot of cases that the stretchy buffer is a concept used quite a bit in this codebase.
     // right now I denote these with the comment of `stretchy buffer`, but should prob make a dynamic array utility thing.
@@ -251,8 +153,8 @@ void CG_Create()
 void CG_Release()
 {
     auto g = CG_Glob();
-    g->metaVars.~CG_HashMapWithStringKey();
-    g->stringLiterals.~CG_HashMapWithStringKey();
+    g->metaVars.~PPL_HashMapWithStringKey();
+    g->stringLiterals.~PPL_HashMapWithStringKey();
     StretchyBufferFree(g->funcSignatureRegistryScratch);
     
     // TODO: it's kind of annoying that we have to define the init value twice for this member of Glob.
@@ -1149,7 +1051,7 @@ void GenerateProgram(struct tree_node ast, PFileWriter &fileWriter)
     // TODO: need to impl additional operators on the iterator thing.
     for ( auto it = CG_Glob()->metaVars.begin(); it != CG_Glob()->metaVars.end(); it++)
     {
-        CG_HashMapWithStringKey_Element<CG_Value> tableElem = *it;
+        PPL_HashMapWithStringKey_Element<CG_Value> tableElem = *it;
 
         if (tableElem.value.valueKind == PPL_TYPE_FUNC)
         {
@@ -1217,7 +1119,7 @@ void GenerateProgram(struct tree_node ast, PFileWriter &fileWriter)
     // generate the compile-time variable.
     for ( auto it = CG_Glob()->metaVars.begin(); it != CG_Glob()->metaVars.end(); it++ )
     {
-        CG_HashMapWithStringKey_Element<CG_Value> tableElem = *it;
+        PPL_HashMapWithStringKey_Element<CG_Value> tableElem = *it;
         
         auto s = tableElem.key;
 

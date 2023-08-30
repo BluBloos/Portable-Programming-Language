@@ -326,6 +326,7 @@ struct ppl_str_view
 // TODO: Make this file (ppl_core.h) a *.hpp
 
 /* OTHER COMPILATION UNITS */
+#include <hashmap.hpp>
 #include <ppl_error.hpp>
 #include <lexer.h>
 #ifdef PLATFORM_WINDOWS
