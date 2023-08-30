@@ -1229,7 +1229,10 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
     }
     else if (strcmp(n, "expression") == 0 )
     {
-        PPL_TODO;
+        // NOTE: this will generate into r2, but we don't care about the value.
+        // we still have to emit instructions for this since the expression could do
+        // something like a function call with side-effects.
+        GenerateExpressionImmediate(c, fileWriter, indentation, parentFuncName);
     }
     // TODO: handle the keywords of fall, break, continue.
     else if (strcmp(n, "if_statement") == 0 )
