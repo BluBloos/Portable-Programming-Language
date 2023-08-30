@@ -45,7 +45,7 @@ struct PPL_HashMapWithStringKey
     {
         auto start = PPL_HashMapWithStringKey_ListType<T_ValueKind> { this, table_internal ? &table_internal[0] : nullptr};
 
-        while( start.elem && start.elem->key == nullptr ) start.elem += 1;
+        while( start.elem && (start.elem->key == nullptr || *start.elem->key == 0) ) start.elem += 1;
         
         return start;
     };
@@ -65,6 +65,11 @@ struct PPL_HashMapWithStringKey
             *dst = table_internal[i].value;
         }
         return bResult;
+    }
+    
+    size_t count() const
+    {
+        return stbds_shlen(table_internal);
     }
 
     void del(const char *key)
@@ -103,7 +108,21 @@ PPL_HashMapWithStringKey_ListType<T_ValueKind> PPL_HashMapWithStringKey_ListType
     
     this->elem += 1;
     
-    while( this->elem->key == nullptr && *this != parent->endVal ) this->elem += 1;
+    while( true )
+    {
+        const bool bNotAtEnd = *this != parent->endVal;
+        if (!bNotAtEnd) break;
+        
+        const bool bNullKey = (this->elem->key == nullptr);
+        const bool bEmptyKey = *this->elem->key == 0;
+        
+        if (!bNullKey && !bEmptyKey)
+        {
+            break;
+        }
+        
+        this->elem += 1;
+    }
     
     return r;
 }

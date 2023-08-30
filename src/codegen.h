@@ -153,10 +153,14 @@ struct CG_Globals
 {
     PPL_HashMapWithStringKey<CG_Value> metaVars;
     
+    // map the string literal to the label as found in the .pasm codegen output.
     PPL_HashMapWithStringKey<const char *> stringLiterals;
     
     // this is the current program stack.
     PPL_HashMapWithStringKey<CG_Id> runtimeVars;
+    
+    // idents + data to emit in the readonly section of the .exe
+    PPL_HashMapWithStringKey<CG_Value> binaryReadonly;
 
     // TODO: I'm finding in a lot of cases that the stretchy buffer is a concept used quite a bit in this codebase.
     // right now I denote these with the comment of `stretchy buffer`, but should prob make a dynamic array utility thing.
@@ -195,6 +199,7 @@ void CG_Release()
     g->metaVars.~PPL_HashMapWithStringKey();
     g->stringLiterals.~PPL_HashMapWithStringKey();
     g->runtimeVars.~PPL_HashMapWithStringKey();
+    g->binaryReadonly.~PPL_HashMapWithStringKey();
     StretchyBufferFree(g->funcSignatureRegistryScratch);
     
     // TODO: it's kind of annoying that we have to define the init value twice for this member of Glob.
@@ -851,7 +856,7 @@ void GenerateExpressionImmediate(struct tree_node *ast, PFileWriter &fileWriter,
             CG_Glob()->stringLiterals.put( c->metadata.str, label );
             
             // record the metavariable.
-            CG_Glob()->metaVars.put( label, val );
+            CG_Glob()->binaryReadonly.put( label, val );
         }
         
         auto s = SillyStringFmt("%smov r2, %s\n", indentationStr, label);
@@ -1234,10 +1239,46 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
         // something like a function call with side-effects.
         GenerateExpressionImmediate(c, fileWriter, indentation, parentFuncName);
     }
-    // TODO: handle the keywords of fall, break, continue.
     else if (strcmp(n, "if_statement") == 0 )
     {
-        PPL_TODO;
+#define FUNC_IF_LABEL_NO_LABEL_FMT "%s_if_%d"
+#define FUNC_IF_LABEL_FMT          "label_%s_if_%d"
+        // ast node is
+        // "(keyword=if)(expression)[;(keyword=then)](statement)((keyword=else)(statement))?"
+        assert(c->childrenCount >= 2);
+        tree_node *cond = &c->children[0];
+        tree_node *body = &c->children[1];
+        
+        uint64_t label1 = CG_Glob()->labelUID++;
+        uint64_t label2 = CG_Glob()->labelUID++;
+        
+        GenerateExpressionImmediate(cond, fileWriter, indentation, parentFuncName);
+        
+        auto s = SillyStringFmt(
+                                "%sbgt r2, 0, " FUNC_IF_LABEL_NO_LABEL_FMT "\n",
+                                indentationStr,
+                                parentFuncName, label1
+                                );
+        fileWriter.write(s);
+        
+        // the code that happens for the false condition.
+        
+        s = SillyStringFmt(
+                           "%sbr " FUNC_IF_LABEL_NO_LABEL_FMT "\n"
+                           FUNC_IF_LABEL_FMT ":\n",
+                           indentationStr,
+                           parentFuncName, label2,
+                           parentFuncName, label1);
+        
+        fileWriter.write(s);
+
+        // the code that happens for the true condition.
+        GenerateStatement(body, fileWriter, indentation, parentFuncName);
+        
+        s = SillyStringFmt(FUNC_IF_LABEL_FMT ":\n", parentFuncName, label2);
+        fileWriter.write(s);
+#undef FUNC_IF_LABEL_NO_LABEL_FMT
+#undef FUNC_IF_LABEL_FMT
     }
     else if (strcmp(n, "while_statement") == 0 )
     {
@@ -1250,6 +1291,11 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
     else if (strcmp(n, "switch_statement") == 0 )
     {
         PPL_TODO;        
+    }
+    else
+    {
+        // TODO: handle the keywords of fall, break, continue.
+        PPL_TODO;
     }
 }
 
@@ -1302,6 +1348,8 @@ void GenerateProgram(struct tree_node ast, PFileWriter &fileWriter)
     fileWriter.write("\n.section code\n");
     
     // TODO: need to impl additional operators on the iterator thing.
+    // NOTE: we must ensure that whilst iterating over the hashmap that we do not insert
+    // additional items into it.
     for ( auto it = CG_Glob()->metaVars.begin(); it != CG_Glob()->metaVars.end(); it++)
     {
         PPL_HashMapWithStringKey_Element<CG_Value> tableElem = *it;
@@ -1370,7 +1418,7 @@ void GenerateProgram(struct tree_node ast, PFileWriter &fileWriter)
     fileWriter.write(".section data\n");
     
     // generate the compile-time variable.
-    for ( auto it = CG_Glob()->metaVars.begin(); it != CG_Glob()->metaVars.end(); it++ )
+    for ( auto it = CG_Glob()->binaryReadonly.begin(); it != CG_Glob()->binaryReadonly.end(); it++ )
     {
         PPL_HashMapWithStringKey_Element<CG_Value> tableElem = *it;
         

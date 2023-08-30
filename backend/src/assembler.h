@@ -1115,7 +1115,7 @@ void HandleLine(char *line) {
             // if the line is whitespace, we can skip. but if there is something on the line,
             // that's an error!
             SillyStringRemove0xA(line);
-            while (*line++ == ' ' && *line != 0); // Skip over whitespace.
+            while (*line != 0 && *line++ == ' '); // Skip over whitespace.
 
             if (*line != 0)
             {
