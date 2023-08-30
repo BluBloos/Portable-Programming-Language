@@ -1111,6 +1111,18 @@ void HandleLine(char *line) {
             StretchyBufferPush(pasm_lines, pline);
 
         }
+        else {
+            // if the line is whitespace, we can skip. but if there is something on the line,
+            // that's an error!
+            SillyStringRemove0xA(line);
+            while (*line++ == ' ' && *line != 0); // Skip over whitespace.
+
+            if (*line != 0)
+            {
+                // I guess we need some way to emit an error.
+                PPL_TODO;
+            }
+        }
     }
 
 }

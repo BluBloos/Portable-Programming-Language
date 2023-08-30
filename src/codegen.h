@@ -868,6 +868,48 @@ void GenerateExpressionImmediate(struct tree_node *ast, PFileWriter &fileWriter,
     {
         PPL_TODO;
     }
+    else if (strcmp(c->metadata.str, "additive_exp") == 0)
+    {
+        // ast node is  "(term)([(op,+)(op,-)](term))*".
+        if (c->childrenCount > 1)
+        {
+            tree_node *term1 = &c->children[0];
+            GenerateExpressionImmediate(term1, fileWriter, indentation, parentFuncName);
+            
+            // save the last computed term into r3.
+            auto s = SillyStringFmt("%smov r3, r2\n", indentationStr);
+            fileWriter.write(s);
+
+            for ( uint32_t i = 1; i < c->childrenCount; i += 2 )
+            {
+                tree_node *op = &c->children[i];
+                tree_node *term2 = &c->children[i+1];
+                
+                assert(op->type == AST_OP);
+                char opChar = op->metadata.str[2];
+                
+                GenerateExpressionImmediate(term2, fileWriter, indentation, parentFuncName);
+
+                char *s;
+                if (opChar == '+')
+                    s = SillyStringFmt("%sadd r3, r2\n", indentationStr);
+                else if (opChar == '-')
+                    s = SillyStringFmt("%ssub r3, r2\n", indentationStr);
+                else
+                    PPL_TODO;
+
+                fileWriter.write(s);
+            }
+            
+            // output the result.
+            s = SillyStringFmt("%smov r2, r3\n", indentationStr);
+            fileWriter.write(s);
+        }
+        else
+        {
+            GenerateExpressionImmediate(c, fileWriter, indentation, parentFuncName);
+        }
+    }
     else if (
              strcmp(c->metadata.str, "logical_or_exp") == 0 ||
              strcmp(c->metadata.str, "logical_and_exp") == 0 ||
@@ -877,7 +919,6 @@ void GenerateExpressionImmediate(struct tree_node *ast, PFileWriter &fileWriter,
              strcmp(c->metadata.str, "bitwise_xor_exp") == 0 ||
              strcmp(c->metadata.str, "bitwise_and_exp") == 0 ||
              strcmp(c->metadata.str, "bitshift_exp") == 0 ||
-             strcmp(c->metadata.str, "additive_exp") == 0 ||
              strcmp(c->metadata.str, "term") == 0 ||
              strcmp(c->metadata.str, "factor") == 0 ||
              strcmp(c->metadata.str, "object") == 0
@@ -1144,7 +1185,7 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
             // the variable decl also includes assignment, so do that.
             if (firstVal->type == AST_OP)
             {
-                assert( strcmp(firstVal->metadata.str, "op,?") == 0 );
+                assert( strcmp(firstVal->metadata.str, "op?") == 0 );
             }
             else
             {
