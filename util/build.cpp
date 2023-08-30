@@ -367,8 +367,7 @@ int DoCommand(const char *l, const char *l2) {
     }
     else if (0 == strcmp(l , "r") ||  0 == strcmp(l, "run")) {
 #if defined(PLATFORM_MAC)
-        int r = CallSystem("bin/out");
-        LOGGER.Success("Return code: %d", r);
+        int r = CallSystem("(bin/out && echo \"return code: 0\") || echo \"return code: $?\"");
 #elif defined(PLATFORM_WINDOWS)
         PPL_TODO;
 #endif
