@@ -1262,6 +1262,11 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
         fileWriter.write(s);
         
         // the code that happens for the false condition.
+        if (c->childrenCount >= 3)
+        {
+            tree_node *body_else = &c->children[2];
+            GenerateStatement(body_else, fileWriter, indentation, parentFuncName);
+        }
         
         s = SillyStringFmt(
                            "%sbr " FUNC_IF_LABEL_NO_LABEL_FMT "\n"
