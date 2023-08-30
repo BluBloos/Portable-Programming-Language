@@ -226,6 +226,7 @@ const char *PplTypeToPasmHumanReadable(ppl_type type)
         // TODO: this is gonna force a PASM failure. prob want to do something more
         // intelligent here.
         default:
+            PPL_TODO;
             return "<unknown>";
     }
 }

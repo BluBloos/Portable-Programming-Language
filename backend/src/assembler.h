@@ -711,8 +711,8 @@ int pasm_main(int argc, char **argv) {
             // but for now, this should be OK.
             case PASM_LINE_UNLET:
             {
-                PPL_TODO;
-            } break;            
+                // PPL_TODO;
+            } break;
 
             case PASM_LINE_ADD:
             case PASM_LINE_SUB:

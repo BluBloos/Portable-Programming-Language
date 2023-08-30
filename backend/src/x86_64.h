@@ -72,11 +72,34 @@ char *PasmSelectTempReg(pasm_type type)
         case PASM_INT64_VARIADIC:
         case PASM_INT64:
         case PASM_UINT64:
+            reg = pasm_x64_GprTable[0]; // default value
+            break;
         default:
-        reg = pasm_x64_GprTable[0]; // default value
-        break;
+            PPL_TODO;
     }
     return reg;
+}
+
+int PasmTypeGetWidth(pasm_type type)
+{
+    switch(type) {
+        case PASM_INT8:
+        case PASM_UINT8:
+            return 1;
+        case PASM_INT16:
+        case PASM_UINT16:
+            return 2;
+        case PASM_INT32:
+        case PASM_UINT32:
+            return 4;
+        case PASM_INT64_VARIADIC:
+        case PASM_INT64:
+        case PASM_UINT64:
+            return 8;
+        default:
+            PPL_TODO;
+            return 0;
+    }
 }
 
 /* Write using a PFileWriter the x86 assembly for the stack variable. */
@@ -265,17 +288,29 @@ int pasm_x86_64(struct pasm_line *source,
                     // it's both a load and a store. we need to decompose this.
 
                     // first load. recall that the compiler is reserved both registers 0 and 1.
-                    char *reg2 = PasmSelectTempReg(pline.data_fptriad.param2.data_sv.type);
+                    auto type2 = pline.data_fptriad.param2.data_sv.type;
+                    char *reg2 = PasmSelectTempReg( type2 );
                     fileWriter.write(SillyStringFmt("%s, ", reg2));
                     FileWriter_WriteParam(fileWriter, pline.data_fptriad.param2);
 
                     fileWriter.write("\n");
 
                     // then store.
-                    char *reg1 = PasmSelectTempReg(pline.data_fptriad.param1.data_sv.type);
+                    auto type1 = pline.data_fptriad.param1.data_sv.type;
+                    char *reg1 = PasmSelectTempReg(type1);
                     fileWriter.write("mov ");
                     FileWriter_WriteStackVar(fileWriter, pline.data_fptriad.param1.data_sv);
                     fileWriter.write(SillyStringFmt(", %s\n", reg1));
+                    
+                    // NOTE: this case is problematic because we'll fill only the bottom bits of
+                    // the rax register, then we'll move the entire thing into the dest.
+                    // if we take a small thing and try to mov into a bigger thing, we ought to
+                    // sign extend the value. something like that. because if left unhandled,
+                    // we'll get garbage in the upper bits of rax.
+                    if ( PasmTypeGetWidth( type1 ) > PasmTypeGetWidth( type2 ) )
+                    {
+                        PPL_TODO;
+                    }
                 }
                 else
                 {

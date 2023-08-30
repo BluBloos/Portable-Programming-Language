@@ -14,13 +14,19 @@ case PPL_TYPE_S64:
 
 // NOTE: CG = codegen
 
+// TODO: needs more design.
 struct CG_String
 {
     char *backing;
     size_t len;
+    
+    const char *c_str()
+    {
+        return SillyStringFmt("%.*s", backing, len);
+    };
 };
 
-// TODO: pull this out to common stuff for this project.
+// TODO: needs more design.
 struct CG_StringRef
 {
     CG_StringRef()
@@ -48,7 +54,10 @@ struct CG_StringRef
     
     const char *Get()
     {
-        return str; // TODO: what if the string we were looking at was deallocated?
+        // TODO: if bStrongRef is true, we want to assert that str is not a dangling pointer.
+        // how can we do that?
+        
+        return str;
     }
 
     const char *str;
@@ -111,6 +120,33 @@ struct CG_Value
     CG_Value() : valueKind(PPL_TYPE_UNKNOWN), v_CgFunction() {}
 };
 
+enum CG_MemoryLocationType
+{
+    CG_MEMORY_LOCATION_STACK = 0
+};
+
+struct CG_MemoryLocation
+{
+    CG_MemoryLocationType type;
+    union {
+        const char *stackIdent;
+    };
+    
+    CG_MemoryLocation() : type(CG_MEMORY_LOCATION_STACK), stackIdent("") {}
+};
+
+struct CG_Id
+{
+    const char *name;
+    CG_MemoryLocation loc;
+    CG_Value type;
+};
+
+CG_MemoryLocation CG_ResolveIdent(CG_Id &ident)
+{
+    return ident.loc;
+}
+
 // =====================================================
 
 struct CG_Globals
@@ -118,6 +154,9 @@ struct CG_Globals
     PPL_HashMapWithStringKey<CG_Value> metaVars;
     
     PPL_HashMapWithStringKey<const char *> stringLiterals;
+    
+    // this is the current program stack.
+    PPL_HashMapWithStringKey<CG_Id> runtimeVars;
 
     // TODO: I'm finding in a lot of cases that the stretchy buffer is a concept used quite a bit in this codebase.
     // right now I denote these with the comment of `stretchy buffer`, but should prob make a dynamic array utility thing.
@@ -155,6 +194,7 @@ void CG_Release()
     auto g = CG_Glob();
     g->metaVars.~PPL_HashMapWithStringKey();
     g->stringLiterals.~PPL_HashMapWithStringKey();
+    g->runtimeVars.~PPL_HashMapWithStringKey();
     StretchyBufferFree(g->funcSignatureRegistryScratch);
     
     // TODO: it's kind of annoying that we have to define the init value twice for this member of Glob.
@@ -174,6 +214,14 @@ ppl_type ValueExtract_PplType(CG_Value val)
 {
     // TODO:
     return val.v_PplType;
+}
+
+CG_Value ValueConstruct_PplType(ppl_type type)
+{
+    CG_Value val;
+    val.valueKind = PPL_TYPE_TYPE;
+    val.v_PplType = type;
+    return val;
 }
 
 CG_Function ValueExtract_CgFunction(CG_Value val)
@@ -333,7 +381,7 @@ static CG_Value TypeExpressionCompute(tree_node *ast)
     }
     else
     {
-        // TODO:
+        PPL_TODO;
     }
 
     return val;
@@ -416,6 +464,11 @@ static void ExpressionInferInfo(struct tree_node *ast, CG_ExpressionInfo *infoOu
                 infoOut->TL = child;
                 
                 kind = PPL_TYPE_FUNC;
+            }
+            else
+            {
+                // something that ends up in this branch e.g. would be structs.
+                PPL_TODO;
             }
         }
     }
@@ -521,7 +574,6 @@ static void ExpressionInferInfo(struct tree_node *ast, CG_ExpressionInfo *infoOu
                 tree_node *typeExpression = op;
                 assert ( ExpressionVerifyConstant(typeExpression) );
 
-                // TODO: might make this async in the future?
                 auto val = TypeExpressionCompute(typeExpression);
                 assert( val.valueKind == PPL_TYPE_TYPE );
                 ppl_type valE = ValueExtract_PplType( val );
@@ -568,8 +620,27 @@ static void ExpressionInferInfo(struct tree_node *ast, CG_ExpressionInfo *infoOu
         // TODO: handle the case where we infer from the member access at the end of the . chain.
         // TODO: handle the case where we do an array index. what is the kind of the thing in the array that we are indexing?
     }
+    else
+    {
+        PPL_TODO;
+    }
+}
 
-    // TODO: handle object.
+// verify that the type is simple. i.e. that it can fit in a register.
+// and also that it can be used as the value within a CG_Value of type
+// PPL_TYPE_TYPE.
+static bool TypeVerifySimple(ppl_type type)
+{
+    switch(type)
+    {
+        PPL_TYPE_INTEGER_CASE
+        {
+            return true;
+        }
+        default:
+            PPL_TODO;
+    }
+    return false;
 }
 
 static bool ExpressionVerifyConstant(struct tree_node *ast)
@@ -615,11 +686,9 @@ static CG_Value ConstantExpressionCompute(struct tree_node *ast)
             
             val.v_CgFunction = newFunc;
         } break;
-            
-            // TODO: handle other cases. right now I'm being really lazy.
         default:
+            PPL_TODO;
             break;
-        
     }
 
     return val;
@@ -650,12 +719,16 @@ static void RecordCompileTimeVarDecl(struct tree_node *ast, PFileWriter &fileWri
         tree_node *typeExpression = &ast->children[1];
         assert ( ExpressionVerifyConstant(typeExpression) );
 
-        // TODO: might make this async in the future?
-        auto val = ConstantExpressionCompute(typeExpression);
-        //assert( val.valueKind == PPL_TYPE_TYPE );
-        ppl_type valE = ValueExtract_PplType( val );
-        type = valE;
-
+        auto val = TypeExpressionCompute(typeExpression);
+        
+        if (val.valueKind == PPL_TYPE_FUNC_SIGNATURE)
+        {
+            // NOTE: this is valid syntax to define a function but since it's odd,
+            // we won't support rn.
+            PPL_TODO;
+        }
+        
+        type = val.valueKind;
         value = &ast->children[3];
     }
     else
@@ -663,6 +736,8 @@ static void RecordCompileTimeVarDecl(struct tree_node *ast, PFileWriter &fileWri
         value = &ast->children[1];
     }
 
+    // TODO: might make this async in the future?
+    // especially once the #run is added.
     assert ( ExpressionVerifyConstant(value) );
     auto val = ConstantExpressionCompute(value);
 
@@ -738,28 +813,7 @@ void GenerateExpressionImmediate(struct tree_node *ast, PFileWriter &fileWriter,
     
     auto c = &ast->children[0];
     
-    if (strcmp(c->metadata.str, "assignment_exp") == 0)
-    {
-        PPL_TODO;
-    }
-    else if (
-             strcmp(c->metadata.str, "logical_or_exp") == 0 ||
-             strcmp(c->metadata.str, "logical_and_exp") == 0 ||
-             strcmp(c->metadata.str, "equality_exp") == 0 ||
-             strcmp(c->metadata.str, "relational_exp") == 0 ||
-             strcmp(c->metadata.str, "bitwise_or_exp") == 0 ||
-             strcmp(c->metadata.str, "bitwise_xor_exp") == 0 ||
-             strcmp(c->metadata.str, "bitwise_and_exp") == 0 ||
-             strcmp(c->metadata.str, "bitshift_exp") == 0 ||
-             strcmp(c->metadata.str, "additive_exp") == 0 ||
-             strcmp(c->metadata.str, "term") == 0 ||
-             strcmp(c->metadata.str, "factor") == 0 ||
-             strcmp(c->metadata.str, "object") == 0
-             )
-    {
-        GenerateExpressionImmediate(c, fileWriter, indentation, parentFuncName);
-    }
-    else if (c->type == AST_STRING_LITERAL)
+    if (c->type == AST_STRING_LITERAL)
     {
         
         CG_String newStr;
@@ -805,7 +859,31 @@ void GenerateExpressionImmediate(struct tree_node *ast, PFileWriter &fileWriter,
     }
     else if (c->type == AST_INT_LITERAL)
     {
+        // TODO: we really need to care about the proper typing of things.
+        c->metadata.num; // int64.
+        auto s = SillyStringFmt("%smov r2, %d\n", indentationStr, c->metadata.num);
+        fileWriter.write(s);
+    }
+    else if (strcmp(c->metadata.str, "assignment_exp") == 0)
+    {
         PPL_TODO;
+    }
+    else if (
+             strcmp(c->metadata.str, "logical_or_exp") == 0 ||
+             strcmp(c->metadata.str, "logical_and_exp") == 0 ||
+             strcmp(c->metadata.str, "equality_exp") == 0 ||
+             strcmp(c->metadata.str, "relational_exp") == 0 ||
+             strcmp(c->metadata.str, "bitwise_or_exp") == 0 ||
+             strcmp(c->metadata.str, "bitwise_xor_exp") == 0 ||
+             strcmp(c->metadata.str, "bitwise_and_exp") == 0 ||
+             strcmp(c->metadata.str, "bitshift_exp") == 0 ||
+             strcmp(c->metadata.str, "additive_exp") == 0 ||
+             strcmp(c->metadata.str, "term") == 0 ||
+             strcmp(c->metadata.str, "factor") == 0 ||
+             strcmp(c->metadata.str, "object") == 0
+             )
+    {
+        GenerateExpressionImmediate(c, fileWriter, indentation, parentFuncName);
     }
     else if (strcmp(c->metadata.str, "function_call") == 0)
     {
@@ -849,9 +927,10 @@ void GenerateExpressionImmediate(struct tree_node *ast, PFileWriter &fileWriter,
     else if ( c->type == AST_SYMBOL )
     {
         // TODO: handle lookup for runtime variables. right now we just lookup the compile-time ones.
-        
+        auto identName = c->metadata.str;
         CG_Value val;
-        if ( CG_Glob()->metaVars.get( c->metadata.str, &val) )
+        CG_Id ident;
+        if ( CG_Glob()->metaVars.get( identName, &val) )
         {
             switch(val.valueKind)
             {
@@ -867,9 +946,33 @@ void GenerateExpressionImmediate(struct tree_node *ast, PFileWriter &fileWriter,
                     PPL_TODO;
             }
         }
+        else if ( CG_Glob()->runtimeVars.get( identName, &ident ) )
+        {
+            CG_MemoryLocation loc = CG_ResolveIdent(ident);
+            
+            // TODO: do the proper variable scoping. also dealloc the variables.
+            // the funny is that I can get the current desired next program to work
+            // by ignoring this kind of thing.
+            //   we could do a loc.scope where .scope is an AST node and we check for
+            //   a common ancestor of currScope to the .scope.
+            
+            switch(loc.type)
+            {
+                case CG_MEMORY_LOCATION_STACK:
+                {
+                    // TODO: when we look at doing the proper typing stuff;
+                    // that means constructing a move operation into the correct sized register.
+                    auto s = SillyStringFmt( "%smov r2, %s\n", indentationStr, loc.stackIdent );
+                    fileWriter.write(s);
+                } break;
+                default:
+                    PPL_TODO;
+            }
+        }
         else
         {
             // TODO: want a user error. I'm thinking something like CgEmitError;
+            // this is the ubiquitous error for the undeclared identifier.
             PPL_TODO;
         }
     }
@@ -955,9 +1058,115 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
     {
         PPL_TODO;
     }
-    else if (strcmp(n, "runtime_time_var_decl") == 0 )
+    else if (strcmp(n, "runtime_var_decl") == 0 )
     {
-        PPL_TODO;
+        // ast node is
+        /*
+         "(route)"  =  "(symbol):"
+         "["
+             "("
+                 "(type)"
+                 "("
+                     "(op,=)"
+                     "[(op,?)(expression)]"
+                 ")?"
+             ")"
+             "((op,=)(expression))"
+         "]"
+         */
+        
+        // TODO: we can have a helper to get the variable name out of the route.
+        assert( c->childrenCount >= 2 );
+        tree_node *route = &c->children[0];
+        assert( route->childrenCount >= 1 );
+        tree_node *varName = &route->children[0];
+        assert( varName->type == AST_SYMBOL );
+        
+        tree_node *maybeType = &c->children[1];
+        
+        CG_Value typeValue;
+        
+        tree_node *firstVal = nullptr;
+        
+        if (maybeType->type == AST_OP)
+        {
+            assert( c->childrenCount >= 3 );
+            tree_node *exp = &c->children[2];
+
+            CG_ExpressionInfo info;
+            ExpressionInferInfo(exp, &info);
+            
+            assert( TypeVerifySimple(info.kind) );
+            
+            firstVal = exp;
+            typeValue = ValueConstruct_PplType( info.kind ) ;
+        }
+        else if (strcmp(maybeType->metadata.str, "type") == 0)
+        {
+            typeValue = TypeExpressionCompute(maybeType);
+            
+            if (c->childrenCount >= 4)
+            {
+                tree_node *equalsOp = &c->children[2];
+                tree_node *exp = &c->children[3];
+                assert( equalsOp->type == AST_OP );
+                firstVal = exp;
+            }
+        }
+        else
+        {
+            PPL_TODO;
+        }
+        
+        auto key = varName->metadata.str;
+        
+        CG_Id ident;
+        ident.name = key;
+        ident.type = typeValue;
+        ident.loc.type = CG_MEMORY_LOCATION_STACK;
+        ident.loc.stackIdent = key;
+        
+        // generate.
+        CG_Glob()->runtimeVars.put( key, ident );
+        
+        if ( ident.type.valueKind != PPL_TYPE_TYPE )
+        {
+            // for now just expecting simple types.
+            PPL_TODO;
+        }
+
+        const char *pasmType = PplTypeToPasmHumanReadable( ValueExtract_PplType(typeValue) );
+        auto s = SillyStringFmt("%s.let %s %s\n", indentationStr, pasmType, ident.loc.stackIdent);
+        fileWriter.write(s);
+        
+        if (firstVal)
+        {
+            // the variable decl also includes assignment, so do that.
+            if (firstVal->type == AST_OP)
+            {
+                assert( strcmp(firstVal->metadata.str, "op,?") == 0 );
+            }
+            else
+            {
+                assert( strcmp(firstVal->metadata.str, "expression") == 0 );
+                
+                GenerateExpressionImmediate(firstVal, fileWriter, indentation, parentFuncName);
+                
+                auto s = SillyStringFmt("%smov %s, r2\n", indentationStr, ident.loc.stackIdent);
+                fileWriter.write(s);
+            }
+        }
+        else
+        {
+            // we need to default initialize the variable. the `?` explicit
+            // non-init idea is handled when firstVal != nullptr.
+            
+            // TODO: we could do the XOR here, but backend does not support yet.
+            // fileWriter.write("%sxor %s, %s\n", indentationStr, ident.loc.stackIdent, ident.loc.stackIdent);
+            auto s = SillyStringFmt("%smov %s, 0\n", indentationStr, ident.loc.stackIdent);
+            fileWriter.write(s);
+        }
+        
     }
     else if (strcmp(n, "untyped_data_pack") == 0 )
     {
