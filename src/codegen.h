@@ -14,6 +14,12 @@ case PPL_TYPE_S64:
 
 // NOTE: CG = codegen
 
+struct CG_SpanValue
+{
+    uint64_t begin;
+    uint64_t end;
+};
+
 // TODO: needs more design.
 struct CG_String
 {
@@ -115,6 +121,7 @@ struct CG_Value
         CG_Function v_CgFunction; // a function literal (function definition, if you will).
         CG_Span<CG_FunctionSignature> v_CgFunctionSignature;
         CG_String v_CgString;
+        CG_SpanValue v_CgSpanValue;
     };
     
     CG_Value() : valueKind(PPL_TYPE_UNKNOWN), v_CgFunction() {}
@@ -209,6 +216,11 @@ void CG_Release()
 // =====================================================
 
 // TODO: we could easily replace the ValueExtract idea with a switch statement.
+
+CG_SpanValue ValueExtract_CgSpan(CG_Value val)
+{
+    return val.v_CgSpanValue;
+}
 
 uint64_t ValueExtract_Uint64(CG_Value val)
 {
@@ -480,6 +492,7 @@ static void ExpressionInferInfo(struct tree_node *ast, CG_ExpressionInfo *infoOu
     else if ( strcmp(child->metadata.str, "span_expression") == 0 )
     {
         kind = PPL_TYPE_SPAN;
+        if (infoOut)  infoOut->TL = child;
     }
     else if ( strcmp(child->metadata.str, "assignment_exp") == 0 )
     {
@@ -690,6 +703,52 @@ static CG_Value ConstantExpressionCompute(struct tree_node *ast)
             newFunc.signature = ValueExtract_CgFunctionSignature(info.funcSig);
             
             val.v_CgFunction = newFunc;
+        } break;
+        case PPL_TYPE_SPAN:
+        {
+            CG_SpanValue span;
+            
+            assert( TL->type == AST_GNODE && strcmp(TL->metadata.str, "span_expression") == 0 );
+
+            // ast node is "(literal)[(op,..=)(op,..<)](literal)"
+            assert(TL->childrenCount == 3);
+            tree_node *begin = &TL->children[0];
+            tree_node *op = &TL->children[1];
+            tree_node *end = &TL->children[2];
+            
+            assert(op->type == AST_OP);
+            
+            if ( begin->type == AST_INT_LITERAL && end->type == AST_INT_LITERAL)
+            {
+                span.begin = begin->metadata.num;
+                span.end = end->metadata.num;
+                char opChar = op->metadata.str[4];
+                if (opChar == '=')
+                {
+                    span.end += 1;
+                    if(span.end == 0)
+                    {
+                        // not sure right now what to do in the wraparound case.
+                        PPL_TODO;
+                    }
+                }
+                else if (opChar == '<')
+                {
+                    // nothing to do here.
+                }
+                else
+                {
+                    PPL_TODO;
+                }
+            }
+            else
+            {
+                // I'm not even sure if we allow such spans?
+                // at any rate, not implementing this path right now.
+                PPL_TODO;
+            }
+            
+            val.v_CgSpanValue = span;
         } break;
         default:
             PPL_TODO;
@@ -1285,16 +1344,117 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
 #undef FUNC_IF_LABEL_NO_LABEL_FMT
 #undef FUNC_IF_LABEL_FMT
     }
-    else if (strcmp(n, "while_statement") == 0 )
+    else if ( strcmp(n, "while_statement") == 0 )
     {
         PPL_TODO;
     }
-    else if (strcmp(n, "for_statement") == 0 )
+    else if ( strcmp(n, "for_statement") == 0 )
     {
-        PPL_TODO;        
+#define FUNC_FOR_LABEL_NO_LABEL_FMT "%s_for_%d"
+#define FUNC_FOR_LABEL_FMT          "label_%s_for_%d"
+        // ast node is
+        
+        // "(keyword=for)
+        // (
+        //   (symbol)
+        //   (,(symbol))*
+        //   (keyword=in)
+        // )?
+        
+        // NOTE: the first group is optional since they might not define variable names to recieve
+        // the stuff. in that case, there is an implicit name of `it`.
+        
+        assert( c->childrenCount >= 2 );
+        
+        tree_node *maybeCond = &c->children[0];
+        tree_node *maybeBody = &c->children[1];
+        
+        if ( maybeCond->type == AST_GNODE && strcmp(maybeCond->metadata.str, "expression") == 0 )
+        {
+            CG_ExpressionInfo info;
+            ExpressionInferInfo(maybeCond, &info);
+            
+            if (info.kind != PPL_TYPE_SPAN)
+            {
+                // for now, we are only handling loops over a span.
+                PPL_TODO;
+            }
+            
+            // TODO: there is a double call to ExpressionInferInfo here.
+            // this is because ConstantExpressionCompute internally calls ExpressionInferInfo.
+            auto val = ConstantExpressionCompute(maybeCond);
+            CG_SpanValue span = ValueExtract_CgSpan(val);
+            
+            uint64_t label1 = CG_Glob()->labelUID++;
+            uint64_t label2 = CG_Glob()->labelUID++;
+            uint64_t label3 = CG_Glob()->labelUID++; // loop counter temporary.
+
+            //  TODO:
+            // init the loop counter.
+            auto s = SillyStringFmt("%s.let uint64 " FUNC_FOR_LABEL_NO_LABEL_FMT "\n",
+                               indentationStr, parentFuncName, label3);
+            fileWriter.write(s);
+            s = SillyStringFmt("%smov " FUNC_FOR_LABEL_NO_LABEL_FMT ", %u\n",
+                               indentationStr, parentFuncName, label3, span.begin);
+            fileWriter.write(s);
+            
+            // emit loop begin label.
+            s = SillyStringFmt(FUNC_FOR_LABEL_FMT ":\n",
+                               parentFuncName, label1);
+            fileWriter.write(s);
+            
+            // check.
+            s = SillyStringFmt("%sbge " FUNC_FOR_LABEL_NO_LABEL_FMT ", %u, " FUNC_FOR_LABEL_NO_LABEL_FMT "\n",
+                               indentationStr, parentFuncName, label3, span.end,
+                               parentFuncName, label2);
+            fileWriter.write(s);
+            
+            GenerateStatement(maybeBody, fileWriter, indentation, parentFuncName);
+            
+            // loop end op.
+            s = SillyStringFmt("%sadd " FUNC_FOR_LABEL_NO_LABEL_FMT ", 1\n",
+                               indentationStr, parentFuncName, label3);
+            fileWriter.write(s);
+
+            // go to loop top.
+            s = SillyStringFmt("%sbr " FUNC_FOR_LABEL_NO_LABEL_FMT "\n",
+                               indentationStr,
+                               parentFuncName, label1);
+            fileWriter.write(s);
+            
+            // emit loop end label.
+            s = SillyStringFmt(FUNC_FOR_LABEL_FMT ":\n",
+                               parentFuncName, label2);
+            fileWriter.write(s);
+            
+            // destroy the loop counter.
+            s = SillyStringFmt("%s.unlet uint64 " FUNC_FOR_LABEL_NO_LABEL_FMT "\n",
+                               indentationStr, parentFuncName, label3);
+            fileWriter.write(s);
+        }
+        else
+        {
+            // for now, let's ignore the `in` syntax.
+            PPL_TODO;
+        }
+        
+        // (expression)
+        // [;(keyword=do)]
+        // (statement)"
+#undef FUNC_FOR_LABEL_NO_LABEL_FMT
+#undef FUNC_FOR_LABEL_FMT
     }
-    else if (strcmp(n, "switch_statement") == 0 )
+    else if ( strcmp(n, "switch_statement") == 0 )
     {
+
+        // TODO: for switch statement support we want to emit a jump table.
+        // the idea here is that we'll emit a table where the elements are pointers and the index
+        // is the enum value. the table is actually going to be a list of sequential instructions
+        // that jump to the case code sections.
+        // we'll use the enum value to jump into that instruction list. so it's a double jump. yahoo!
+        // fallthrough is as simple as emit a noop where the table jump instr would have been. so we just
+        // fall in the jump instr below, or out of the table entirely.
+
         PPL_TODO;        
     }
     else
