@@ -1275,7 +1275,13 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
     }
     else if (strcmp(n, "untyped_data_pack") == 0 )
     {
-        PPL_TODO;
+        // TODO: this introduces a new scope. we need to care about that.
+
+        for (uint64_t i = 0; i < c->childrenCount; i++)
+        {
+            tree_node *stmt = &c->children[i];
+            GenerateStatement(stmt, fileWriter, indentation, parentFuncName);
+        }
     }
     else if (strcmp(n, "return_statement") == 0 )
     {
