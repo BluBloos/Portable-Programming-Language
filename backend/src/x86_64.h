@@ -232,15 +232,21 @@ int pasm_x86_64(struct pasm_line *source,
         struct pasm_line pline = source[i];
         switch(pline.lineType) {
             case PASM_LINE_BRANCH_GT:
+            case PASM_LINE_BRANCH_GTE:
             {
                 // NOTE(Noah): cmp does a subtraction op to set the flags.
                 fileWriter.write("cmp ");
                 FileWriter_WriteParam(fileWriter, pline.data_fptriad.param1);
                 fileWriter.write(", ");
                 FileWriter_WriteParam(fileWriter, pline.data_fptriad.param2);
-                // NOTE(Noah): jg is signed.
-                fileWriter.write(SillyStringFmt("\njg %s\n", 
-                    pline.data_fptriad.param3));
+
+                // NOTE(Noah): jg/jge is signed.
+                if (pline.lineType == PASM_LINE_BRANCH_GT)
+                    fileWriter.write(SillyStringFmt("\njg %s\n", pline.data_fptriad.param3));
+                else if (pline.lineType == PASM_LINE_BRANCH_GTE)
+                    fileWriter.write(SillyStringFmt("\njge %s\n", pline.data_fptriad.param3));
+                else
+                    PPL_TODO;
             }
             break;
             case PASM_LINE_LET:

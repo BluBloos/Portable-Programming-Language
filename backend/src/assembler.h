@@ -56,7 +56,14 @@ enum pasm_line_type {
     PASM_LINE_SAVE,
     PASM_LINE_RESTORE,
     PASM_LINE_BRANCH,
+
+    // NOTE: GT and GTE translate to the signed
+    // jg/jge instructions e.g.
+    // it's up to the compiler and PASM author
+    // to use the correct instructions.
     PASM_LINE_BRANCH_GT,
+    PASM_LINE_BRANCH_GTE,
+
     PASM_LINE_RET,
     // TODO(Noah): For instructions such as MOV, SUB, etc, 
     // we might want to do some semantic checking. Because as of
@@ -446,6 +453,12 @@ void PasmLinePrint(struct pasm_line pl) {
         PasmFparamPrint(pl.data_fptriad.param2);
         LOGGER.Min("  param3:%s\n", pl.data_fptriad.param3);
         break;
+        case PASM_LINE_BRANCH_GTE:
+        LOGGER.Min("PASM_LINE_BRANCH_GTE\n");
+        PasmFparamPrint(pl.data_fptriad.param1);
+        PasmFparamPrint(pl.data_fptriad.param2);
+        LOGGER.Min("  param3:%s\n", pl.data_fptriad.param3);
+        break;
         case PASM_LINE_FCALL:
         {
             LOGGER.Min("PASM_LINE_FCALL\n");
@@ -719,6 +732,7 @@ int pasm_main(int argc, char **argv) {
             case PASM_LINE_MOV:
             case PASM_LINE_XOR:
             case PASM_LINE_BRANCH_GT:
+            case PASM_LINE_BRANCH_GTE:
             {
                 // All of these use the fptriad, so we can do this just fine.
                 struct pasm_fptriad fptriad = pl.data_fptriad;
@@ -1048,10 +1062,26 @@ void HandleLine(char *line) {
             pline.data_cptr = MEMORY_ARENA.StringAlloc(line);
             StretchyBufferPush(pasm_lines, pline);
 
-        } else if (SillyStringStartsWith(line, "bgt")) {
-
+        } else if (
+            SillyStringStartsWith(line, "bgt")
+            || SillyStringStartsWith(line, "bge")
+            )
+        {
             pasm_line pline = PasmLineEmpty();
-            pline.lineType = PASM_LINE_BRANCH_GT;
+
+            char thirdChar = line[2];
+            switch(thirdChar)
+            {
+                case 't':
+                pline.lineType = PASM_LINE_BRANCH_GT;
+                break;
+                case 'e':
+                pline.lineType = PASM_LINE_BRANCH_GTE;
+                break;
+                default:
+                PPL_TODO;                
+            }
+
             while (*line++ != ' '); // Skip over whitespace.
             std::string param1 = HandleStdStringUntil(&line, ",");
             struct pasm_fparam fparam1 = PasmFparamFromSillyString((char *)param1.c_str());
