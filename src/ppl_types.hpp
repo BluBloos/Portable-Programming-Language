@@ -68,6 +68,61 @@ enum ppl_type {
     PPL_TYPE_STRING = PPL_TYPE_CHAR_ARRAY
 };
 
+int PplTypeGetWidth(ppl_type type)
+{
+    switch(type)
+    {
+        case PPL_TYPE_BOOL:
+        case PPL_TYPE_U8:
+        case PPL_TYPE_S8:
+            return 1;
+
+        case PPL_TYPE_S16:
+        case PPL_TYPE_U16:
+            return 2;
+
+        case PPL_TYPE_F32:
+        case PPL_TYPE_U32:
+        case PPL_TYPE_S32:
+            return 4;
+
+        case PPL_TYPE_U64:
+        case PPL_TYPE_F64:
+        case PPL_TYPE_S64:
+            return 8;
+            
+        default:
+            PPL_TODO;
+            return 0;
+    }
+}
+
+// NOTE: this returns true if the type is signed.
+bool PplTypeGetSign(ppl_type type)
+{
+    switch(type)
+    {
+        case PPL_TYPE_BOOL:
+        case PPL_TYPE_U16:
+        case PPL_TYPE_U8:
+        case PPL_TYPE_U32:
+        case PPL_TYPE_U64:
+            return false;
+        
+        case PPL_TYPE_S8:
+        case PPL_TYPE_S16:
+        case PPL_TYPE_F32:
+        case PPL_TYPE_S32:
+        case PPL_TYPE_F64:
+        case PPL_TYPE_S64:
+            return true;
+            
+        default:
+            PPL_TODO;
+            return false;
+    }
+}
+
 static ppl_type KeywordToPplType(const char *str)
 {
     assert (str);
@@ -93,11 +148,11 @@ static ppl_type KeywordToPplType(const char *str)
             char sc = str[1];
             switch(sc)
             {
-                case '8':
+                case '8': // u8
                 return PPL_TYPE_U8;
-                case '1':
+                case '1': // u16
                 return PPL_TYPE_U16;
-                case '3':
+                case '3': // u32
                 return PPL_TYPE_U32;
             }
             return PPL_TYPE_U64;
@@ -107,11 +162,12 @@ static ppl_type KeywordToPplType(const char *str)
             char sc = str[1];
             switch(sc)
             {
-                case '8':
+                case '8': // s8
                 return PPL_TYPE_S8;
-                case '1':
+                case '1': // s16
+                case 'h': // short
                 return PPL_TYPE_S16;
-                case '3':
+                case '3': // s32
                 return PPL_TYPE_S32;
             }
             return PPL_TYPE_S64;

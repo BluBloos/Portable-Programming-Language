@@ -132,11 +132,11 @@ bool SillyStringEquals(const char *a, const char *b) {
 // Parses the silly string as an unsigned integer, and returns the interpreted value.
 // if the string does not represent an unsigned integer, the behaviour of this function is
 // undefined.
-unsigned int SillyStringToUINT(char *str)
+unsigned long long SillyStringToUINT(char *str)
 {
-	unsigned int result = 0;
+	unsigned long long result = 0;
 	unsigned int strLength = SillyStringLength(str);
-	unsigned int placeValue = (int)powf(10.0f, (strLength - 1.0f) );
+	unsigned long long placeValue = (unsigned long long)powf(10.0f, (strLength - 1.0f) );
     for (unsigned int x = 0; x < strLength; x++)
 	{
 		result += (SafeSubtract(*str, '0')) * placeValue;

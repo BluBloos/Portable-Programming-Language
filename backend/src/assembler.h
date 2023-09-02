@@ -69,9 +69,13 @@ enum pasm_line_type {
     // we might want to do some semantic checking. Because as of
     // right now, our parsing supports for invalid assembly grammars.
     PASM_LINE_MOV,
+    PASM_LINE_AND,
     PASM_LINE_SUB,
     PASM_LINE_ADD,
-    PASM_LINE_XOR
+    PASM_LINE_XOR,
+
+    // move with sign extension.
+    PASM_LINE_MOVSX
 };
 
 // calling convention
@@ -155,6 +159,67 @@ enum pasm_register {
     PASM_R28_8, PASM_R29_8, PASM_R30_8, PASM_R31_8,
 };
 
+const char *PasmRegisterGetString(pasm_register reg)
+{
+    static const char *pasm_register_table[] = {
+        "r0", "r1", "r2", "r3", "r4",
+        "r5", "r6", "r7", "r8",
+        "r9", "r10", "r11", "r12",
+        "r13", "r14", "r15", "r16",
+        "r17", "r18", "r19", "r20",
+        "r21", "r22", "r23", "r24",
+        "r25", "r26", "r27", "r28",
+        "r29", "r30", "r31",
+
+        "r0_32", "r1_32", "r2_32", "r3_32", "r4_32", 
+        "r5_32", "r6_32", "r7_32", "r8_32", 
+        "r9_32", "r10_32", "r11_32", "r12_32", 
+        "r13_32", "r14_32", "r15_32", "r16_32", 
+        "r17_32", "r18_32", "r19_32", "r20_32", 
+        "r21_32", "r22_32", "r23_32", "r24_32", 
+        "r25_32", "r26_32", "r27_32", "r28_32", 
+        "r29_32", "r30_32", "r31_16",
+        
+        "r0_16", "r1_16", "r2_16", "r3_16", "r4_16", 
+        "r5_16", "r6_16", "r7_16", "r8_16", 
+        "r9_16", "r10_16", "r11_16", "r12_16", 
+        "r13_16", "r14_16", "r15_16", "r16_16", 
+        "r17_16", "r18_16", "r19_16", "r20_16", 
+        "r21_16", "r22_16", "r23_16", "r24_16", 
+        "r25_16", "r26_16", "r27_16", "r28_16", 
+        "r29_16", "r30_16", "r31_16",
+
+        "r0_8", "r1_8", "r2_8", "r3_8", "r4_8", 
+        "r5_8", "r6_8", "r7_8", "r8_8", 
+        "r9_8", "r10_8", "r11_8", "r12_8", 
+        "r13_8", "r14_8", "r15_8", "r16_8", 
+        "r17_8", "r18_8", "r19_8", "r20_8", 
+        "r21_8", "r22_8", "r23_8", "r24_8", 
+        "r25_8", "r26_8", "r27_8", "r28_8", 
+        "r29_8", "r30_8", "r31_8", 
+    };
+
+    return pasm_register_table[(int)reg];
+}
+
+int PasmRegisterGetWidth(pasm_register reg)
+{
+    int widths[] = {8,
+    4,
+    2,
+    1,
+    };
+
+    uint32_t regIdx = uint32_t(reg);
+    return widths[ (regIdx >> 5) ];
+}
+
+pasm_register PasmRegisterFromType(int registerNumber, ppl_type type)
+{
+    auto width = PplTypeGetWidth(type);
+    return pasm_register(registerNumber + ( (3<<5) - ( int(log2(width)) << 5 ) ));
+}
+
 struct pasm_stackvar {
     int addr;
     char *name;
@@ -167,7 +232,7 @@ struct pasm_fparam {
     union {
         struct pasm_stackvar data_sv;
         char *data_cptr;
-        int data_int;
+        unsigned long long data_int;
         enum pasm_register data_register;
     };
 };
@@ -306,7 +371,7 @@ void PasmFparamPrint(struct pasm_fparam fparam) {
     switch(fparam.type) {
         case PASM_FPARAM_INT:
         LOGGER.Min("  PASM_FPARAM_INT\n");
-        LOGGER.Min("    %d\n", fparam.data_int);
+        LOGGER.Min("    %llu\n", fparam.data_int);
         break;
         case PASM_FPARAM_LABEL:
         LOGGER.Min("  PASM_FPARAM_LABEL\n");
@@ -423,13 +488,18 @@ void PasmLinePrint(struct pasm_line pl) {
         LOGGER.Min("  %d\n", pl.data_int);
         break;
         case PASM_LINE_MOV:
+        case PASM_LINE_AND:
         case PASM_LINE_SUB:
         case PASM_LINE_ADD:
         case PASM_LINE_XOR:
+        case PASM_LINE_MOVSX:
         {
             switch(pl.lineType) {
                 case PASM_LINE_MOV:
                 LOGGER.Min("PASM_LINE_MOV\n");
+                break;
+                case PASM_LINE_AND:
+                LOGGER.Min("PASM_LINE_AND\n");
                 break;
                 case PASM_LINE_SUB:
                 LOGGER.Min("PASM_LINE_SUB\n");
@@ -439,6 +509,9 @@ void PasmLinePrint(struct pasm_line pl) {
                 break;
                 case PASM_LINE_XOR:
                 LOGGER.Min("PASM_LINE_XOR\n");
+                break;
+                case PASM_LINE_MOVSX:
+                LOGGER.Min("PASM_LINE_MOVSX\n");
                 break;
                 default:
                 break;
@@ -707,7 +780,7 @@ int pasm_main(int argc, char **argv) {
                 // we're always assuming that we are within a scope already.
                 assert( StretchyBufferCount(_sv_table) > 0 );
 
-                int addr = Pasm_Glob()->localRsp;
+                int &addr = Pasm_Glob()->localRsp;
 
                 // TODO: 
                 addr -= 8;
@@ -730,7 +803,9 @@ int pasm_main(int argc, char **argv) {
             case PASM_LINE_ADD:
             case PASM_LINE_SUB:
             case PASM_LINE_MOV:
+            case PASM_LINE_AND:
             case PASM_LINE_XOR:
+            case PASM_LINE_MOVSX:
             case PASM_LINE_BRANCH_GT:
             case PASM_LINE_BRANCH_GTE:
             {
@@ -1107,20 +1182,32 @@ void HandleLine(char *line) {
         } else if (SillyStringStartsWith(line, "mov") ||
             SillyStringStartsWith(line, "sub") ||
             SillyStringStartsWith(line, "add") ||
-            SillyStringStartsWith(line, "xor"))
+            SillyStringStartsWith(line, "and") ||
+            SillyStringStartsWith(line, "xor") ||
+            SillyStringStartsWith(line, "movsx")
+        )
         {
             pasm_line pline = PasmLineEmpty();
             switch(*line) {
                 // NOTE(Noah): It is probably going to be the case that we remove this at one point.
                 // Because like, some instructions might start with the same register...
                 case 'm':
-                pline.lineType = PASM_LINE_MOV;
-                break;
+                {
+                    if (SillyStringStartsWith(line, "movsx"))
+                        pline.lineType = PASM_LINE_MOVSX;
+                    else
+                        pline.lineType = PASM_LINE_MOV;
+                } break;
                 case 's':
                 pline.lineType = PASM_LINE_SUB;
                 break;
                 case 'a':
-                pline.lineType = PASM_LINE_ADD;
+                {
+                    if (SillyStringStartsWith(line, "add"))
+                        pline.lineType = PASM_LINE_ADD;
+                    else
+                        pline.lineType = PASM_LINE_AND;
+                }
                 break;
                 case 'x':
                 pline.lineType = PASM_LINE_XOR;

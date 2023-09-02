@@ -135,7 +135,7 @@ void FileWriter_WriteStackVar(PFileWriter &fileWriter, struct pasm_stackvar sv) 
 void FileWriter_WriteParam(PFileWriter &fileWriter, struct pasm_fparam param) {
     switch(param.type) {
         case PASM_FPARAM_INT:
-        fileWriter.write(SillyStringFmt("%d", param.data_int));
+        fileWriter.write(SillyStringFmt("%llu", param.data_int));
         break;
         case PASM_FPARAM_LABEL:
         // TODO(Noah): Add checking for if in label_table.
@@ -261,7 +261,9 @@ int pasm_x86_64(struct pasm_line *source,
             case PASM_LINE_ADD:
             case PASM_LINE_SUB:
             case PASM_LINE_MOV:
+            case PASM_LINE_AND:
             case PASM_LINE_XOR:
+            case PASM_LINE_MOVSX:
             {
                 // bool add_sub_Flag = false; // TODO:?
                 switch(pline.lineType) {
@@ -275,6 +277,38 @@ int pasm_x86_64(struct pasm_line *source,
                     break;
                     case PASM_LINE_MOV:
                     fileWriter.write("mov ");
+                    break;
+                    case PASM_LINE_MOVSX:
+                    {
+                        if (pline.data_fptriad.param1.type == PASM_FPARAM_REGISTER
+                            && pline.data_fptriad.param2.type == PASM_FPARAM_REGISTER)
+                        {
+                            pasm_register reg1 = pline.data_fptriad.param1.data_register;
+                            pasm_register reg2 = pline.data_fptriad.param1.data_register;
+
+                            auto width1 = PasmRegisterGetWidth(reg1);
+                            auto width2 = PasmRegisterGetWidth(reg2);
+
+                            if( 
+                                (width1 == 2 && width2 == 2) || (width1 == 4 && width2 == 4) ||
+                                (width1 == 4 && width2 == 8)
+                            )
+                            {
+                                fileWriter.write("movsxd ");
+                            }
+                            else
+                            {
+                                fileWriter.write("movsx ");
+                            }
+                        }
+                        else
+                        {
+                            // for now, we only support MOVSX between two register operands.
+                            PPL_TODO;
+                        }
+                    } break;
+                    case PASM_LINE_AND:
+                    fileWriter.write("and ");
                     break;
                     case PASM_LINE_XOR:
                     fileWriter.write("xor ");

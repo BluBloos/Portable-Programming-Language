@@ -86,6 +86,8 @@ struct CG_FunctionSignature
     CG_StringRef paramIdents[CG_MAX_FUNCTION_PARAMETERS];
     
     uint8_t paramCount;
+    
+    bool bIsVariadic; // NOTE: this is the C-style kind of variadic function.
 };
 
 template <typename T_ElementKind>
@@ -125,11 +127,29 @@ struct CG_Value
     };
     
     CG_Value() : valueKind(PPL_TYPE_UNKNOWN), v_CgFunction() {}
+    
+    bool operator!=(CG_Value &other) const
+    {
+        if (this->valueKind!=other.valueKind) return true;
+        switch(this->valueKind)
+        {
+            case PPL_TYPE_TYPE:
+                return this->v_PplType != other.v_PplType;
+            PPL_TYPE_INTEGER_CASE
+                return this->v_PplType != other.v_PplType;
+            case PPL_TYPE_FUNC_SIGNATURE:
+                // we need to figure out a good and standardized method for comparing signatures.
+                PPL_TODO;
+        }
+    }
 };
 
 enum CG_MemoryLocationType
 {
-    CG_MEMORY_LOCATION_STACK = 0
+    CG_MEMORY_LOCATION_STACK = 0,
+    
+    // the memory location is a value (useful for pointers e.g.)
+    CG_MEMORY_LOCATION_VALUE
 };
 
 struct CG_MemoryLocation
@@ -238,6 +258,14 @@ CG_Value ValueConstruct_PplType(ppl_type type)
     CG_Value val;
     val.valueKind = PPL_TYPE_TYPE;
     val.v_PplType = type;
+    return val;
+}
+
+CG_Value ValueConstruct_CgFunction(CG_Function func)
+{
+    CG_Value val;
+    val.valueKind = PPL_TYPE_FUNC;
+    val.v_CgFunction = func;
     return val;
 }
 
@@ -427,6 +455,10 @@ struct CG_ExpressionInfo
     
     CG_ExpressionInfo() : funcSig() {}
 };
+
+
+// TODO: ExpressionInferInfo isn't going to work well if we have a compile-time expression with additions
+// and complicated expressions and whatnot.
 
 // TODO: right now the TL_out mechanism isn't really fully coded. not really sure exactly what we
 // want to do there.
@@ -644,8 +676,9 @@ static void ExpressionInferInfo(struct tree_node *ast, CG_ExpressionInfo *infoOu
     }
 }
 
-// verify that the type is simple. i.e. that it can fit in a register.
-// and also that it can be used as the value within a CG_Value of type
+// verify that the type is simple. i.e. that the value for the kind can
+// fit in a register.
+// simple types are those that can be used as the value within a CG_Value of type
 // PPL_TYPE_TYPE.
 static bool TypeVerifySimple(ppl_type type)
 {
@@ -655,6 +688,8 @@ static bool TypeVerifySimple(ppl_type type)
         {
             return true;
         }
+        case PPL_TYPE_BOOL:
+            return true;
         default:
             PPL_TODO;
     }
@@ -850,6 +885,191 @@ void CollectTupleFromExpression(struct tree_node *exp, CG_Tuple *builder)
     
     return;
 }
+// NOTE: this returns true if it did truncate, false otherwise.
+bool CG_MaybeTruncateIntLiteral(uint64_t literal, ppl_type simpleType, uint64_t *out)
+{
+    assert( TypeVerifySimple(simpleType) );
+    
+    uint64_t result = literal;
+    
+    bool dstSigned = false;
+    switch(simpleType)
+    {
+        case PPL_TYPE_U8:
+            result = (uint8_t)literal;
+            break;
+        case PPL_TYPE_U16:
+            result = (uint16_t)literal;
+            break;
+        case PPL_TYPE_U32:
+            result = (uint32_t)literal;
+            break;
+        case PPL_TYPE_U64:
+            result = literal;
+            break;
+        case PPL_TYPE_S8:
+            result = (int8_t)literal;
+            break;
+        case PPL_TYPE_S16:
+            result = (int16_t)literal;
+            break;
+        case PPL_TYPE_S32:
+            result = (int32_t)literal;
+            break;
+        case PPL_TYPE_S64:
+            result = (int64_t)literal;
+            break;
+        case PPL_TYPE_BOOL:
+            result = (literal) ? 1 : 0;
+            break;
+        default:
+            PPL_TODO;
+    }
+    
+    *out = result;
+    
+    return result == literal;
+}
+
+CG_Value DoTypeCompetition(CG_Value type1, CG_Value type2)
+{
+    if ( type1.valueKind == PPL_TYPE_TYPE && type2.valueKind == PPL_TYPE_TYPE)
+    {
+        auto val1 = ValueExtract_PplType(type1);
+        auto val2 = ValueExtract_PplType(type2);
+        
+        auto size1 = PplTypeGetWidth(val1);
+        auto size2 = PplTypeGetWidth(val2);
+        
+        if ( size1 > size2 )
+        {
+            return type1;
+        }
+        else if (size1 == size2)
+        {
+            // use sign to resolve.
+            const bool b2 = PplTypeGetSign(val1);
+            const bool b3 = PplTypeGetSign(val2);
+            
+            if (b2)
+                return type1;
+
+            return type2;
+            
+            // TODO: warn the user about a sign mismatch.
+        }
+        else
+        {
+            return type2;
+        }
+    }
+    else
+    {
+        // we only support the competition for the simple types right now.
+        PPL_TODO;
+    }
+}
+
+CG_Function CG_LookupFunction(const char *functionName)
+{
+    // get the function.
+    CG_Value funcVal;
+    if ( !CG_Glob()->metaVars.get( functionName, &funcVal ) )
+    {
+        // TODO: we could also search the runtime vars for functions as well.
+        
+        // undeclared identifier kind of idea.
+        PPL_TODO;
+    }
+    
+    CG_Function func;
+    
+    if ( funcVal.valueKind == PPL_TYPE_FUNC )
+    {
+        func = ValueExtract_CgFunction(funcVal);
+    }
+    else
+    {
+        // in this case, the identifier exists, just not a function.
+        PPL_TODO;
+    }
+    
+    return func;
+}
+
+// NOTE: the context represents information about the direct parent expression.
+// For example, the type of the parent is stored so that the child expression will
+// cast to the type of the parent. the type of the parent can also be considered a
+// type request by the parent to the child.
+struct CG_GenerateExpressionContext
+{
+    // NOTE: if we're being serious, any type needs to be the full-blown CG_Value otherwise
+    // we are not going to be able to handle function pointers properly.
+    CG_Value type;
+    
+    uint32_t indentation;
+    
+    const char *parentFuncName;
+};
+
+// TODO: maybe we want this to take indentation. I'm just lazy right now to add it.
+void GenerateRuntimeCast(CG_Value srcType, CG_Value dstType, PFileWriter &fileWriter,
+                         pasm_register reg)
+{
+    if ( srcType.valueKind == PPL_TYPE_TYPE && dstType.valueKind == PPL_TYPE_TYPE
+       )
+    {
+        // this condition shouldn't ever be true.
+        assert( srcType.valueKind != PPL_TYPE_UNKNOWN && dstType.valueKind != PPL_TYPE_UNKNOWN );
+        
+        if ( srcType.valueKind == PPL_TYPE_F32 || srcType.valueKind == PPL_TYPE_F64
+            || dstType.valueKind == PPL_TYPE_F32 || dstType.valueKind == PPL_TYPE_F64)
+        {
+            PPL_TODO;
+        }
+        
+        auto type1 = ValueExtract_PplType(srcType);
+        auto type2 = ValueExtract_PplType(dstType);
+        auto width1 = PplTypeGetWidth(type1);
+        auto width2 = PplTypeGetWidth(type2);
+        const bool bSigned1 = PplTypeGetSign(type1);
+        const bool bSigned2 = PplTypeGetSign(type2);
+        
+        // NOTE: if the bit widths are different but the signs are different, nothing
+        // changes about the data. it's just interpreted differently.
+        if ( width2 < width1 )
+        {
+            uint64_t mask = (type2 == PPL_TYPE_BOOL) ? 1 : (1 << (width2 << 3)) - 1;
+            auto s = SillyStringFmt("and %s, %llu\n", PasmRegisterGetString(reg), mask);
+            fileWriter.write(s);
+        }
+        else if ( width1 < width2 )
+        {
+            // clip the upper bits in register in case they were junk. we're going to start looking
+            // at those bits within the register now.
+            uint64_t mask = (type1 == PPL_TYPE_BOOL) ? 1 : (1 << (width1 << 3)) - 1;
+            auto s = SillyStringFmt("and %s, %llu\n", PasmRegisterGetString(reg), mask);
+            fileWriter.write(s);
+            
+            if (bSigned1)
+            {
+                int registerNumber = (int)reg % 32;
+                pasm_register regType1 = PasmRegisterFromType(registerNumber, type1);
+                
+                // need to sign extend the thing into the larger width.
+                // if bSigned2, that's OK. there is no work to do there.
+                auto s = SillyStringFmt("movsx %s, %s\n", PasmRegisterGetString(reg),
+                                        PasmRegisterGetString(regType1));
+                fileWriter.write(s);
+            }
+        }
+    }
+    else
+    {
+        // only dealing with simple types for now.
+        PPL_TODO;
+    }
+}
 
 // TODO: there are lot of places in this codegen pass where we do the recursion, but that's not good.
 // that kind of idea does not scale well and is generally not performant.
@@ -858,8 +1078,14 @@ void CollectTupleFromExpression(struct tree_node *exp, CG_Tuple *builder)
 // TODO: handle when the result of the expression is wider than 64 bits, or is a float. for now, we just do integers in a single register.
 // NOTE: this will generate the code from an expression to build the result for immediate usage.
 // the result of the expression will be stored to r2 (pasm).
-void GenerateExpressionImmediate(struct tree_node *ast, PFileWriter &fileWriter, uint32_t indentation, const char *parentFuncName)
+void GenerateExpressionImmediate(struct tree_node *ast,
+                                 PFileWriter &fileWriter,
+                                 CG_GenerateExpressionContext *context
+                                 )
 {
+    auto &indentation = context->indentation;
+    auto &parentFuncName = context->parentFuncName;
+    
     // TODO:
     assert(indentation == 1);
     //const char *indentationStr = "\t";
@@ -876,6 +1102,8 @@ void GenerateExpressionImmediate(struct tree_node *ast, PFileWriter &fileWriter,
     assert(ast->childrenCount >= 1);
     
     auto c = &ast->children[0];
+
+    CG_Value expressionTypeResult = ValueConstruct_PplType(PPL_TYPE_UNKNOWN);
     
     if (c->type == AST_STRING_LITERAL)
     {
@@ -914,31 +1142,61 @@ void GenerateExpressionImmediate(struct tree_node *ast, PFileWriter &fileWriter,
             // record the mapping from string literal to the label.
             CG_Glob()->stringLiterals.put( c->metadata.str, label );
             
-            // record the metavariable.
+            // record for emit in readonly section.
             CG_Glob()->binaryReadonly.put( label, val );
         }
         
         auto s = SillyStringFmt("%smov r2, %s\n", indentationStr, label);
         fileWriter.write(s);
+        
+        expressionTypeResult = ValueConstruct_PplType(PPL_TYPE_STRING);
     }
     else if (c->type == AST_INT_LITERAL)
     {
-        // TODO: we really need to care about the proper typing of things.
-        c->metadata.num; // int64.
-        auto s = SillyStringFmt("%smov r2, %d\n", indentationStr, c->metadata.num);
+        if ( context->type.valueKind != PPL_TYPE_TYPE )
+        {
+            // this path is where I suppose we want to emit a user error.
+            // what's going on here is that we are trying to use an int
+            // literal to assign to a type where it's not gonna work. type mismatch.
+            PPL_TODO;
+        }
+        
+        ppl_type dstType = ValueExtract_PplType(context->type);
+        
+        // NOTE: only truncate if there is an explicit request.
+        const bool bShouldTruncate = dstType != PPL_TYPE_UNKNOWN;
+        
+        uint64_t literal = c->metadata.num;
+        if ( bShouldTruncate && CG_MaybeTruncateIntLiteral(c->metadata.num, dstType, &literal) )
+        {
+            // TODO: emit warning to user?
+        }
+        
+        auto s = SillyStringFmt("%smov r2, %llu\n", indentationStr, literal);
         fileWriter.write(s);
+        
+        expressionTypeResult = ValueConstruct_PplType(c->metadata.valueKind);
     }
     else if (strcmp(c->metadata.str, "assignment_exp") == 0)
     {
         PPL_TODO;
     }
-    else if (strcmp(c->metadata.str, "additive_exp") == 0)
+    else if (
+             strcmp(c->metadata.str, "term") == 0 ||
+             strcmp(c->metadata.str, "additive_exp") == 0
+             )
     {
-        // ast node is  "(term)([(op,+)(op,-)](term))*".
+        // ast node is      "(term)([(op,+)(op,-)](term))*".
+        // ast node is also "(factor)([(op,*)(op,/)(op,%)](factor))*"
         if (c->childrenCount > 1)
         {
+            CG_GenerateExpressionContext newCtx = *context;
+            newCtx.type = ValueConstruct_PplType(PPL_TYPE_UNKNOWN);
+            
             tree_node *term1 = &c->children[0];
-            GenerateExpressionImmediate(term1, fileWriter, indentation, parentFuncName);
+            GenerateExpressionImmediate(term1, fileWriter, &newCtx);
+            
+            CG_Value lastWinner = newCtx.type;
             
             // save the last computed term into r3.
             auto s = SillyStringFmt("%smov r3, r2\n", indentationStr);
@@ -952,7 +1210,27 @@ void GenerateExpressionImmediate(struct tree_node *ast, PFileWriter &fileWriter,
                 assert(op->type == AST_OP);
                 char opChar = op->metadata.str[2];
                 
-                GenerateExpressionImmediate(term2, fileWriter, indentation, parentFuncName);
+                newCtx.type = ValueConstruct_PplType(PPL_TYPE_UNKNOWN);
+                GenerateExpressionImmediate(term2, fileWriter, &newCtx);
+                
+                const bool bThereIsALoser = (lastWinner != newCtx.type);
+                
+                CG_Value oldLastWinner = lastWinner;
+                
+                // there can be only one type for the result of the binary expression.
+                lastWinner = DoTypeCompetition( lastWinner, newCtx.type );
+                
+                // cast the loser, if there was one.
+                if ( bThereIsALoser )
+                {
+                    const bool bSecondOperandWon = !( newCtx.type != lastWinner );
+                    auto reg = bSecondOperandWon ? PASM_R3 : PASM_R2;
+                    auto &src = bSecondOperandWon ? oldLastWinner : newCtx.type;
+                    auto &dst = bSecondOperandWon ? newCtx.type : oldLastWinner;
+                    
+                    // cast em'
+                    GenerateRuntimeCast(src, dst, fileWriter, reg);
+                }
 
                 char *s;
                 if (opChar == '+')
@@ -965,13 +1243,63 @@ void GenerateExpressionImmediate(struct tree_node *ast, PFileWriter &fileWriter,
                 fileWriter.write(s);
             }
             
+            expressionTypeResult = lastWinner;
+            
             // output the result.
             s = SillyStringFmt("%smov r2, r3\n", indentationStr);
             fileWriter.write(s);
         }
         else
         {
-            GenerateExpressionImmediate(c, fileWriter, indentation, parentFuncName);
+            GenerateExpressionImmediate(c, fileWriter, context);
+            
+            expressionTypeResult = context->type;
+        }
+    }
+    else if (strcmp(c->metadata.str, "factor") == 0)
+    {
+        if (c->childrenCount == 2)
+        {
+            // ast node is
+            /*
+             "["
+                 "((op,.)(object))"
+                 "(object)"
+                 // NOTE: for now, I think the C-style cast grammar is OK.
+                 // since "(\\((expression)\\))" is a subset of "((\\((type)\\)(factor))".
+                 // and otherwise we will not see "((expression)(factor))" ever.
+                 "([(op,++)(op,--)(op,!)(op,-)(op,*)(op,@)(op,~)(\\((type)\\))](factor))"
+                 "(\\((expression)\\))"
+             "]"
+             */
+            tree_node *maybeType = &c->children[0];
+            tree_node *exp = &c->children[1];
+            if (maybeType->type == AST_GNODE && strcmp(maybeType->metadata.str, "type") == 0)
+            {
+                CG_Value type = TypeExpressionCompute(maybeType);
+                
+                CG_GenerateExpressionContext ctx = *context;
+                ctx.type = type;
+                GenerateExpressionImmediate(exp, fileWriter, &ctx);
+                
+                expressionTypeResult = type;
+            }
+            else
+            {
+                // not handling the other cases right now.
+                PPL_TODO;
+            }
+        }
+        else if (c->childrenCount == 1)
+        {
+            tree_node *exp = &c->children[0];
+            GenerateExpressionImmediate(exp, fileWriter, context);
+            expressionTypeResult = context->type;
+        }
+        else
+        {
+            // we just aren't expecting this right now.
+            PPL_TODO;
         }
     }
     else if (
@@ -983,12 +1311,12 @@ void GenerateExpressionImmediate(struct tree_node *ast, PFileWriter &fileWriter,
              strcmp(c->metadata.str, "bitwise_xor_exp") == 0 ||
              strcmp(c->metadata.str, "bitwise_and_exp") == 0 ||
              strcmp(c->metadata.str, "bitshift_exp") == 0 ||
-             strcmp(c->metadata.str, "term") == 0 ||
-             strcmp(c->metadata.str, "factor") == 0 ||
              strcmp(c->metadata.str, "object") == 0
              )
     {
-        GenerateExpressionImmediate(c, fileWriter, indentation, parentFuncName);
+        GenerateExpressionImmediate(c, fileWriter, context);
+        
+        expressionTypeResult = context->type;
     }
     else if (strcmp(c->metadata.str, "function_call") == 0)
     {
@@ -996,22 +1324,40 @@ void GenerateExpressionImmediate(struct tree_node *ast, PFileWriter &fileWriter,
         assert(callee->type == AST_SYMBOL);
         auto calleeName = callee->metadata.str;
         
+        CG_Function func = CG_LookupFunction(calleeName);
+        auto sigRef = func.signature.Get();
+        
         // collect the arguments.
         CG_Tuple args;
         CollectTupleFromExpression(&c->children[1], &args);
+
+        if ( !sigRef->bIsVariadic && sigRef->paramCount != args.elemCount)
+        {
+            // here we want to emit a user error, where they didn't provide enough parameters to the
+            // function call.
+            PPL_TODO;
+        }
         
         // generate the args.
         // TODO: this can of course be more efficient. I'm perfectly fine at this stage of the project to emit poor asm.
         // the goal right now is to just get things working.
         for (uint32_t i = 1; i < args.elemCount; i++)
         {
-            GenerateExpressionImmediate(args.elems[i], fileWriter, indentation, parentFuncName);
+            ppl_type param = (i < sigRef->paramCount) ? sigRef->params[i] : PPL_TYPE_UNKNOWN;
+            
+            CG_GenerateExpressionContext newCtx = *context;
+            newCtx.type = ValueConstruct_PplType(param);
+            GenerateExpressionImmediate(args.elems[i], fileWriter, &newCtx);
+
             auto s = SillyStringFmt("%smov r%d, r2\n", indentationStr, i+2);
             fileWriter.write(s);
         }
         
-        // NOTE: the leftmost one goes into r2.
-        GenerateExpressionImmediate(args.elems[0], fileWriter, indentation, parentFuncName);
+        auto param0 = (sigRef->paramCount) ? sigRef->params[0] : PPL_TYPE_UNKNOWN;
+
+        CG_GenerateExpressionContext newCtx = *context;
+        newCtx.type = ValueConstruct_PplType(param0);
+        GenerateExpressionImmediate(args.elems[0], fileWriter, &newCtx); // NOTE: the leftmost one goes into r2.
         
         auto s = SillyStringFmt("%scall %s(", indentationStr, calleeName);
         fileWriter.write(s);
@@ -1028,10 +1374,10 @@ void GenerateExpressionImmediate(struct tree_node *ast, PFileWriter &fileWriter,
         
         fileWriter.write(")\n");
         
+        expressionTypeResult = ValueConstruct_PplType(sigRef->returnType);
     }
     else if ( c->type == AST_SYMBOL )
     {
-        // TODO: handle lookup for runtime variables. right now we just lookup the compile-time ones.
         auto identName = c->metadata.str;
         CG_Value val;
         CG_Id ident;
@@ -1042,10 +1388,27 @@ void GenerateExpressionImmediate(struct tree_node *ast, PFileWriter &fileWriter,
                     // TODO: handle types other than integer.
                     PPL_TYPE_INTEGER_CASE
                     {
-                        auto s = SillyStringFmt(
-                                                "%smov r2, %u\n",
-                                                indentationStr, ValueExtract_Uint64(val));
+                        if ( context->type.valueKind != PPL_TYPE_TYPE )
+                        {
+                            // user error. the requested expression kind is incompatible with
+                            // the expression kind that we've got here.
+                            PPL_TODO;
+                        }
+
+                        ppl_type dstType = ValueExtract_PplType(context->type);
+
+                        const bool bShouldTruncate = dstType != PPL_TYPE_UNKNOWN;
+
+                        uint64_t literal = ValueExtract_Uint64(val);
+                        if ( bShouldTruncate && CG_MaybeTruncateIntLiteral(literal, dstType, &literal))
+                        {
+                            // TODO: probably emit warning.
+                        }
+
+                        auto s = SillyStringFmt("%smov r2, %u\n", indentationStr, literal);
                         fileWriter.write(s);
+                        
+                        expressionTypeResult = ValueConstruct_PplType(val.valueKind);
                     }break;
                 default:
                     PPL_TODO;
@@ -1065,10 +1428,28 @@ void GenerateExpressionImmediate(struct tree_node *ast, PFileWriter &fileWriter,
             {
                 case CG_MEMORY_LOCATION_STACK:
                 {
-                    // TODO: when we look at doing the proper typing stuff;
-                    // that means constructing a move operation into the correct sized register.
+                    if ( ident.type.valueKind != PPL_TYPE_TYPE )
+                    {
+                        PPL_TODO;
+                    }
+                                        
                     auto s = SillyStringFmt( "%smov r2, %s\n", indentationStr, loc.stackIdent );
                     fileWriter.write(s);
+                    
+                    const bool bTypeRequest = ( context->type.valueKind == PPL_TYPE_TYPE &&
+                                                 ValueExtract_PplType(context->type) != PPL_TYPE_UNKNOWN );
+                   
+
+                    if ( bTypeRequest && context->type != ident.type )
+                    {
+                        GenerateRuntimeCast(ident.type, context->type, fileWriter, PASM_R2);
+                        
+                        // TODO: throw user error.
+                        // the user error would throw if we find that the two types trying to cast between
+                        // are incompatible.
+                    }
+                    
+                    expressionTypeResult = ident.type;
                 } break;
                 default:
                     PPL_TODO;
@@ -1088,7 +1469,7 @@ void GenerateExpressionImmediate(struct tree_node *ast, PFileWriter &fileWriter,
     
         if (c->childrenCount == 1)
         {
-            GenerateExpressionImmediate(&c->children[0], fileWriter, indentation, parentFuncName);
+            GenerateExpressionImmediate(&c->children[0], fileWriter, context);
         }
         else
         {
@@ -1100,8 +1481,9 @@ void GenerateExpressionImmediate(struct tree_node *ast, PFileWriter &fileWriter,
             uint64_t label1 = CG_Glob()->labelUID++;
             uint64_t label2 = CG_Glob()->labelUID++;
             
-            
-            GenerateExpressionImmediate(cond, fileWriter, indentation, parentFuncName);
+            CG_GenerateExpressionContext newCtx = *context;
+            newCtx.type = ValueConstruct_PplType(PPL_TYPE_BOOL);
+            GenerateExpressionImmediate(cond, fileWriter, &newCtx);
             
             auto s = SillyStringFmt(
                                     "%sbgt r2, 0, " FUNC_TERN_LABEL_NO_LABEL_FMT "\n",
@@ -1110,7 +1492,7 @@ void GenerateExpressionImmediate(struct tree_node *ast, PFileWriter &fileWriter,
                                     );
             fileWriter.write(s);
             
-            GenerateExpressionImmediate(b, fileWriter, indentation, parentFuncName);
+            GenerateExpressionImmediate(b, fileWriter, context);
             
             s = SillyStringFmt(
                                "%sbr " FUNC_TERN_LABEL_NO_LABEL_FMT "\n"
@@ -1121,13 +1503,27 @@ void GenerateExpressionImmediate(struct tree_node *ast, PFileWriter &fileWriter,
             
             fileWriter.write(s);
 
-            GenerateExpressionImmediate(a, fileWriter, indentation, parentFuncName);
+            GenerateExpressionImmediate(a, fileWriter, context);
             
             s = SillyStringFmt(FUNC_TERN_LABEL_FMT ":\n", parentFuncName, label2);
             fileWriter.write(s);
         }
 #undef FUNC_TERN_LABEL_FMT
 #undef FUNC_TERN_LABEL_NO_LABEL_FMT
+        
+        expressionTypeResult = context->type;
+    }
+    else
+    {
+        // not sure what we are hitting here.
+        PPL_TODO;
+    }
+    
+    // output the type of this expression if it was asked for.
+    if ( context->type.valueKind == PPL_TYPE_TYPE &&
+        ValueExtract_PplType(context->type) == PPL_TYPE_UNKNOWN )
+    {
+        context->type = expressionTypeResult;
     }
 }
 
@@ -1193,7 +1589,9 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
         
         tree_node *firstVal = nullptr;
         
-        if (maybeType->type == AST_OP)
+        const bool bNeedInfer = maybeType->type == AST_OP;
+        
+        if (bNeedInfer)
         {
             assert( c->childrenCount >= 3 );
             tree_node *exp = &c->children[2];
@@ -1240,7 +1638,14 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
             PPL_TODO;
         }
 
-        const char *pasmType = PplTypeToPasmHumanReadable( ValueExtract_PplType(typeValue) );
+        // NOTE: while we could use the actual type of the variable, that can create problems.
+        // we currently use 64 bits to store any stack variable. thus, if pasm thinks the type of
+        // our stack var has a smaller bit width, we might only initialize the lower bits of the stack
+        // var. that would be okay, except for the fact that we later perform expression arithmetic in
+        // 64 bit registers. we'll only load from the lower stack var bits, leaving the upper register
+        // bits undefined.
+        const char *pasmType = PplTypeToPasmHumanReadable( PPL_TYPE_U64 );
+
         auto s = SillyStringFmt("%s.let %s %s\n", indentationStr, pasmType, ident.loc.stackIdent);
         fileWriter.write(s);
         
@@ -1255,7 +1660,44 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
             {
                 assert( strcmp(firstVal->metadata.str, "expression") == 0 );
                 
-                GenerateExpressionImmediate(firstVal, fileWriter, indentation, parentFuncName);
+                CG_GenerateExpressionContext ctx;
+                ctx.parentFuncName = parentFuncName;
+                ctx.indentation = indentation;
+                
+                // NOTE: when we provide UNKNOWN as the context type, we are indicating that the type will
+                // be inferred from whatever the expression is. so normally you have that the top level wants
+                // or is requesting some type. but this idea is the inverse, where the type request is going
+                // up the chain.
+                ctx.type = ValueConstruct_PplType(PPL_TYPE_UNKNOWN);
+                GenerateExpressionImmediate(firstVal, fileWriter, &ctx);
+                
+                if (ctx.type != ident.type)
+                {
+                    if (!bNeedInfer)
+                    {
+                        // in this case, we inferred the type from the expression and found that its kind
+                        // has a mismatch with the strongly declared type.
+                        
+                        // TODO: we could use ExpressionVerifyConstant here to take two paths.
+                        // if the initial variable expression is a constant, we can emit the truncated
+                        // value. but if the expression is not constant, we need to emit a runtime cast.
+                        //
+                        // for now, we'll always do the runtime cast because that's easiest.
+                        GenerateRuntimeCast(ctx.type, ident.type, fileWriter, PASM_R2);
+                    }
+                    else
+                    {
+                        // in this case, the infer was wrong. it doesn't match the gathered value
+                        // from GenerateExpressionImmediate. this is a bug and we need to fix
+                        // ExpressionInferInfo.
+                        PPL_TODO;
+                    }
+                }
+                
+                if (ident.type.valueKind != PPL_TYPE_TYPE)
+                {
+                    PPL_TODO;
+                }
                 
                 auto s = SillyStringFmt("%smov %s, r2\n", indentationStr, ident.loc.stackIdent);
                 fileWriter.write(s);
@@ -1289,10 +1731,19 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
         assert(c->childrenCount == 1);
         auto exp = &c->children[0];
         
+        // lookup the parent function.
+        CG_Function func = CG_LookupFunction(parentFuncName);
+        auto sigRef = func.signature.Get();
+        
         fileWriter.write("; return_statement\n");
 
         // NOTE: handle the expresssion if a value needs to be return.
-        GenerateExpressionImmediate(exp, fileWriter, 1, parentFuncName);
+        CG_GenerateExpressionContext ctx;
+        ctx.indentation = 1;
+        ctx.parentFuncName = parentFuncName;
+        ctx.type = ValueConstruct_PplType(sigRef->returnType);
+        
+        GenerateExpressionImmediate(exp, fileWriter, &ctx);
         
         auto s = SillyStringFmt("%sbr " FUNC_END_LABEL_NO_LABEL_FMT "\n", indentationStr, parentFuncName);
         fileWriter.write(s);
@@ -1302,7 +1753,11 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
         // NOTE: this will generate into r2, but we don't care about the value.
         // we still have to emit instructions for this since the expression could do
         // something like a function call with side-effects.
-        GenerateExpressionImmediate(c, fileWriter, indentation, parentFuncName);
+        CG_GenerateExpressionContext ctx;
+        ctx.indentation = indentation;
+        ctx.parentFuncName = parentFuncName;
+        ctx.type = ValueConstruct_PplType(PPL_TYPE_UNKNOWN);
+        GenerateExpressionImmediate(c, fileWriter, &ctx);
     }
     else if (strcmp(n, "if_statement") == 0 )
     {
@@ -1317,7 +1772,11 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
         uint64_t label1 = CG_Glob()->labelUID++;
         uint64_t label2 = CG_Glob()->labelUID++;
         
-        GenerateExpressionImmediate(cond, fileWriter, indentation, parentFuncName);
+        CG_GenerateExpressionContext ctx;
+        ctx.indentation = indentation;
+        ctx.parentFuncName = parentFuncName;
+        ctx.type = ValueConstruct_PplType(PPL_TYPE_BOOL);
+        GenerateExpressionImmediate(cond, fileWriter, &ctx);
         
         auto s = SillyStringFmt(
                                 "%sbgt r2, 0, " FUNC_IF_LABEL_NO_LABEL_FMT "\n",
@@ -1461,7 +1920,7 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
         // fallthrough is as simple as emit a noop where the table jump instr would have been. so we just
         // fall in the jump instr below, or out of the table entirely.
 
-        PPL_TODO;        
+        PPL_TODO;
     }
     else
     {
@@ -1496,6 +1955,44 @@ void GenerateProgram(struct tree_node ast, PFileWriter &fileWriter)
         ".extern p_decl void ppl_console_print(int64, []int64)\n"
         ".extern p_decl void ppl_exit(int32)\n\n"
          );
+    
+    // declare ppl_console_print.
+    {
+        CG_FunctionSignature newSig = {};
+        newSig.returnType = PPL_TYPE_VOID;
+        newSig.bIsVariadic = true;
+
+        newSig.params[newSig.paramCount]        = PPL_TYPE_S64;
+        newSig.paramIdents[newSig.paramCount++] = "fmt";
+        assert(newSig.paramCount <= CG_MAX_FUNCTION_PARAMETERS);
+
+        CG_FunctionSignature &newSigRef = StretchyBufferPush( CG_Glob()->funcSignatureRegistryScratch, newSig );
+        
+        CG_Function func;
+        func.signature = CG_Span<CG_FunctionSignature>( &newSigRef, 1 );
+        // NOTE: there is no need to define the .code part.
+        
+        CG_Glob()->metaVars.put("ppl_console_print", ValueConstruct_CgFunction(func));
+    }
+    
+    // declare ppl_exit
+    {
+        CG_FunctionSignature newSig = {};
+        newSig.returnType = PPL_TYPE_VOID;
+
+        newSig.params[newSig.paramCount]        = PPL_TYPE_S32;
+        newSig.paramIdents[newSig.paramCount++] = "code";
+        assert(newSig.paramCount <= CG_MAX_FUNCTION_PARAMETERS);
+
+        CG_FunctionSignature &newSigRef = StretchyBufferPush( CG_Glob()->funcSignatureRegistryScratch, newSig );
+        
+        CG_Function func;
+        func.signature = CG_Span<CG_FunctionSignature>( &newSigRef, 1 );
+        func.code = nullptr;
+        // NOTE: there is no need to define the .code part.
+        
+        CG_Glob()->metaVars.put("ppl_exit", ValueConstruct_CgFunction(func));
+    }
 
     // TODO: maybe we want to use the iterator pattern. that might make things nice.
     for ( uint32 i = 0; i < ast.childrenCount; i++)
@@ -1529,6 +2026,19 @@ void GenerateProgram(struct tree_node ast, PFileWriter &fileWriter)
         {
             CG_Function func = ValueExtract_CgFunction(tableElem.value);
             CG_FunctionSignature *sigRef = func.signature.Get();
+            
+            tree_node *funcCode = func.code;
+            
+            if (func.code == nullptr)
+            {
+                // NOTE: a concrete example of hitting this case is ppl_console_print.
+                // it doesn't have a body. in general, this will be an forward declared func.
+                continue;
+                
+                // TODO: in a future version need to emit .extern here.
+                // right now we are doing the silly with the library functions,
+                // so they are already defined.
+            }
 
             const char *pasmStr = PplTypeToPasmHumanReadable(sigRef->returnType);
 
@@ -1548,8 +2058,6 @@ void GenerateProgram(struct tree_node ast, PFileWriter &fileWriter)
             }
             
             fileWriter.write(")\n");
-
-            tree_node *funcCode = func.code;
             
             // TODO: we need to emit the register saving.
             // right now it's okay we are not doing it because there is only the main function.
