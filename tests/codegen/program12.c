@@ -8,9 +8,13 @@ main :: fn () -> int
     C : char = 150; // testing that char is signed.
     F : short = (u8)256 + 32766;  // testing truncation + upcast in expression.
 
+    // NOTE: the behavior of this expression varies w.r.t. C. In C, the 167 + 167
+    // part will not be restricted to u8 bitwidth. So we'll get a result of 33100.
     Z : int = ( (u8)167 + (u8)167 ) + 32766;
 
     ZZ : char = ( (u8)167 + (u8)167 ) + 32766;
+
+    ZW : int = C + D + Z;
 
     //       18446744073709551615
     e : int = 9223372036854775807; // testing print limit.
@@ -23,10 +27,11 @@ main :: fn () -> int
     // so we have to cast these to int64 for printing as we need to match with %d.
 
     ppl_console_print("The value of D is: %d\n", (int)D); // expect 1.
-    ppl_console_print("The value of C is: %d\n", (int)C); // expect a negative value.
+    ppl_console_print("The value of C is: %d\n", (int)C); // expect -106.
     ppl_console_print("The value of F is: %d\n", (int)F); // expect 32766.
     ppl_console_print("The value of Z is: %d\n", Z); // expect 32844.
-    ppl_console_print("The value of ZZ is: %d\n", ZZ); // expect 76.
+    ppl_console_print("The value of ZZ is: %d\n", (int)ZZ); // expect 76.
+    ppl_console_print("The value of ZW is: %d\n", ZW); // expect 32739.
     ppl_console_print("The value of e is: %d\n", e); // expect 9223372036854775807.
 
     for 0 ..= 7 do

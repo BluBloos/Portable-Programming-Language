@@ -1583,6 +1583,9 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
         tree_node *varName = &route->children[0];
         assert( varName->type == AST_SYMBOL );
         
+        auto s = SillyStringFmt("; let runtime_var_decl with ident=%s\n", varName->metadata.str);
+        fileWriter.write(s);
+        
         tree_node *maybeType = &c->children[1];
         
         CG_Value typeValue;
@@ -1646,7 +1649,7 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
         // bits undefined.
         const char *pasmType = PplTypeToPasmHumanReadable( PPL_TYPE_U64 );
 
-        auto s = SillyStringFmt("%s.let %s %s\n", indentationStr, pasmType, ident.loc.stackIdent);
+        s = SillyStringFmt("%s.let %s %s\n", indentationStr, pasmType, ident.loc.stackIdent);
         fileWriter.write(s);
         
         if (firstVal)
