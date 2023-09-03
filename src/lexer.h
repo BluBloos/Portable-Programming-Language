@@ -568,10 +568,13 @@ bool TokenFromLatent(struct token &token) {
         bool dFlag; bool fFlag; bool uFlag;
         if (IsNumber<EnableIsNumberFlags>(*cleanToken, &dFlag, &fFlag, &uFlag)) { 
             if (!dFlag) {
-                // NOTE: atoi works in a similar way to atof. the invalid things
-                // at the end of the string are ignored. of particular interest
-                // to us would be the `u` at the end of the string.
-                uint64_t num = atoi(cleanToken->c_str());
+                static_assert( sizeof(uint64_t) == sizeof(unsigned long long),
+                    "expect sane platform." );
+                
+                uint64_t num = strtoull(cleanToken->c_str(),
+                    nullptr, // endptr. 
+                    10);
+
                 if (uFlag)
                     token = Token(TOKEN_UINT_LITERAL, num, currentLine, bc);
                 else
