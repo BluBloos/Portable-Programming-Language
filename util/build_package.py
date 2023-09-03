@@ -62,6 +62,7 @@ elif on_windows:
 
 shutil.copy("LICENSE.txt", os.path.join(package_dir, "LICENSE.txt"))
 shutil.copy("README.txt", os.path.join(package_dir, "README.txt"))
+shutil.copy(os.path.join("util", "RUN.bat"), os.path.join(package_dir, "RUN.bat"))
 
 codegen_whitelist = ["program1.c"]
 grammar_whitelist = []

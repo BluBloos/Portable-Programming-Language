@@ -38,8 +38,22 @@ This project is in HEAVY DEVELOPMENT.
 The language is undergoing active design. The design currently leads while the
 compiler support lags behind.
 
-# Steps for Using
+Steps for Using
+===
+
+macOS
+==
 
 Simply execute the `ppl` binary. Therein contains an interactive program to
 guide the user through performing any action that the PPL compiler toolchain
 currently supports.
+
+Windows
+==
+
+Double-click on RUN.bat
+
+Dependencies
+===
+
+On Windows, Visual Studio Community 2022 must be installed.

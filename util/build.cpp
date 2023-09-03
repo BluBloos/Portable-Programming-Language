@@ -151,6 +151,7 @@ void PrintAbout()
     printf("Version:                 v0.1.0\n");
     printf("How to read help menu:   <fullCmdName> (<shortCmdName>)   - <desc>\n");
     printf("Program dependencies:    Netwide Assembler (nasm) must be available from the cmdline.\n");
+    printf("                         link.exe from Visual Studio Community 2022.\n");
 }
 
 void PrintHelp() {
@@ -392,7 +393,18 @@ int DoCommand(const char *l, const char *l2) {
         if (result == 0)
         {
 #if defined(PLATFORM_WINDOWS)
-        PPL_TODO;
+            int &r = result;
+            r &= passembler("program.out", "macOS"); // TODO(Noah): target independent, remove macOS.
+            r &= CallSystem("mkdir bin");
+            r &= pasm_x86_64(pasm_lines, "bin\\out.x86_64", MAC_OS); // TODO(Noah): target independent, remove macOS.
+            DeallocPasm();
+            r &= CallSystem("nasm -g -o bin\\out.obj -f win64 bin\\out.x86_64");
+            r &= CallSystem("nasm -g -o bin\\exit.obj -f win64 backend\\pstdlib\\Windows\\exit.s");
+            r &= CallSystem("nasm -g -o bin\\stub.obj -f win64 backend\\pstdlib\\Windows\\stub.s");
+            r &= CallSystem("nasm -g -o bin\\print.obj -f win64 backend\\pstdlib\\Windows\\console\\print.s");
+            // TODO(Noah): Remove dependency on Visual Studio linker.
+            r &= CallSystem("link /LARGEADDRESSAWARE /subsystem:console /entry:start bin\\out.obj bin\\exit.obj bin\\stub.obj bin\\print.obj \
+                /OUT:bin\\out.exe Kernel32.lib");
 #elif defined(PLATFORM_MAC)
             errors += 0 != passembler("program.out", "macOS"
                 // TODO: yuk, why are we using string to declare to the passembler that it's macos?
