@@ -1012,6 +1012,36 @@ struct CG_GenerateExpressionContext
     const char *parentFuncName;
 };
 
+CG_Value TypeExtendWidth(CG_Value type)
+{
+    if ( type.valueKind == PPL_TYPE_TYPE
+       )
+    {
+        if ( type.valueKind == PPL_TYPE_F32 || type.valueKind == PPL_TYPE_F64 )
+        {
+            // not dealing with floating point right now.
+            PPL_TODO;
+        }
+        
+        auto type1 = ValueExtract_PplType(type);
+        bool bIsSigned = PplTypeGetSign(type1);
+        
+        if (bIsSigned)
+        {
+            return ValueConstruct_PplType(PPL_TYPE_S64);
+        }
+        else
+        {
+            return ValueConstruct_PplType(PPL_TYPE_U64);
+        }
+    }
+    else
+    {
+        // only dealing with simple types for now.
+        PPL_TODO;
+    }
+}
+
 // TODO: maybe we want this to take indentation. I'm just lazy right now to add it.
 void GenerateRuntimeCast(CG_Value srcType, CG_Value dstType, PFileWriter &fileWriter,
                          pasm_register reg)
@@ -1022,6 +1052,9 @@ void GenerateRuntimeCast(CG_Value srcType, CG_Value dstType, PFileWriter &fileWr
         // this condition shouldn't ever be true.
         assert( srcType.valueKind != PPL_TYPE_UNKNOWN && dstType.valueKind != PPL_TYPE_UNKNOWN );
         
+        // NOTE: we expect to always be working with the 64 bits registers.
+        assert( (int)reg < 32 );
+
         if ( srcType.valueKind == PPL_TYPE_F32 || srcType.valueKind == PPL_TYPE_F64
             || dstType.valueKind == PPL_TYPE_F32 || dstType.valueKind == PPL_TYPE_F64)
         {
@@ -1042,14 +1075,28 @@ void GenerateRuntimeCast(CG_Value srcType, CG_Value dstType, PFileWriter &fileWr
             uint64_t mask = (type2 == PPL_TYPE_BOOL) ? 1 : (1 << (width2 << 3)) - 1;
             auto s = SillyStringFmt("and %s, %llu\n", PasmRegisterGetString(reg), mask);
             fileWriter.write(s);
+
+            if (bSigned1)
+            {
+                int registerNumber = (int)reg % 32;
+                pasm_register regType2 = PasmRegisterFromType(registerNumber, type2);
+                
+                // need to sign extend the thing into the larger width.
+                // if bSigned2, that's OK. there is no work to do there.
+                auto s = SillyStringFmt("movsx %s, %s\n", PasmRegisterGetString(reg),
+                                        PasmRegisterGetString(regType2));
+                fileWriter.write(s);
+            }
         }
         else if ( width1 < width2 )
         {
             // clip the upper bits in register in case they were junk. we're going to start looking
             // at those bits within the register now.
+            #if 0
             uint64_t mask = (type1 == PPL_TYPE_BOOL) ? 1 : (1 << (width1 << 3)) - 1;
             auto s = SillyStringFmt("and %s, %llu\n", PasmRegisterGetString(reg), mask);
             fileWriter.write(s);
+            #endif
             
             if (bSigned1)
             {
@@ -1241,6 +1288,12 @@ void GenerateExpressionImmediate(struct tree_node *ast,
                     PPL_TODO;
 
                 fileWriter.write(s);
+                
+                // since we do arithmetic in the larger registers, we need to clip on overflow.
+                {
+                    auto src = TypeExtendWidth(lastWinner);
+                    GenerateRuntimeCast(src, lastWinner, fileWriter, PASM_R3);
+                }
             }
             
             expressionTypeResult = lastWinner;
@@ -1583,6 +1636,9 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
         tree_node *varName = &route->children[0];
         assert( varName->type == AST_SYMBOL );
         
+        auto s = SillyStringFmt("; let runtime_var_decl with ident=%s\n", varName->metadata.str);
+        fileWriter.write(s);
+        
         tree_node *maybeType = &c->children[1];
         
         CG_Value typeValue;
@@ -1630,7 +1686,19 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
         ident.loc.stackIdent = key;
         
         // generate.
-        CG_Glob()->runtimeVars.put( key, ident );
+        {
+            CG_Id id;
+            if ( !CG_Glob()->runtimeVars.get( key, &id ) )
+            {
+                CG_Glob()->runtimeVars.put( key, ident );
+            }
+            else
+            {
+                // TODO: emit user error. this case is where the variable is already declared.
+                PPL_TODO;
+            }
+        }
+
         
         if ( ident.type.valueKind != PPL_TYPE_TYPE )
         {
@@ -1646,7 +1714,7 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
         // bits undefined.
         const char *pasmType = PplTypeToPasmHumanReadable( PPL_TYPE_U64 );
 
-        auto s = SillyStringFmt("%s.let %s %s\n", indentationStr, pasmType, ident.loc.stackIdent);
+        s = SillyStringFmt("%s.let %s %s\n", indentationStr, pasmType, ident.loc.stackIdent);
         fileWriter.write(s);
         
         if (firstVal)

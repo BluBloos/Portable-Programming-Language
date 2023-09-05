@@ -136,7 +136,7 @@ unsigned long long SillyStringToUINT(char *str)
 {
 	unsigned long long result = 0;
 	unsigned int strLength = SillyStringLength(str);
-	unsigned long long placeValue = (unsigned long long)powf(10.0f, (strLength - 1.0f) );
+	unsigned long long placeValue = (unsigned long long)pow(10.0, double(strLength - 1.0f) );
     for (unsigned int x = 0; x < strLength; x++)
 	{
 		result += (SafeSubtract(*str, '0')) * placeValue;
