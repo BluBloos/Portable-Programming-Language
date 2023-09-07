@@ -801,8 +801,14 @@ int RunPtestFromCwd(
     if ( pal::createFileSearch( searchPath.c_str(), &fSearch, &findData ) )
     {
         do {
-            if (validate(findData.name)) {
+            if (validate(findData.name)) {          
+            //TODO: this is Sa hack. not sure why the code was written this way to cause the
+            // double path issue that we were getting.
+#if defined(PLATFORM_MAC)
+                char *fileName = SillyStringFmt("%s", findData.name);// findData.name;
+#else
                 char *fileName = SillyStringFmt(ModifyPathForPlatform("%s/%s").c_str(), dirName, findData.name);
+#endif
                 LOGGER.logContext.currFile = fileName;
                 ptest(fileName, errors);
             }
