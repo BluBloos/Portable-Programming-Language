@@ -37,37 +37,45 @@
 // PLASMA
 // ======
 /*
-- Single line comments (do not support multi-line).
-- Function definition; they don't need to be ordered.
-- Variable declaration and assignment (do not support global vars).
-- Variable Scoping; like, shadowing is all good.
-- If, else if, and else
-- For loops
-- While loops
-- Break / Continue
-- Recursion
-- Precedence in expressions
-- Ternary operator
-- Supported binary operations:   +   -   *   /   ==   !=   >   <   >=   <=   ||   &&
-- Supported unary operations:   -   !
-- only supported type is int. we treat int as 32 bits. it's unclear if plasma
+1. Single line comments (do not support multi-line).
+2. Function definition; they don't need to be ordered.
+3. Variable declaration and assignment (do not support global vars).
+4. Variable Scoping; like, shadowing is all good.
+5. If, else if, and else
+6. For loops
+7. While loops
+8. Break / Continue; unclear how it works if there is nested for loop. does break exit
+   all loops or just the immediate loop?
+9. Recursion
+10. Precedence in expressions
+11. Ternary operator
+12. Supported binary operations:   +   -   *   /   ==   !=   >   <   >=   <=   ||   &&
+13. Supported unary operations:   -   !
+14. only supported type is int. we treat int as 32 bits. it's unclear if plasma
   handles signedness correctly.
 */
 
 // PPL
 // ===
 /*
-- Single and multi-line comments.
-- Global and function-local variable declaration.
-- If, else if, and else
-- Span based For Loops; NOTE: support is currently limited. Need to handle
-  runtime `Span` as well as the `for i in` syntax. also support implicit `it`. 
-- Precedence in expressions
-- Ternary conditional operator
-- Supported binary operations:   +   -
-- Supported unary operations:   type cast 
-- support for all integer types of 8, 16, 32, and 64 bits. support for signed
+1. Single and multi-line comments.
+2. TODO: function definition.
+2. Global and function-local variable declaration.
+    TODO: assignment to runtime variables.
+4. TODO: variable scoping.
+5. If, else if, and else
+6. Span based For Loops; TODO: Need to handle
+  runtime `Span` as well as the `for i in` syntax. also support implicit `it`.
+7. while loops take the form of legacy for loop syntax.
+8. TODO: break and contiinue.
+9. TODO: recursion
+10. Precedence in expressions
+11. Ternary conditional operator
+12. Supported binary operations:   +   -
+13. Supported unary operations:   type cast 
+14. support for all integer types of 8, 16, 32, and 64 bits. support for signed
   and unsigned.
+15. TODO: add support for switch statement using jump tables.
 */
 
 

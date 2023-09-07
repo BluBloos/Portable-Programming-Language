@@ -233,6 +233,7 @@ int pasm_x86_64(struct pasm_line *source,
         switch(pline.lineType) {
             case PASM_LINE_BRANCH_GT:
             case PASM_LINE_BRANCH_GTE:
+            case PASM_LINE_JUMP_EQ:
             {
                 // NOTE(Noah): cmp does a subtraction op to set the flags.
                 fileWriter.write("cmp ");
@@ -245,6 +246,8 @@ int pasm_x86_64(struct pasm_line *source,
                     fileWriter.write(SillyStringFmt("\njg %s\n", pline.data_fptriad.param3));
                 else if (pline.lineType == PASM_LINE_BRANCH_GTE)
                     fileWriter.write(SillyStringFmt("\njge %s\n", pline.data_fptriad.param3));
+                else if (pline.lineType == PASM_LINE_JUMP_EQ)
+                    fileWriter.write(SillyStringFmt("\nje %s\n", pline.data_fptriad.param3));
                 else
                     PPL_TODO;
             }

@@ -1879,7 +1879,89 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
     }
     else if ( strcmp(n, "while_statement") == 0 )
     {
-        PPL_TODO;
+#define FUNC_WHILE_LABEL_NO_LABEL_FMT "%s_while_%d"
+#define FUNC_WHILE_LABEL_FMT          "label_%s_while_%d"
+
+        // ast node is
+        /*
+         "(keyword=while)"
+         "["
+             "((statement)(expression);(statement_noend))"
+             "((expression);(statement_noend))"
+             "(expression)"
+         "]"
+         "[(keyword=do);]"
+         "(statement)"
+         */
+        
+        if (c->childrenCount != 4)
+        {
+            // right now we aren't going to handle the other syntaxes.
+            PPL_TODO;
+        }
+        
+        tree_node *loopInitStmt = &c->children[0];
+        tree_node *loopCond = &c->children[1];
+        tree_node *loopEndExp = &c->children[2]; // actually a statement_noend.
+        
+        uint64_t loopTop = CG_Glob()->labelUID++;
+        uint64_t loopEndLabel = CG_Glob()->labelUID++;
+        
+        tree_node *loopBody = &c->children[c->childrenCount - 1];
+        assert(loopBody->type == AST_GNODE && strcmp(loopBody->metadata.str, "statement") == 0);
+        
+        // loop init statement.
+        GenerateStatement(loopInitStmt, fileWriter, indentation, parentFuncName);
+        
+        // loop top; check the loop condition.
+        // TODO: maybe we have a label writer? there seems to be lots of copy pasta.
+        auto s = SillyStringFmt(FUNC_WHILE_LABEL_FMT ":\n",
+                           parentFuncName, loopTop);
+        fileWriter.write(s);
+        // check.
+        {
+            CG_GenerateExpressionContext ctx; // TODO: I can see a disaster happening here.
+                                              // where, this is not init. once we add a thing
+                                              // in the future, this is going to break.
+            ctx.indentation = indentation;
+            ctx.parentFuncName = parentFuncName;
+            ctx.type = ValueConstruct_PplType(PPL_TYPE_BOOL);
+            GenerateExpressionImmediate(loopCond, fileWriter, &ctx);
+            
+            // TODO: consider when we emit a signed greater than check, but we can optimize things.
+            // this works OK since we ask for a boolean value result from the cond immediate,
+            // so the expression value is always either 0 or 1.
+            // however, we could do an optimization where we don't cast to bool and just
+            // keep it as whatever integer value it was, then we simply check for not equal
+            // to zero. zero is false, anything else is true. this will work for signed/unsigned.
+            // this is a nice optimization! it will be an exciting time when I finally implement
+            // this. I wrote this comment on 2023-09-07.
+
+            auto s = SillyStringFmt(
+                                    "%sjeq r2, 0, " FUNC_WHILE_LABEL_NO_LABEL_FMT "\n",
+                                    indentationStr, parentFuncName, loopEndLabel
+                                    );
+            fileWriter.write(s);
+        }
+        
+        
+        // loop body.
+        GenerateStatement(loopBody, fileWriter, indentation, parentFuncName);
+        
+        // loop end expression.
+        GenerateStatement(loopEndExp, fileWriter, indentation, parentFuncName);
+        
+        // jump to loop top.
+        s = SillyStringFmt("%sbr " FUNC_WHILE_LABEL_NO_LABEL_FMT "\n",
+                           indentationStr, parentFuncName, loopTop);
+        fileWriter.write(s);
+        
+        s = SillyStringFmt(FUNC_WHILE_LABEL_FMT ":\n",
+                           parentFuncName, loopEndLabel);
+        fileWriter.write(s);
+
+#undef  FUNC_WHILE_LABEL_NO_LABEL_FMT
+#undef  FUNC_WHILE_LABEL_FMT
     }
     else if ( strcmp(n, "for_statement") == 0 )
     {

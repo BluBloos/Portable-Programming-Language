@@ -55,6 +55,10 @@ enum pasm_line_type {
     PASM_LINE_UNLET, // pop stack variable.
     PASM_LINE_SAVE,
     PASM_LINE_RESTORE,
+
+    // NOTE: BRANCH = signed.
+    // JUMP = unsigned.
+
     PASM_LINE_BRANCH,
 
     // NOTE: GT and GTE translate to the signed
@@ -63,6 +67,8 @@ enum pasm_line_type {
     // to use the correct instructions.
     PASM_LINE_BRANCH_GT,
     PASM_LINE_BRANCH_GTE,
+
+    PASM_LINE_JUMP_EQ, // jump if equal.
 
     PASM_LINE_RET,
     // TODO(Noah): For instructions such as MOV, SUB, etc, 
@@ -526,6 +532,12 @@ void PasmLinePrint(struct pasm_line pl) {
         PasmFparamPrint(pl.data_fptriad.param2);
         LOGGER.Min("  param3:%s\n", pl.data_fptriad.param3);
         break;
+        case PASM_LINE_JUMP_EQ:
+        LOGGER.Min("PASM_LINE_JUMP_EQ\n");
+        PasmFparamPrint(pl.data_fptriad.param1);
+        PasmFparamPrint(pl.data_fptriad.param2);
+        LOGGER.Min("  param3:%s\n", pl.data_fptriad.param3);
+        break;
         case PASM_LINE_BRANCH_GTE:
         LOGGER.Min("PASM_LINE_BRANCH_GTE\n");
         PasmFparamPrint(pl.data_fptriad.param1);
@@ -808,6 +820,7 @@ int pasm_main(int argc, char **argv) {
             case PASM_LINE_MOVSX:
             case PASM_LINE_BRANCH_GT:
             case PASM_LINE_BRANCH_GTE:
+            case PASM_LINE_JUMP_EQ:
             {
                 // All of these use the fptriad, so we can do this just fine.
                 struct pasm_fptriad fptriad = pl.data_fptriad;
@@ -1140,6 +1153,7 @@ void HandleLine(char *line) {
         } else if (
             SillyStringStartsWith(line, "bgt")
             || SillyStringStartsWith(line, "bge")
+            || SillyStringStartsWith(line, "jeq")
             )
         {
             pasm_line pline = PasmLineEmpty();
@@ -1152,6 +1166,9 @@ void HandleLine(char *line) {
                 break;
                 case 'e':
                 pline.lineType = PASM_LINE_BRANCH_GTE;
+                break;
+                case 'q':
+                pline.lineType = PASM_LINE_JUMP_EQ;
                 break;
                 default:
                 PPL_TODO;                
