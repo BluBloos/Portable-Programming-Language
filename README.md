@@ -13,10 +13,11 @@
 
 # Portable Programming Language
 
-Built with ❤️, this repository contains the official compiler toolchain for the Portable Programming Language.
+Built with <3, this package contains the official compiler toolchain for the
+Portable Programming Language.
 
-PPL is a systems programming language with the goal of allowing the developer to produce software, hassle-free, for any
-target platform.
+PPL is a systems programming language with the goal of allowing the developer
+to produce software, hassle-free, for any target platform.
 
 Here is a small sample of PPL,
 
@@ -37,30 +38,39 @@ main :: () -> int {
 }
 ```
 
-This language takes inspiration from many other programming languages. To list them all would be much too exhaustive.
-Notable mentions would be C/C++, JAI, and Odin.
+This language takes inspiration from many other programming languages. To list
+them all would be much too exhaustive. Notable mentions would be C/C++, Jai,
+and Odin.
 
 # Foreword
 
 This project is in HEAVY DEVELOPMENT.
 
-The language is undergoing design, and the compiler is incomplete. All that is possible at the moment is to run unit and
-integration tests for components of the compiler.
+The language is undergoing active design. The design currently leads while the
+compiler support lags behind.
 
-See https://github.com/BluBloos/Portable-Programming-Language/wiki for devlogs.
+# Steps for Building and Using
 
-# Steps for Building
+The project uses an interactive build system. The interactive build system
+begins by printing a list of all available commands, then waits for
+subsequent user input.
 
-The project currently depends on the netwide assembler (NASM), the MSVC linker, and `ld` on macOS.
+## macOS
 
-Support for different setups is still "rough around the edges". No guarantees.
+Dependency: `ld` must be available from the terminal. 
 
-The project uses an interactive build system. Run the following command to launch said system (macOS, Linux).
+Run the following command to launch the interactive build system.
 
 ```bash
 ./build.sh
 ```
 
-On Windows, run `build.bat`.
+## Windows
 
-The interactive build system begins by printing a list of all available commands, then waits for subsequent user input.
+Dependency: MSVC linker.
+
+Run the following command to launch the interactive build system.
+
+```batch
+build.bat
+```
