@@ -74,7 +74,7 @@ struct PPL_HashMapWithStringKey
 
     void del(const char *key)
     {
-        stbds_del(table_internal, key);
+        stbds_shdel(table_internal, key);
         update_end();
     }
     

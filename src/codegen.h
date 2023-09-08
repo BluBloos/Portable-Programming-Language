@@ -2003,10 +2003,20 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
             uint64_t label1 = CG_Glob()->labelUID++;
             uint64_t label2 = CG_Glob()->labelUID++;
             uint64_t label3 = CG_Glob()->labelUID++; // loop counter temporary.
-
+            
+            auto s = SillyStringFmt(FUNC_FOR_LABEL_NO_LABEL_FMT, parentFuncName, label3);
+            
+            // TODO: need to look into variable shadow / scope.
+            CG_Id loopCounter;
+            loopCounter.name = "it";
+            loopCounter.type = ValueConstruct_PplType(PPL_TYPE_U64);
+            loopCounter.loc.type = CG_MEMORY_LOCATION_STACK;
+            loopCounter.loc.stackIdent = MEMORY_ARENA.StringAlloc(s); // TODO: this is memory leak.
+            CG_Glob()->runtimeVars.put("it", loopCounter);
+            
             //  TODO:
             // init the loop counter.
-            auto s = SillyStringFmt("%s.let uint64 " FUNC_FOR_LABEL_NO_LABEL_FMT "\n",
+            s = SillyStringFmt("%s.let uint64 " FUNC_FOR_LABEL_NO_LABEL_FMT "\n",
                                indentationStr, parentFuncName, label3);
             fileWriter.write(s);
             s = SillyStringFmt("%smov " FUNC_FOR_LABEL_NO_LABEL_FMT ", %u\n",
@@ -2046,6 +2056,8 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
             s = SillyStringFmt("%s.unlet uint64 " FUNC_FOR_LABEL_NO_LABEL_FMT "\n",
                                indentationStr, parentFuncName, label3);
             fileWriter.write(s);
+            
+            CG_Glob()->runtimeVars.del("it");
         }
         else
         {
