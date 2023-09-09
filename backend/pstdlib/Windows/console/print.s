@@ -84,11 +84,10 @@ ppl_console_print:
             ppl_console_print_endif:
 
             ; now that we have checked the sign, we can actually print the integer.
+            ; note that the loop below is a do-while loop.
             xor r9, r9 ; init for counter.
             ppl_console_print_while2:
-                ; check the condition of the while loop.
-                cmp rax, 0
-                je ppl_console_print_endwhile2 ; we stop printing number once we hit 0
+                
                 ; unsigned integer divide
                 ; the thing to be divided is stored in rdx:rax
                 ; the quotient is stored in rax, and the remainder in rdx.
@@ -100,7 +99,12 @@ ppl_console_print:
                 add rbx, '0'
                 push rbx
                 add r9, 1 ; counter += 1
+
+                ; check the condition of the while loop.
+                cmp rax, 0
+                je ppl_console_print_endwhile2 ; we stop printing number once we hit 0
                 jmp ppl_console_print_while2
+
             ppl_console_print_endwhile2:
 
             ; pull the string representation of the integer off the stack and into the

@@ -8,7 +8,7 @@ main :: fn () -> int
 
     for 0 ..= 7 do
     {
-        ppl_console_print("%d\n", it);
+        ppl_console_print("the value of it is: %d\n", it);
 
         if d then
         {
