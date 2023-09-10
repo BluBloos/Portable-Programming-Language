@@ -1975,30 +1975,87 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
         //   (,(symbol))*
         //   (keyword=in)
         // )?
+        // (expression)[;(keyword=do)](statement)
         
         // NOTE: the first group is optional since they might not define variable names to recieve
         // the stuff. in that case, there is an implicit name of `it`.
         
         assert( c->childrenCount >= 2 );
         
+        tree_node *cond = nullptr;
+        tree_node *body = nullptr;
+        tree_node *iteratorSymbol = nullptr;
+        
         tree_node *maybeCond = &c->children[0];
         tree_node *maybeBody = &c->children[1];
         
         if ( maybeCond->type == AST_GNODE && strcmp(maybeCond->metadata.str, "expression") == 0 )
         {
+            cond = maybeCond;
+            body = maybeBody;
+        }
+        else
+        {
+            iteratorSymbol = &c->children[0];
+            maybeCond = &c->children[1];
+            maybeBody = &c->children[2];
+            if ( maybeCond->type == AST_GNODE && strcmp(maybeCond->metadata.str, "expression") == 0 )
+            {
+                cond = maybeCond;
+                body = maybeBody;
+            }
+            else
+            {
+                // for now only handling "for i in" syntax and not the "for i, it_index in" syntax.
+                PPL_TODO;
+            }
+        }
+        
+        assert(cond);
+        assert(body);
+            
+        {
+#if 0
+            CG_GenerateExpressionContext ctx;
+            ctx.indentation = indentation;
+            ctx.parentFuncName = parentFuncName;
+            ctx.type = ValueConstruct_PplType(PPL_TYPE_SPAN);
+            GenerateExpressionImmediate(cond, fileWriter, &ctx);
+            
+            // expression result that is larger than 64 bits in bitwidth.
+            // we cannot fit this in r2. so, what do we do?
+            // anything that is larger than 64 bits will be pushed to the stack.
+            
+            // we're gonna want to use a new form of the .let syntax to push
+            // an arbitrary amount of 64 bit aligned bits. so maybe we push 128,
+            // or 128+64, etc.
+            
+            // we could have a CleanupExpressionImmediate(ctx).
+            // ofr the .unlet part.
+            
+            // for us to get access to the result here, we can do ctx.result, which
+            // would be a CG_Id.
+            
+            // so with the CG_Id, I have just one name, and that points to the base.
+            // how do I resolve any of the members?
+            
+            // we're gonna need a new syntax in PASM for a stackvar+offset.
+            
+#else
             CG_ExpressionInfo info;
-            ExpressionInferInfo(maybeCond, &info);
+            ExpressionInferInfo(cond, &info);
             
             if (info.kind != PPL_TYPE_SPAN)
             {
                 // for now, we are only handling loops over a span.
                 PPL_TODO;
             }
-            
+
             // TODO: there is a double call to ExpressionInferInfo here.
             // this is because ConstantExpressionCompute internally calls ExpressionInferInfo.
-            auto val = ConstantExpressionCompute(maybeCond);
+            auto val = ConstantExpressionCompute(cond);
             CG_SpanValue span = ValueExtract_CgSpan(val);
+#endif
             
             uint64_t label1 = CG_Glob()->labelUID++;
             uint64_t label2 = CG_Glob()->labelUID++;
@@ -2006,13 +2063,15 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
             
             auto s = SillyStringFmt(FUNC_FOR_LABEL_NO_LABEL_FMT, parentFuncName, label3);
             
+            const char *iteratorName = (iteratorSymbol) ? iteratorSymbol->metadata.str : "it";
+            
             // TODO: need to look into variable shadow / scope.
             CG_Id loopCounter;
-            loopCounter.name = "it";
+            loopCounter.name = iteratorName;
             loopCounter.type = ValueConstruct_PplType(PPL_TYPE_U64);
             loopCounter.loc.type = CG_MEMORY_LOCATION_STACK;
             loopCounter.loc.stackIdent = MEMORY_ARENA.StringAlloc(s); // TODO: this is memory leak.
-            CG_Glob()->runtimeVars.put("it", loopCounter);
+            CG_Glob()->runtimeVars.put(iteratorName, loopCounter);
             
             //  TODO:
             // init the loop counter.
@@ -2034,7 +2093,7 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
                                parentFuncName, label2);
             fileWriter.write(s);
             
-            GenerateStatement(maybeBody, fileWriter, indentation, parentFuncName);
+            GenerateStatement(body, fileWriter, indentation, parentFuncName);
             
             // loop end op.
             s = SillyStringFmt("%sadd " FUNC_FOR_LABEL_NO_LABEL_FMT ", 1\n",
@@ -2057,17 +2116,10 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
                                indentationStr, parentFuncName, label3);
             fileWriter.write(s);
             
-            CG_Glob()->runtimeVars.del("it");
+            CG_Glob()->runtimeVars.del(iteratorName);
         }
-        else
-        {
-            // for now, let's ignore the `in` syntax.
-            PPL_TODO;
-        }
+
         
-        // (expression)
-        // [;(keyword=do)]
-        // (statement)"
 #undef FUNC_FOR_LABEL_NO_LABEL_FMT
 #undef FUNC_FOR_LABEL_FMT
     }
