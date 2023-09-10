@@ -6,9 +6,9 @@ main :: fn () -> int
     D ? ppl_console_print( "Hello: %d\n", b + c + D) :
         ppl_console_print( "Hellohi: %d\n", c);
 
-    for 0 ..= 7 do
+    for the_iterator in 0 ..= 7 do
     {
-        ppl_console_print("the value of it is: %d\n", it);
+        ppl_console_print("%d\n", the_iterator);
 
         if d then
         {
