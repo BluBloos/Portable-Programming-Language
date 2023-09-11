@@ -174,6 +174,14 @@ CG_MemoryLocation CG_ResolveIdent(CG_Id &ident)
     return ident.loc;
 }
 
+struct CG_LoopScope
+{
+    const char *iteratorName; // this is how we identify the loop.
+    
+    const char * loopContinueLabel;
+    const char * loopBreakLabel;
+};
+
 // =====================================================
 
 struct CG_Globals
@@ -196,6 +204,10 @@ struct CG_Globals
     CG_FunctionSignature *funcSignatureRegistryScratch;
     
     uint64_t labelUID;
+    
+    // stretchy buffer that is a stack where we track the current loop scope.
+    // TODO: here, there might be some concerns if we try to multithread the compiler.
+    CG_LoopScope *loopStack = nullptr;
     
     CG_Globals() : funcSignatureRegistryScratch(nullptr), labelUID(0) {}
 };
@@ -228,6 +240,7 @@ void CG_Release()
     g->runtimeVars.~PPL_HashMapWithStringKey();
     g->binaryReadonly.~PPL_HashMapWithStringKey();
     StretchyBufferFree(g->funcSignatureRegistryScratch);
+    StretchyBufferFree(g->loopStack);
     
     // TODO: it's kind of annoying that we have to define the init value twice for this member of Glob.
     g->labelUID = 0;
@@ -1594,7 +1607,7 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
     
     // ast node is either (statement) or (statement_noend).
 
-    // for statement, we have that
+    // for a statement, we have that
     //  "["
     //  "((compile_time_var_decl);?)"
     //  "(untyped_data_pack)"
@@ -1608,7 +1621,34 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
     // TODO: once again, we want to get rid of this string stuff.
     auto c = &ast->children[0];
     auto n = c->metadata.str;
-    if (strcmp(n, "compile_time_var_decl") == 0 )
+    
+    if (c->type == AST_KEYWORD && strcmp(n, "break") == 0 )
+    {
+        if (StretchyBufferCount(CG_Glob()->loopStack))
+        {
+            auto &loopCtx = StretchyBufferLast(CG_Glob()->loopStack);
+            auto s = SillyStringFmt("br %s\n", loopCtx.loopBreakLabel);
+            fileWriter.write(s);
+        }
+        else
+        {
+            // TODO: unclear if this is a warning or an error.
+        }
+    }
+    else if (c->type == AST_KEYWORD && strcmp(n, "continue") == 0 )
+    {
+        if (StretchyBufferCount(CG_Glob()->loopStack))
+        {
+            auto &loopCtx = StretchyBufferLast(CG_Glob()->loopStack);
+            auto s = SillyStringFmt("br %s\n", loopCtx.loopContinueLabel);
+            fileWriter.write(s);
+        }
+        else
+        {
+            // TODO: unclear if this is a warning or an error.
+        }
+    }
+    else if (strcmp(n, "compile_time_var_decl") == 0 )
     {
         PPL_TODO;
     }
@@ -2058,8 +2098,9 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
 #endif
             
             uint64_t label1 = CG_Glob()->labelUID++;
-            uint64_t label2 = CG_Glob()->labelUID++;
+            uint64_t label2 = CG_Glob()->labelUID++; // loop end label.
             uint64_t label3 = CG_Glob()->labelUID++; // loop counter temporary.
+            uint64_t label4 = CG_Glob()->labelUID++; // loop continue label.
             
             auto s = SillyStringFmt(FUNC_FOR_LABEL_NO_LABEL_FMT, parentFuncName, label3);
             
@@ -2072,6 +2113,16 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
             loopCounter.loc.type = CG_MEMORY_LOCATION_STACK;
             loopCounter.loc.stackIdent = MEMORY_ARENA.StringAlloc(s); // TODO: this is memory leak.
             CG_Glob()->runtimeVars.put(iteratorName, loopCounter);
+            
+            // push the loop to the loop stack.
+            CG_LoopScope loopScope;
+            loopScope.iteratorName = iteratorName;
+            s = SillyStringFmt(FUNC_FOR_LABEL_NO_LABEL_FMT, parentFuncName, label2);
+            // TODO: these MEMORY_ARENA below are memory leak. fix that.
+            loopScope.loopBreakLabel = MEMORY_ARENA.StringAlloc(s);
+            s = SillyStringFmt(FUNC_FOR_LABEL_NO_LABEL_FMT, parentFuncName, label4);
+            loopScope.loopContinueLabel = MEMORY_ARENA.StringAlloc(s);
+            StretchyBufferPush( CG_Glob()->loopStack, loopScope );
             
             //  TODO:
             // init the loop counter.
@@ -2095,6 +2146,11 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
             
             GenerateStatement(body, fileWriter, indentation, parentFuncName);
             
+            // emit the loop continue label.
+            s = SillyStringFmt(FUNC_FOR_LABEL_FMT ":\n",
+                               parentFuncName, label4);
+            fileWriter.write(s);
+            
             // loop end op.
             s = SillyStringFmt("%sadd " FUNC_FOR_LABEL_NO_LABEL_FMT ", 1\n",
                                indentationStr, parentFuncName, label3);
@@ -2116,7 +2172,9 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
                                indentationStr, parentFuncName, label3);
             fileWriter.write(s);
             
+            // NOTE: now we teardown the context that we built for the loop.
             CG_Glob()->runtimeVars.del(iteratorName);
+            StretchyBufferPop(CG_Glob()->loopStack);
         }
 
         
