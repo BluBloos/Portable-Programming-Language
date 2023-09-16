@@ -64,8 +64,7 @@
     TODO: assignment to runtime variables.
 4. TODO: variable scoping.
 5. If, else if, and else
-6. Span based For Loops; TODO: Need to handle
-  runtime `Span`. handle "for i, it_index in" syntax.
+6. compile-time, Span based For Loops.
 7. while loops take the form of legacy for loop syntax.
 8. TODO: break and contiinue for while.
 9. TODO: recursion
