@@ -1946,6 +1946,7 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
         
         uint64_t loopTop = CG_Glob()->labelUID++;
         uint64_t loopEndLabel = CG_Glob()->labelUID++;
+        uint64_t loopContinueLabel = CG_Glob()->labelUID++;
         
         tree_node *loopBody = &c->children[c->childrenCount - 1];
         assert(loopBody->type == AST_GNODE && strcmp(loopBody->metadata.str, "statement") == 0);
@@ -1984,9 +1985,23 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
             fileWriter.write(s);
         }
         
+        // push the loop to the loop stack.
+        // notably, before emit the loop body. the loop body may contain "break" and "continue"
+        // instructions. we need the loop to be "live" before then.
+        CG_LoopScope loopScope;
+        loopScope.iteratorName = nullptr;
+        s = SillyStringFmt(FUNC_WHILE_LABEL_NO_LABEL_FMT, parentFuncName, loopEndLabel);
+        // TODO: these MEMORY_ARENA below are memory leak. fix that.
+        loopScope.loopBreakLabel = MEMORY_ARENA.StringAlloc(s);
+        s = SillyStringFmt(FUNC_WHILE_LABEL_NO_LABEL_FMT, parentFuncName, loopContinueLabel);
+        loopScope.loopContinueLabel = MEMORY_ARENA.StringAlloc(s);
+        StretchyBufferPush( CG_Glob()->loopStack, loopScope );
         
         // loop body.
         GenerateStatement(loopBody, fileWriter, indentation, parentFuncName);
+        
+        s = SillyStringFmt(FUNC_WHILE_LABEL_FMT ":\n", parentFuncName, loopContinueLabel);
+        fileWriter.write(s);
         
         // loop end expression.
         GenerateStatement(loopEndExp, fileWriter, indentation, parentFuncName);
@@ -1999,6 +2014,8 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
         s = SillyStringFmt(FUNC_WHILE_LABEL_FMT ":\n",
                            parentFuncName, loopEndLabel);
         fileWriter.write(s);
+
+        StretchyBufferPop( CG_Glob()->loopStack );
 
 #undef  FUNC_WHILE_LABEL_NO_LABEL_FMT
 #undef  FUNC_WHILE_LABEL_FMT
