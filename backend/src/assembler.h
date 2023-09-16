@@ -79,6 +79,11 @@ enum pasm_line_type {
     PASM_LINE_SUB,
     PASM_LINE_ADD,
     PASM_LINE_XOR,
+    PASM_LINE_CMP,
+
+    // conditional instrucitons.
+    PASM_LINE_MOVNZ,
+    PASM_LINE_SETNZ,
 
     // move with sign extension.
     PASM_LINE_MOVSX
@@ -493,16 +498,30 @@ void PasmLinePrint(struct pasm_line pl) {
         LOGGER.Min("PASM_LINE_DATA_BYTE_INT\n");
         LOGGER.Min("  %d\n", pl.data_int);
         break;
+        // single parameter instructions.
+        case PASM_LINE_SETNZ:
+        {
+            PasmFparamPrint(pl.data_fptriad.param1);
+        } break;
+        // double parameter instructions.
         case PASM_LINE_MOV:
         case PASM_LINE_AND:
         case PASM_LINE_SUB:
         case PASM_LINE_ADD:
         case PASM_LINE_XOR:
         case PASM_LINE_MOVSX:
+        case PASM_LINE_MOVNZ:
+        case PASM_LINE_CMP:
         {
             switch(pl.lineType) {
                 case PASM_LINE_MOV:
                 LOGGER.Min("PASM_LINE_MOV\n");
+                break;
+                case PASM_LINE_MOVNZ:
+                LOGGER.Min("PASM_LINE_MOVNZ\n");
+                break;
+                case PASM_LINE_CMP:
+                LOGGER.Min("PASM_LINE_CMP\n");
                 break;
                 case PASM_LINE_AND:
                 LOGGER.Min("PASM_LINE_AND\n");
@@ -527,23 +546,26 @@ void PasmLinePrint(struct pasm_line pl) {
         }
         break;
         case PASM_LINE_BRANCH_GT:
-        LOGGER.Min("PASM_LINE_BRANCH_GT\n");
-        PasmFparamPrint(pl.data_fptriad.param1);
-        PasmFparamPrint(pl.data_fptriad.param2);
-        LOGGER.Min("  param3:%s\n", pl.data_fptriad.param3);
-        break;
         case PASM_LINE_JUMP_EQ:
-        LOGGER.Min("PASM_LINE_JUMP_EQ\n");
-        PasmFparamPrint(pl.data_fptriad.param1);
-        PasmFparamPrint(pl.data_fptriad.param2);
-        LOGGER.Min("  param3:%s\n", pl.data_fptriad.param3);
-        break;
         case PASM_LINE_BRANCH_GTE:
-        LOGGER.Min("PASM_LINE_BRANCH_GTE\n");
-        PasmFparamPrint(pl.data_fptriad.param1);
-        PasmFparamPrint(pl.data_fptriad.param2);
-        LOGGER.Min("  param3:%s\n", pl.data_fptriad.param3);
-        break;
+        {
+            switch(pl.lineType)
+            {
+                case PASM_LINE_BRANCH_GT:
+                LOGGER.Min("PASM_LINE_BRANCH_GT\n");
+                break;
+                case PASM_LINE_JUMP_EQ:
+                LOGGER.Min("PASM_LINE_JUMP_EQ\n");
+                break;
+                case PASM_LINE_BRANCH_GTE:
+                LOGGER.Min("PASM_LINE_BRANCH_GTE\n");
+                break;
+            }
+
+            PasmFparamPrint(pl.data_fptriad.param1);
+            PasmFparamPrint(pl.data_fptriad.param2);
+            LOGGER.Min("  param3:%s\n", pl.data_fptriad.param3);
+        } break;
         case PASM_LINE_FCALL:
         {
             LOGGER.Min("PASM_LINE_FCALL\n");
@@ -811,13 +833,23 @@ int pasm_main(int argc, char **argv) {
             {
                 // PPL_TODO;
             } break;
-
+            // signle parameter instructions.
+            case PASM_LINE_SETNZ:
+            {
+                struct pasm_fptriad fptriad = pl.data_fptriad;
+                if (fptriad.param1.type == PASM_FPARAM_LABEL) {
+                    StackVarFromFplabel(&pasm_lines[i].data_fptriad.param1);
+                }
+            } break;
+            // double parameter instructions + branch instructions.
             case PASM_LINE_ADD:
             case PASM_LINE_SUB:
             case PASM_LINE_MOV:
             case PASM_LINE_AND:
             case PASM_LINE_XOR:
             case PASM_LINE_MOVSX:
+            case PASM_LINE_CMP:
+            case PASM_LINE_MOVNZ:
             case PASM_LINE_BRANCH_GT:
             case PASM_LINE_BRANCH_GTE:
             case PASM_LINE_JUMP_EQ:
@@ -1196,28 +1228,46 @@ void HandleLine(char *line) {
             pline.lineType = PASM_LINE_RET;
             StretchyBufferPush(pasm_lines, pline);
 
-        } else if (SillyStringStartsWith(line, "mov") ||
+        } 
+        // handle single and double parameter instructions.
+        else if (SillyStringStartsWith(line, "mov") ||
             SillyStringStartsWith(line, "sub") ||
             SillyStringStartsWith(line, "add") ||
             SillyStringStartsWith(line, "and") ||
             SillyStringStartsWith(line, "xor") ||
-            SillyStringStartsWith(line, "movsx")
+            SillyStringStartsWith(line, "cmp") || 
+            SillyStringStartsWith(line, "set") // for setnz, etc.
+            // if line starts with mov, then could also be movnz, movsx.
         )
         {
+            bool bIsDoubleParam = true;
             pasm_line pline = PasmLineEmpty();
             switch(*line) {
                 // NOTE(Noah): It is probably going to be the case that we remove this at one point.
                 // Because like, some instructions might start with the same register...
+                case 'c':
+                pline.lineType = PASM_LINE_CMP;
+                break;
                 case 'm':
                 {
                     if (SillyStringStartsWith(line, "movsx"))
                         pline.lineType = PASM_LINE_MOVSX;
+                    else if (SillyStringStartsWith(line, "movnz"))
+                        pline.lineType = PASM_LINE_MOVNZ;
                     else
                         pline.lineType = PASM_LINE_MOV;
                 } break;
                 case 's':
-                pline.lineType = PASM_LINE_SUB;
-                break;
+                {
+                    if (SillyStringStartsWith(line, "sub"))
+                        pline.lineType = PASM_LINE_SUB;
+                    else if (SillyStringStartsWith(line, "setnz"))
+                    {
+                        pline.lineType = PASM_LINE_SETNZ;
+                        bIsDoubleParam = false;
+                    } else
+                        PPL_TODO;
+                } break;
                 case 'a':
                 {
                     if (SillyStringStartsWith(line, "add"))
@@ -1234,16 +1284,24 @@ void HandleLine(char *line) {
                 break;
             }
             while (*line++ != ' '); // Skip over whitespace.
-            std::string param1 = HandleStdStringUntil(&line, ",");
-            struct pasm_fparam fparam1 = PasmFparamFromSillyString((char *)param1.c_str());
-            line++; // skip past ','
-            while (*line++ != ' '); // Skip over whitespace.
-            SillyStringRemove0xA(line);
-            struct pasm_fparam fparam2 = PasmFparamFromSillyString(line);
+            struct pasm_fparam fparam1;
+            if (bIsDoubleParam)
+            {
+                std::string param1 = HandleStdStringUntil(&line, ",");
+                fparam1 = PasmFparamFromSillyString((char *)param1.c_str());
+                line++; // skip past ','
+                while (*line++ != ' '); // Skip over whitespace.
+                SillyStringRemove0xA(line);
+                struct pasm_fparam fparam2 = PasmFparamFromSillyString(line);
+                pline.data_fptriad.param2 = fparam2;
+            }
+            else
+            {
+                SillyStringRemove0xA(line);
+                fparam1 = PasmFparamFromSillyString(line);
+            }
             pline.data_fptriad.param1 = fparam1;
-            pline.data_fptriad.param2 = fparam2;
             StretchyBufferPush(pasm_lines, pline);
-
         }
         else {
             // if the line is whitespace, we can skip. but if there is something on the line,

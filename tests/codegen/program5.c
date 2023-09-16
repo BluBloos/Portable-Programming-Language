@@ -2,7 +2,7 @@ b :: int = 7; c :: int = 8;
 
 main :: fn () -> int
 {
-    D := 9u;
+    D := 8u;
     return D ? ppl_console_print(
         "Hello: %d\n", b + c + D) :
                ppl_console_print(

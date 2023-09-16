@@ -1085,31 +1085,49 @@ void GenerateRuntimeCast(CG_Value srcType, CG_Value dstType, PFileWriter &fileWr
         // changes about the data. it's just interpreted differently.
         if ( width2 < width1 )
         {
-            uint64_t mask = (type2 == PPL_TYPE_BOOL) ? 1 : (1 << (width2 << 3)) - 1;
-            auto s = SillyStringFmt("and %s, %llu\n", PasmRegisterGetString(reg), mask);
-            fileWriter.write(s);
+            int registerNumber = (int)reg % 32;
+            pasm_register regType2 = PasmRegisterFromType(registerNumber, type2);
 
-            if (bSigned1)
+            if (type2 == PPL_TYPE_BOOL)
             {
-                int registerNumber = (int)reg % 32;
-                pasm_register regType2 = PasmRegisterFromType(registerNumber, type2);
+                // NOTE: cast to boolean is a special case where anything that is not zero is 1,
+                // and zero is zero.
+                auto s = SillyStringFmt("cmp %s, 0\n", PasmRegisterGetString(reg));
+                fileWriter.write(s);
+                s = SillyStringFmt("setnz %s\n", PasmRegisterGetString(regType2));
+                fileWriter.write(s);
                 
-                // need to sign extend the thing into the larger width.
-                // if bSigned2, that's OK. there is no work to do there.
-                auto s = SillyStringFmt("movsx %s, %s\n", PasmRegisterGetString(reg),
+                // NOTE: we sign extend here since we always are storing the stuff in a 64 bit register,
+                // even for the smaller bitwidths.
+                s = SillyStringFmt("movsx %s, %s\n", PasmRegisterGetString(reg),
                                         PasmRegisterGetString(regType2));
                 fileWriter.write(s);
+            }
+            else
+            {
+                uint64_t mask = (1 << (width2 << 3)) - 1;
+                auto s = SillyStringFmt("and %s, %llu\n", PasmRegisterGetString(reg), mask);
+                fileWriter.write(s);
+                
+                if (bSigned1)
+                {
+                    // NOTE: we sign extend here since we always are storing the stuff in a 64 bit register,
+                    // even for the smaller bitwidths.
+                    auto s = SillyStringFmt("movsx %s, %s\n", PasmRegisterGetString(reg),
+                                            PasmRegisterGetString(regType2));
+                    fileWriter.write(s);
+                }
             }
         }
         else if ( width1 < width2 )
         {
             // clip the upper bits in register in case they were junk. we're going to start looking
             // at those bits within the register now.
-            #if 0
+#if 0
             uint64_t mask = (type1 == PPL_TYPE_BOOL) ? 1 : (1 << (width1 << 3)) - 1;
             auto s = SillyStringFmt("and %s, %llu\n", PasmRegisterGetString(reg), mask);
             fileWriter.write(s);
-            #endif
+#endif
             
             if (bSigned1)
             {

@@ -261,12 +261,24 @@ int pasm_x86_64(struct pasm_line *source,
             {
                 fileWriter.write("add rsp, 8\n");
             } break;
+
+            // emit single parameter instructions.
+            case PASM_LINE_SETNZ:
+            {
+                fileWriter.write("setnz ");
+                FileWriter_WriteParam(fileWriter, pline.data_fptriad.param1);
+                fileWriter.write("\n");
+            } break;
+
+            // emit double parameter instructions.
             case PASM_LINE_ADD:
             case PASM_LINE_SUB:
             case PASM_LINE_MOV:
             case PASM_LINE_AND:
             case PASM_LINE_XOR:
             case PASM_LINE_MOVSX:
+            case PASM_LINE_MOVNZ: 
+            case PASM_LINE_CMP:
             {
                 // bool add_sub_Flag = false; // TODO:?
                 switch(pline.lineType) {
@@ -280,6 +292,12 @@ int pasm_x86_64(struct pasm_line *source,
                     break;
                     case PASM_LINE_MOV:
                     fileWriter.write("mov ");
+                    break;
+                    case PASM_LINE_CMP:
+                    fileWriter.write("cmp ");
+                    break;
+                    case PASM_LINE_MOVNZ:
+                    fileWriter.write("cmovnz ");
                     break;
                     case PASM_LINE_MOVSX:
                     {

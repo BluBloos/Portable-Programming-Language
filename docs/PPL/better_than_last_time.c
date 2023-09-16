@@ -66,7 +66,7 @@
 5. If, else if, and else
 6. compile-time, Span based For Loops.
 7. while loops take the form of legacy for loop syntax.
-8. TODO: break and contiinue for while.
+8. break and contiinue statements.
 9. TODO: recursion
 10. Precedence in expressions
 11. Ternary conditional operator
