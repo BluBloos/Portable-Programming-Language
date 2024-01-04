@@ -84,6 +84,8 @@ int DoCommand(const char *l, const char *l2);
 
 // usage ./build [options]
 int main(int argc, char **argv) {
+    
+    TimerGlob()->clocksPerSecond = estimate_timer_frequency();
 
     #ifdef PLATFORM_WINDOWS 
     {
