@@ -1,1 +1,25 @@
 Copyright (c) 2023, Noah Cabral. All rights reserved.
+
+License Grant for PPL
+
+The author, Noah Cabral, of PPL ("the Work") hereby grants a license to any user
+of the Work ("Licensee") under the following terms:
+
+Permitted Use: The Licensee is permitted to use the Work solely for writing and
+testing software. This includes the right to download and copy the Work, subject
+to the limitations and conditions outlined in this license.
+
+No Additional Rights: The granting of this license does not confer any rights
+beyond those explicitly stated herein. In particular, but without limitation,
+this license does not grant the Licensee any rights to use the Work for
+commercial purposes, nor does it permit the use of the Work in a manner that
+suggests endorsement or affiliation with the author(s) or contributor(s) of the
+Work.
+
+No Warranty: The Work is provided "as is", without warranty of any kind, express
+or implied, including but not limited to the warranties of merchantability,
+fitness for a particular purpose, and non-infringement.
+
+By using, downloading, or copying the Work, the Licensee agrees to be bound by
+the terms of this license. Any use of the Work not expressly permitted by this
+license is prohibited.
