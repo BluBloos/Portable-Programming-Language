@@ -14,10 +14,8 @@ Odin.
 Nota Bene
 =========
 
-This project is in HEAVY DEVELOPMENT.
-
-The language is undergoing active design. The design currently leads while the
-compiler support lags behind.
+This project is in HEAVY DEVELOPMENT. The language and compiler are undergoing
+active design.
 
 Steps for Using
 ===============
