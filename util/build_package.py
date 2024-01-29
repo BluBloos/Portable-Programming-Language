@@ -56,7 +56,7 @@ if on_macos:
 elif on_windows:
     shutil.copy(windows_binary, os.path.join(package_dir, "ppl.exe"))
 
-shutil.copy("LICENSE.txt", os.path.join(package_dir, "LICENSE.txt"))
+shutil.copy("LICENSE.TXT", os.path.join(package_dir, "LICENSE.TXT"))
 shutil.copy("README.TXT", os.path.join(package_dir, "README.TXT"))
 shutil.copy(os.path.join("util", "RUN.bat"), os.path.join(package_dir, "RUN.bat"))
 
