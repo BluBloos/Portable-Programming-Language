@@ -22,7 +22,6 @@ grammar_dir_src = os.path.join(tests_dir_src, "grammar")
 preparse_dir_src = os.path.join(tests_dir_src, "preparse")
 
 backend_dir = os.path.join(tests_dir, "backend")
-docs_dir = os.path.join(package_dir, "docs")
 
 if not os.path.exists(package_dir):
     os.mkdir(package_dir)
@@ -42,9 +41,6 @@ if not os.path.exists(grammar_dir):
 
 if not os.path.exists(preparse_dir):
     os.mkdir(preparse_dir)
-
-if not os.path.exists(docs_dir):
-    os.mkdir(docs_dir)
 
 # copy the primary toolchain binary for the user.
 
@@ -67,7 +63,6 @@ shutil.copy(os.path.join("util", "RUN.bat"), os.path.join(package_dir, "RUN.bat"
 codegen_whitelist = ["program1.c"]
 grammar_whitelist = []
 preparse_whitelist = []
-docs_whitelist = ["phase1.cpp", "phase2.cpp"]
 
 def copy_files(source_dir, destination_dir, file_list):
     for file_path in file_list:
@@ -79,7 +74,6 @@ def copy_files(source_dir, destination_dir, file_list):
 copy_files(codegen_dir_src, codegen_dir, codegen_whitelist)
 copy_files(grammar_dir_src, grammar_dir, grammar_whitelist)
 copy_files(preparse_dir_src, preparse_dir, preparse_whitelist)
-copy_files( os.path.join("docs", "PPL"), docs_dir, docs_whitelist)
 
 # TODO: the website needs changing.
 # shutil.copytree("_site", os.path.join(package_dir, "_site"))
