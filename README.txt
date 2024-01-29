@@ -8,8 +8,8 @@ PPL is a systems programming language with the goal of allowing the developer
 to produce software, hassle-free, for any target platform.
 
 This language takes inspiration from many other programming languages. To list
-them all would be much too exhaustive. Notable mentions would be C/C++, Jai,
-and Odin.
+them all would be much too exhaustive. Notable mentions are C/C++, Jai, and
+Odin.
 
 Nota Bene
 =========
