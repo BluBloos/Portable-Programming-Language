@@ -70,6 +70,8 @@ int RunPtestFromCwd(
     const char *testName, 
     const char *cwd
 );
+
+int splitCommandLine(char * commandBuffer, char* args[], int maxargs, char delimiter);
 /* ------- TESTS.CPaP ------- */
 
 void PrintIfError(int errors) {
@@ -80,7 +82,7 @@ void PrintIfError(int errors) {
 }
 
 void PrintHelp();
-int DoCommand(const char *l, const char *l2);
+int DoCommand(char *l, const char *l2);
 
 // usage ./build [options]
 int main(int argc, char **argv) {
@@ -118,7 +120,10 @@ int main(int argc, char **argv) {
             printf(ColorNormal);
             fflush(stdout);
             SillyStringRemove0xA(l);
-            DoCommand(l, (char *)0);
+            char* args[2];
+            int nArgs = splitCommandLine(l, args, 2, ' ');
+            if (nArgs == 1)            DoCommand(args[0], 0);
+            else if (nArgs == 2)            DoCommand(args[0], args[1]);
             free(l); // a call to getline, if given l=NULL, will alloc a buffer. So we must free it.
         }
     }
@@ -205,7 +210,7 @@ std::string ModifyPathForPlatform(const char *filePath)
 
 // Does command then returns the result code.
 // anything non-zero is an error.
-int DoCommand(const char *l, const char *l2) {
+int DoCommand( char *l, const char *l2) {
 
 #define BACKEND_TESTS_DIR "tests/backend"
 #define PSTDLIB_WINDOWS_DIR "pstdlib"
@@ -380,17 +385,107 @@ int DoCommand(const char *l, const char *l2) {
 #endif
         return 0;
     }
+    // COMPILE COMMAND.
     else if (0 == strcmp(l , "cl") ||  0 == strcmp(l, "compile")) {
 
+        // TODO: make this a lazy load grammar. we don't want to load the grammar everytime!
         LoadGrammar();
         
         int errors = 0;
+        int result = 0;
 
-        auto result = RunPtestFromInFile(
+        char *inFilePath;
+
+        if (l2 == 0) {
+            // TODO: issue.
+            LOGGER.Error("require a thing");
+        } else {
+            inFilePath = (char *)l2;
+        }
+
+#if 0
+        // TODO: prob hook with explicit codegen test mode.
+        result = RunPtestFromInFile(
             ptest_Codegen,
             "codegen", 
             "tests/"
         );
+#else
+        {
+            FILE *inFile = fopen(inFilePath, "r");
+            if (inFile == NULL) {
+                LOGGER.Error("inFile of '%s' does not exist", inFilePath);
+                errors += 1;
+            } else {
+                TokenContainer tokensContainer;
+                RawFileReader tokenBirthplace;
+                ppl_error_context bestErr = {};
+                if (Lex(inFile, tokensContainer, &tokenBirthplace, &bestErr)) {
+                    const char *outFilePath = "program.out";
+
+                    const char *grammarDefName = "program";
+                    
+                    struct tree_node tree = {};
+                    
+                    bool r = ParseTokensWithGrammar(
+                        tokensContainer, 
+                        GRAMMAR.GetDef(grammarDefName),
+                        &tree, bestErr);
+
+                    if (r) {
+                
+                        if (VERBOSE) PrintTree(tree, 0);
+
+                        CG_Create(); // init the codegen system.
+                        
+                        RunCodegen(tree, outFilePath);
+                        
+                        CG_Release(); // shutdown the codegen system.
+                        
+                        DeallocTree(tree);
+                    }
+                    else {
+                        // emit the best error that we got back.
+                        {
+                            uint32_t c = bestErr.c;
+                            uint32_t line = bestErr.line;
+
+                            // TODO: The below is likely to change when #import actually works.
+                            // maybe it comes from the error because the source code that errors
+                            // is in diff file.
+                            const char *file = LOGGER.logContext.currFile;
+
+                            const char *code = 
+                                bestErr.codeContext ? bestErr.codeContext : "<unknown>"; // TODO.
+
+                            LOGGER.EmitUserError(
+                                file, line, c, code,
+                                bestErr.errMsg ? bestErr.errMsg : "<unknown>" 
+                            );
+
+                            if (bestErr.kind == PPL_ERROR_KIND_PARSER)
+                            {
+                                LOGGER.Min("The almost-parsed AST:\n");
+                                LOGGER.Min("%s\n",bestErr.almostParsedTree);
+                            }
+
+                            //return false;
+                        }
+
+                        LOGGER.Error("ParseTokensWithGrammar failed.");
+                        errors += 1;
+                    }
+                } else {
+                    // TODO: user should never see this.
+                    LOGGER.Error("Internal compiler error.");
+                    errors += 1;
+                }
+            }
+            fclose(inFile);
+        }
+
+        result = (errors > 0);
+#endif        
 
         // TODO: right now it is very jank where the previous pass writes to a file on disk.
         // then we take that file on disk and run our assembler on it.
@@ -826,4 +921,36 @@ int RunPtestFromCwd(
     PrintIfError(errors);
     timer.TimerEnd();
     return (errors > 0);
+}
+
+// splits the command line by in-place modifying the string (inserts null terminators).
+int splitCommandLine(char * commandBuffer, char* args[], int maxargs, char delimiter){
+
+    int nargs = 0;
+    char *sPtr = commandBuffer;
+    char *arg = commandBuffer;
+
+    if (sPtr == NULL) goto splitCommandLine_end;
+
+    // skip whitespace.
+    while( (*arg == delimiter) ) arg++;
+    sPtr = arg;
+
+    while ( *arg != 0 ) {
+
+        if (nargs < maxargs) args[nargs] = arg;
+        // if (nargs) LOG("arg: %s\n", args[nargs - 1]);
+        nargs++;
+     
+        while( (*sPtr != delimiter) && (*sPtr != 0) ) sPtr++; // get to whitespace.
+        while( (*sPtr == delimiter) ) *sPtr++ = 0; // skip whitespace and set to null terminator at the same time.
+
+        arg = sPtr;
+    }
+
+    //LOG("arg: %s\n", args[nargs - 1]);
+
+    splitCommandLine_end:
+
+    return nargs;
 }
