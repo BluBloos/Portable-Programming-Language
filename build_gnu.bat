@@ -12,6 +12,6 @@ del bin\build.exe
 :: Clang.
 
 g++ -std=c++11 -Wall -Wno-unused-value -Wno-write-strings -Wno-writable-strings  -o bin/build ^
-	-g util/build.cpp -I src/ -I util/ -I backend/src -I vendor/
+	-g util/build.cpp -I src/ -I util/ -I vendor/
 
 "bin\build.exe" %1 %2

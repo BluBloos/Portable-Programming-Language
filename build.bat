@@ -18,7 +18,7 @@ del bin\build.exe
 
 pushd bin
 
-cl /Zi /W4 /I ..\src /I ..\util /I ..\backend\src /I ..\vendor ..\util\build.cpp /link /DEBUG:FULL  /OUT:ppl.exe
+cl /Zi /W4 /I ..\src /I ..\util /I ..\vendor ..\util\build.cpp /link /DEBUG:FULL  /OUT:ppl.exe
 
 popd
 

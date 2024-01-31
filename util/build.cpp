@@ -207,6 +207,10 @@ std::string ModifyPathForPlatform(const char *filePath)
 // anything non-zero is an error.
 int DoCommand(const char *l, const char *l2) {
 
+#define BACKEND_TESTS_DIR "tests/backend"
+#define PSTDLIB_WINDOWS_DIR "pstdlib"
+#define PSTDLIB_UNIX_DIR "pstdlib"
+
     // Remove leading whitespace.
 	while ( (l) && (*l == ' ' || *l == '\t')) {
         l++;
@@ -217,7 +221,7 @@ int DoCommand(const char *l, const char *l2) {
         
         int r = CallSystem(
             ModifyPathForPlatform(
-                "g++ -std=c++11 -g src/ppl.cpp -I vendor/ -I src/ -I backend/src/ -o bin/ppl -Wno-writable-strings -Wno-write-strings").c_str()
+                "g++ -std=c++11 -g src/ppl.cpp -I vendor/ -I src/ -o bin/ppl -Wno-writable-strings -Wno-write-strings").c_str()
         );
         if (r == 0) {
             printf("PPL compiler built to bin/ppl\n");
@@ -225,7 +229,7 @@ int DoCommand(const char *l, const char *l2) {
         }
 
         r = CallSystem(
-            ModifyPathForPlatform("g++ -std=c++11 -g backend/src/assembler.cpp -I vendor/ -I src/ -I backend/src/ -o bin/pplasm -Wno-writable-strings \
+            ModifyPathForPlatform("g++ -std=c++11 -g src/assembler.cpp -I vendor/ -I src/ -o bin/pplasm -Wno-writable-strings \
             -Wno-write-strings").c_str() );
         if (r == 0) {
             printf("PPL assembler built to bin/pplasm\n");
@@ -237,9 +241,9 @@ int DoCommand(const char *l, const char *l2) {
 	} else if (0  == strcmp(l, "ap") || 0 ==strcmp(l, "asmparse")) {
 
         // TODO(Noah): Can be modularized via some variant on RunPtest...
-        printf("NOTE: cwd is set to backend/tests/\n");
+        printf("NOTE: cwd is set to " BACKEND_TESTS_DIR "/\n");
         char *inFile = GetInFile();
-        char *inFilePath = SillyStringFmt( ModifyPathForPlatform("backend/tests/%s").c_str() , inFile);
+        char *inFilePath = SillyStringFmt( ModifyPathForPlatform( BACKEND_TESTS_DIR "/%s").c_str() , inFile);
         Timer timer = Timer("asmparse");
         int errors = 0;
         int r = passembler(inFilePath, "macOS");
@@ -251,7 +255,7 @@ int DoCommand(const char *l, const char *l2) {
 
     } else if (0  == strcmp(l, "ax64") || 0 ==strcmp(l, "pasm_x86_64")) {
 
-        return RunPtestFromInFile(ptest_ax64, "pasm", ModifyPathForPlatform("backend/tests/").c_str() );
+        return RunPtestFromInFile(ptest_ax64, "pasm", ModifyPathForPlatform( BACKEND_TESTS_DIR "/").c_str() );
 
     } else if (0  == strcmp(l, "ax64all") || 0 ==strcmp(l, "pasm_x86_64_all")) {
 
@@ -274,15 +278,15 @@ int DoCommand(const char *l, const char *l2) {
                 return false;
             },
             "pasm_x86_64_all",
-            ModifyPathForPlatform("backend/tests").c_str()
+            ModifyPathForPlatform(BACKEND_TESTS_DIR).c_str()
         );
 
     } else if (0  == strcmp(l, "wax64") || 0 ==strcmp(l, "win_x86_64")) {
 
         if (l2 == 0) {
-            return RunPtestFromInFile(ptest_wax64, "pasm", ModifyPathForPlatform("backend/tests/").c_str() );
+            return RunPtestFromInFile(ptest_wax64, "pasm", ModifyPathForPlatform(BACKEND_TESTS_DIR "/").c_str() );
         } else {
-            return RunPtestFromInFile(ptest_wax64, "pasm", ModifyPathForPlatform("backend/tests/").c_str(), (char *)l2);
+            return RunPtestFromInFile(ptest_wax64, "pasm", ModifyPathForPlatform(BACKEND_TESTS_DIR "/").c_str(), (char *)l2);
         }
     
     } else if (0  == strcmp(l, "wax64all") || 0 ==strcmp(l, "win_x86_64_all")) {
@@ -301,7 +305,7 @@ int DoCommand(const char *l, const char *l2) {
                 return false;
             },
             "win_86_64_all",
-            ModifyPathForPlatform("backend/tests").c_str()
+            ModifyPathForPlatform( BACKEND_TESTS_DIR).c_str()
         );
 
     } else if (0  == strcmp(l, "l") || 0 ==strcmp(l, "lexer")) {
@@ -401,9 +405,9 @@ int DoCommand(const char *l, const char *l2) {
             r &= pasm_x86_64(pasm_lines, "bin\\out.x86_64", MAC_OS); // TODO(Noah): target independent, remove macOS.
             DeallocPasm();
             r &= CallSystem("nasm -g -o bin\\out.obj -f win64 bin\\out.x86_64");
-            r &= CallSystem("nasm -g -o bin\\exit.obj -f win64 backend\\pstdlib\\Windows\\exit.s");
-            r &= CallSystem("nasm -g -o bin\\stub.obj -f win64 backend\\pstdlib\\Windows\\stub.s");
-            r &= CallSystem("nasm -g -o bin\\print.obj -f win64 backend\\pstdlib\\Windows\\console\\print.s");
+            r &= CallSystem("nasm -g -o bin\\exit.obj -f win64 " PSTDLIB_WINDOWS_DIR "\\Windows\\exit.s");
+            r &= CallSystem("nasm -g -o bin\\stub.obj -f win64 " PSTDLIB_WINDOWS_DIR "\\Windows\\stub.s");
+            r &= CallSystem("nasm -g -o bin\\print.obj -f win64 " PSTDLIB_WINDOWS_DIR "\\Windows\\console\\print.s");
             // TODO(Noah): Remove dependency on Visual Studio linker.
             r &= CallSystem("link /LARGEADDRESSAWARE /subsystem:console /entry:start bin\\out.obj bin\\exit.obj bin\\stub.obj bin\\print.obj \
                 /OUT:bin\\out.exe Kernel32.lib");
@@ -418,9 +422,9 @@ int DoCommand(const char *l, const char *l2) {
             errors += 0 != pasm_x86_64(pasm_lines, "bin/out.x86_64", MAC_OS);
             DeallocPasm();
             errors += 0 != CallSystem("nasm -o bin/out.o -f macho64 bin/out.x86_64");
-            errors += 0 != CallSystem("nasm -o bin/exit.o -f macho64 backend/pstdlib/macOS/exit.s");
-            errors += 0 != CallSystem("nasm -o bin/print.o -f macho64 backend/pstdlib/macOS/console/print.s");
-            errors += 0 != CallSystem("nasm -g -o bin/stub.o -f macho64 backend/pstdlib/macOS/stub.s");
+            errors += 0 != CallSystem("nasm -o bin/exit.o -f macho64 " PSTDLIB_UNIX_DIR "/macOS/exit.s");
+            errors += 0 != CallSystem("nasm -o bin/print.o -f macho64 " PSTDLIB_UNIX_DIR "/macOS/console/print.s");
+            errors += 0 != CallSystem("nasm -g -o bin/stub.o -f macho64 " PSTDLIB_UNIX_DIR "/macOS/stub.s");
             errors += 0 != CallSystem("ld -o bin/out -static bin/out.o bin/exit.o bin/print.o bin/stub.o");
 #endif
         }
@@ -705,9 +709,9 @@ void ptest_wax64(char *inFilePath, int &errors) {
     r = pasm_x86_64(pasm_lines, "bin/out.x86_64", MAC_OS); // TODO(Noah): target independent, remove macOS.
     DeallocPasm();
     r = CallSystem("nasm -g -o bin\\out.obj -f win64 bin/out.x86_64");
-    r = CallSystem("nasm -g -o bin\\exit.obj -f win64 backend/pstdlib/Windows/exit.s");
-    r = CallSystem("nasm -g -o bin\\stub.obj -f win64 backend/pstdlib/Windows/stub.s");
-    r = CallSystem("nasm -g -o bin\\print.obj -f win64 backend/pstdlib/Windows/console/print.s");
+    r = CallSystem("nasm -g -o bin\\exit.obj -f win64 " PSTDLIB_UNIX_DIR "/Windows/exit.s");
+    r = CallSystem("nasm -g -o bin\\stub.obj -f win64 " PSTDLIB_UNIX_DIR "/Windows/stub.s");
+    r = CallSystem("nasm -g -o bin\\print.obj -f win64 " PSTDLIB_UNIX_DIR "/Windows/console/print.s");
     // TODO(Noah): Remove dependency on Visual Studio linker.
     r = CallSystem("link /LARGEADDRESSAWARE /subsystem:console /entry:start bin/out.obj bin/exit.obj bin/stub.obj bin/print.obj \
         /OUT:bin/out.exe Kernel32.lib");
@@ -727,9 +731,9 @@ void ptest_ax64(char *inFilePath, int &errors) {
     r = pasm_x86_64(pasm_lines, "bin/out.x86_64", MAC_OS);
     DeallocPasm();
     r = CallSystem("nasm -o bin/out.o -f macho64 bin/out.x86_64");
-    r = CallSystem("nasm -o bin/exit.o -f macho64 backend/pstdlib/macOS/exit.s");
-    r = CallSystem("nasm -o bin/print.o -f macho64 backend/pstdlib/macOS/console/print.s");
-    r = CallSystem("nasm -g -o bin/stub.o -f macho64 backend/pstdlib/macOS/stub.s");
+    r = CallSystem("nasm -o bin/exit.o -f macho64 " PSTDLIB_UNIX_DIR "/macOS/exit.s");
+    r = CallSystem("nasm -o bin/print.o -f macho64 " PSTDLIB_UNIX_DIR "/macOS/console/print.s");
+    r = CallSystem("nasm -g -o bin/stub.o -f macho64 " PSTDLIB_UNIX_DIR "/macOS/stub.s");
     r = CallSystem("ld -o bin/out -static bin/out.o bin/exit.o bin/print.o bin/stub.o");
     r = CallSystem("bin/out");
     errors = (r != 0 );

@@ -33,5 +33,6 @@
     },
     "cSpell.words": [
         "metaprogram"
-    ]
+    ],
+    "dotnet.defaultSolution": "disable"
 }

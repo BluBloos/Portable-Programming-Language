@@ -21,8 +21,6 @@ codegen_dir_src = os.path.join(tests_dir_src, "codegen")
 grammar_dir_src = os.path.join(tests_dir_src, "grammar")
 preparse_dir_src = os.path.join(tests_dir_src, "preparse")
 
-backend_dir = os.path.join(tests_dir, "backend")
-
 if not os.path.exists(package_dir):
     os.mkdir(package_dir)
 else:
@@ -78,8 +76,7 @@ copy_files(preparse_dir_src, preparse_dir, preparse_whitelist)
 # TODO: the website needs changing.
 # shutil.copytree("_site", os.path.join(package_dir, "_site"))
 
-shutil.copytree( os.path.join("backend", "tests"), backend_dir)
-shutil.copytree( os.path.join("backend", "pstdlib"), os.path.join(package_dir, "pstdlib"))
+shutil.copytree( "pstdlib", os.path.join(package_dir, "pstdlib") )
 
 # Create a zip file of the package.
 with zipfile.ZipFile("package.zip", "w", zipfile.ZIP_DEFLATED) as zipf:

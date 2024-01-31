@@ -19,7 +19,7 @@ add_executable(${ProjectName} ${UnityBuildSource})
 
 target_include_directories(
     ${ProjectName} PUBLIC
-    "${ProjectRoot}/src" "${ProjectRoot}/util" "${ProjectRoot}/src" "${ProjectRoot}/backend/src" "${ProjectRoot}/vendor")
+    "${ProjectRoot}/src" "${ProjectRoot}/util" "${ProjectRoot}/src" "${ProjectRoot}/vendor")
 
 target_compile_features(${ProjectName} PRIVATE cxx_std_11)
 
