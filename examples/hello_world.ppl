@@ -1,0 +1,4 @@
+main :: fn () -> int
+{
+    ppl_console_print( "Hello, World!\n" );
+}

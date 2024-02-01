@@ -1,0 +1,29 @@
+main :: fn () -> int
+{
+    for 0 ..< 7 do
+        ppl_console_print("how many times is this gonna print?\n");
+
+    for 0 ..= 7 do
+    {
+        ppl_console_print("the value of it is: %d\n", it);
+    }
+
+    for the_iterator in 0 ..= 7 do
+    {
+        ppl_console_print("%d\n", the_iterator);
+    }
+
+    for the_iterator in 0 ..= 7 do
+    {
+        ppl_console_print("%d\n", the_iterator);
+
+        if the_iterator then break;
+    }
+
+    for the_iterator in 0 ..= 7 do
+    {
+        ppl_console_print("in the loop\n");
+        if the_iterator then continue;
+        ppl_console_print("the_iterator: %d\n", the_iterator);
+    }
+}

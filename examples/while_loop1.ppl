@@ -1,0 +1,10 @@
+b :: int = 7; c :: int = 8;
+
+main :: fn () -> int
+{
+    while i := 0; true; b + c
+                                                                          do 
+        ppl_console_print( "while loop still spinning :)\n" );
+}
+
+

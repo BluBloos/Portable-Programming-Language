@@ -14,15 +14,6 @@ if sys.version_info < required_version:
     sys.exit(1)
 
 package_dir = "package"
-tests_dir = os.path.join(package_dir, "tests")
-codegen_dir = os.path.join(tests_dir, "codegen")
-grammar_dir = os.path.join(tests_dir, "grammar")
-preparse_dir = os.path.join(tests_dir, "preparse")
-
-tests_dir_src = "tests"
-codegen_dir_src = os.path.join(tests_dir_src, "codegen")
-grammar_dir_src = os.path.join(tests_dir_src, "grammar")
-preparse_dir_src = os.path.join(tests_dir_src, "preparse")
 
 if not os.path.exists(package_dir):
     os.mkdir(package_dir)
@@ -30,18 +21,6 @@ else:
     # clean the old directory.
     shutil.rmtree(package_dir)
     os.mkdir(package_dir)
-
-if not os.path.exists(tests_dir):
-    os.mkdir(tests_dir)
-
-if not os.path.exists(codegen_dir):
-    os.mkdir(codegen_dir)
-
-if not os.path.exists(grammar_dir):
-    os.mkdir(grammar_dir)
-
-if not os.path.exists(preparse_dir):
-    os.mkdir(preparse_dir)
 
 # copy the primary toolchain binary for the user.
 
@@ -72,14 +51,12 @@ def copy_files(source_dir, destination_dir, file_list):
         shutil.copy(source_path, destination_path)
 
 # Copy the whitelisted files
-copy_files(codegen_dir_src, codegen_dir, codegen_whitelist)
-copy_files(grammar_dir_src, grammar_dir, grammar_whitelist)
-copy_files(preparse_dir_src, preparse_dir, preparse_whitelist)
 
 # TODO: the website needs changing.
 # shutil.copytree("_site", os.path.join(package_dir, "_site"))
 
 shutil.copytree( "pstdlib", os.path.join(package_dir, "pstdlib") )
+shutil.copytree( "examples", os.path.join(package_dir, "examples") )
 
 # Create a zip file of the package.
 with zipfile.ZipFile("package.zip", "w", zipfile.ZIP_DEFLATED) as zipf:

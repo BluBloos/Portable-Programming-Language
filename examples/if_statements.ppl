@@ -1,0 +1,23 @@
+b :: 9;
+c :: int = 8;
+
+main :: fn () -> int
+{
+    if c then ppl_console_print("c is nonzero\n");
+
+    if b then
+        ppl_console_print("d is nonzero\n");
+    else
+        ppl_console_print("d is zero\n");
+
+    if d then {
+        ppl_console_print("d is ");
+        ppl_console_print("nonzero\n");        
+    }
+    else {
+        ppl_console_print("d is ");
+        ppl_console_print("zero\n");
+    }
+}
+
+d :: 0
