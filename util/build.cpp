@@ -395,10 +395,12 @@ int DoCommand( char *l, const char *l2) {
         int result = 0;
 
         char *inFilePath;
+        const char *outFilePath = "myProgram.pasm";
 
         if (l2 == 0) {
             // TODO: issue.
-            LOGGER.Error("require a thing");
+            LOGGER.Error("'cl' command requires a file path argument");
+            errors += 1;    
         } else {
             inFilePath = (char *)l2;
         }
@@ -410,8 +412,10 @@ int DoCommand( char *l, const char *l2) {
             "codegen", 
             "tests/"
         );
+
+        if (result != 0) errors += 1;
 #else
-        {
+        if (errors == 0) {
             FILE *inFile = fopen(inFilePath, "r");
             if (inFile == NULL) {
                 LOGGER.Error("inFile of '%s' does not exist", inFilePath);
@@ -421,7 +425,7 @@ int DoCommand( char *l, const char *l2) {
                 RawFileReader tokenBirthplace;
                 ppl_error_context bestErr = {};
                 if (Lex(inFile, tokensContainer, &tokenBirthplace, &bestErr)) {
-                    const char *outFilePath = "program.out";
+                    
 
                     const char *grammarDefName = "program";
                     
@@ -495,7 +499,8 @@ int DoCommand( char *l, const char *l2) {
         {
 #if defined(PLATFORM_WINDOWS)
             int &r = result;
-            r &= passembler("program.out", "macOS"); // TODO(Noah): target independent, remove macOS.
+            // TODO: why is there a conversion between const char * or whatever.
+            r &= passembler((char *)outFilePath, "macOS"); // TODO(Noah): target independent, remove macOS.
             r &= CallSystem("mkdir bin");
             r &= pasm_x86_64(pasm_lines, "bin\\out.x86_64", MAC_OS); // TODO(Noah): target independent, remove macOS.
             DeallocPasm();
@@ -507,25 +512,21 @@ int DoCommand( char *l, const char *l2) {
             r &= CallSystem("link /LARGEADDRESSAWARE /subsystem:console /entry:start bin\\out.obj bin\\exit.obj bin\\stub.obj bin\\print.obj \
                 /OUT:bin\\out.exe Kernel32.lib");
 #elif defined(PLATFORM_MAC)
-            errors += 0 != passembler("program.out", "macOS"
+            errors += 0 != passembler((char *)outFilePath, "macOS"
                 // TODO: yuk, why are we using string to declare to the passembler that it's macos?
                 // IIRC, this was because we wanted both the program interface and also the cli interface.
                 // but we could fix this by having an enum that we just translate internally to the same path as the string.
                 // or have a flag that passembler() takes in to indicate that we are calling internally vs. cmdline.
             );
             CallSystem("mkdir bin");
-            errors += 0 != pasm_x86_64(pasm_lines, "bin/out.x86_64", MAC_OS);
+            errors += 0 != pasm_x86_64(pasm_lines, "myProgram.x86_64", MAC_OS);
             DeallocPasm();
-            errors += 0 != CallSystem("nasm -o bin/out.o -f macho64 bin/out.x86_64");
-            errors += 0 != CallSystem("nasm -o bin/exit.o -f macho64 " PSTDLIB_UNIX_DIR "/macOS/exit.s");
-            errors += 0 != CallSystem("nasm -o bin/print.o -f macho64 " PSTDLIB_UNIX_DIR "/macOS/console/print.s");
-            errors += 0 != CallSystem("nasm -g -o bin/stub.o -f macho64 " PSTDLIB_UNIX_DIR "/macOS/stub.s");
-            errors += 0 != CallSystem("ld -o bin/out -static bin/out.o bin/exit.o bin/print.o bin/stub.o");
+            errors += 0 != CallSystem("nasm -o myProgram.o -f macho64 myProgram.x86_64");
+            errors += 0 != CallSystem("nasm -o " PSTDLIB_UNIX_DIR "/macOS/exit.o -f macho64 " PSTDLIB_UNIX_DIR "/macOS/exit.s");
+            errors += 0 != CallSystem("nasm -o " PSTDLIB_UNIX_DIR "/macOS/console/print.o -f macho64 " PSTDLIB_UNIX_DIR "/macOS/console/print.s");
+            errors += 0 != CallSystem("nasm -g -o " PSTDLIB_UNIX_DIR "/macOS/stub.o -f macho64 " PSTDLIB_UNIX_DIR "/macOS/stub.s");
+            errors += 0 != CallSystem("ld -o myProgram -static myProgram.o " PSTDLIB_UNIX_DIR "/macOS/exit.o " PSTDLIB_UNIX_DIR "/macOS/console/print.o " PSTDLIB_UNIX_DIR "/macOS/stub.o");
 #endif
-        }
-        else
-        {
-            errors += 1;
         }
 
         PrintIfError(errors);

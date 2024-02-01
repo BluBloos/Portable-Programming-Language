@@ -5,6 +5,9 @@ import os
 import shutil
 import zipfile
 
+# TODO: need to ensure that we clean the pstdlib directory before copy because it might contain
+# .o files.
+
 required_version = (3, 3)
 if sys.version_info < required_version:
     print(f"This script requires Python {required_version[0]}.{required_version[1]} or higher.")
