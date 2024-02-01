@@ -1,0 +1,99 @@
+// is the language usable??
+
+// C is very usable. if I don't have all of C, then my language is not usable.
+
+// 1. debug program?
+// 2. syntax highlighting?
+// 3. command line args? => hand them the enire shell line. OR, launched by double click.
+// 4. 
+
+// recall: the # is the marker that this instruction is part of the compiler metaprogram and
+// is not to be included in the final output program.
+#import os;
+
+TerminalCallback :: fn (  ) {
+    // handle the keyboard or whatever events.
+    // this would be appropriate for a snake game, for example.
+}
+
+// TODO: it's a lot more characters to write functions than in C. that feels wrong.
+Main :: fn (const ^char cmd) -> int {
+
+    // shell    = exposes the OS services to a human user or other programs.
+    // terminal = hardware device for input and output interface to a computer system.
+    // console  = a terminal but for the purpose of doing network admin stuff, 
+    //            traditionally via a CLI, where the network admin types commands into a command prompt.
+    // command line interface = CLI.
+    // command prompt.
+
+    // on macOS, there is the "Terminal".
+    // on Windows, there is the "Command Prompt" program.
+
+    // so e.g. you can have a CLI to the shell.
+
+    // so, we're just gonna be like, here's a set of words that we can use to refer to the other program.
+    // then we pick the word with the least characters => the easiest thing to type.
+    // 
+    // Terminal. = 8 char, 4/4.
+    // Console. = 7 characters, 4 with the right, 3 with left.
+    //
+    // so while Terminal has 1 more character, because when doing uppercase C, I have to move my right hand
+    // to get the o, it feels like there's more friction to type Console.
+    //
+    // so for this reason, Terminal feels like it just rolls of the fingers.
+
+    // so the way to think about this is that modern operating systems are mulithreaded and multitask machines.
+    // so the thing that the author is writing when they write a PPL program is one of the many tasks that could
+    // be running at a given time. the Terminal is no different to any other task. it's a special program that
+    // is a CLI to the shell. so, any subset of the PPL standard library dedicated to printing and getting text
+    // input - these are the PPL program communicating with a Terminal task (there could be many or no terminal tasks 
+    // running).
+
+    tInfo : os.TerminalInfo = { .clbk = TerminalCallback };
+    t : ^os.Terminal = os.get_or_create_terminal(@tInfo);
+
+    // NOTE: the only case where we fail to get 't' is where the OS is so resource constrained that it cannot create a
+    // terminal for us.
+    if !t {
+        // NOTE: since there is no terminal, we cannot print an error message. try to ask os for modal alert.
+        if 0 != os.alert("could not create terminal")
+            // we couldn't even create a modal alert, the best we can do is return error message.
+            return -1;
+    }
+
+    // NOTE: println means no need for \n, that's implicit.
+    t.println("Hello, World!");
+
+    // NOTE: the print function uses the strong type of the variable to auto format it into the string.
+    t.println("Program was invoked with %", cmd);
+
+    /*
+    NOTE: what is the right way to think about the terminal? it's just a buffer of characters with a read head, a write head, and
+    a capacity head (the "farthest" data that is written).
+    so when I print a line, both the write and read heads are advanced. so that I don't read my own printing. but when a human
+    user types to the terminal, the read head stay fixed and the capacity head moves forward,
+    that way the we (the ppl program) know that there is stuff to read,
+    */
+
+    // r is the amount of characters that we read.
+    char[256] stuff;
+    t.println("feel free to type something");
+    t.readln(stuff);
+    t.println("you entered %", stuff);
+
+    char dummy;
+    t.println("press any character to exit");
+    t.readc(@dummy);
+
+    return 0;
+
+    // lol, this code will never run. but! we need to write it here to showcase the full API.
+    
+    // reset the entire buffer. write head, read head, capacity head all go to zero.
+    t.clear();
+
+    t.print("\rthis prints at the beginning of the line");
+
+    // TODO: what about blocking and non-blocking?
+    // what if I don't "own" the terminal? am I allowed to clear?
+}
