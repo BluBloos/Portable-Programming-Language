@@ -497,6 +497,7 @@ int DoCommand( char *l, const char *l2) {
         // ideally, we want to have an in-memory representation of the PASM.
         if (result == 0)
         {
+            // TODO: windows version is now divergent from the macOS version. still outputs to the bin directory.
 #if defined(PLATFORM_WINDOWS)
             int &r = result;
             // TODO: why is there a conversion between const char * or whatever.
@@ -518,7 +519,6 @@ int DoCommand( char *l, const char *l2) {
                 // but we could fix this by having an enum that we just translate internally to the same path as the string.
                 // or have a flag that passembler() takes in to indicate that we are calling internally vs. cmdline.
             );
-            CallSystem("mkdir bin");
             errors += 0 != pasm_x86_64(pasm_lines, "myProgram.x86_64", MAC_OS);
             DeallocPasm();
             errors += 0 != CallSystem("nasm -o myProgram.o -f macho64 myProgram.x86_64");
