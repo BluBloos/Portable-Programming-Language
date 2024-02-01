@@ -33,8 +33,8 @@ struct grammar_definition {
     struct tree_node regexTree;
 };
 
-class Grammar {
-    public:
+struct Grammar {
+    bool bIsLoaded = false;
     Grammar() {}
     ~Grammar() {
         // Go through all definitions in defs and dealloc the trees.
@@ -454,6 +454,8 @@ char  *_grammarTable_LR[][3] = {
 // Loads the grammar into the global grammar object.
 void LoadGrammar() {
 
+    if (GRAMMAR.bIsLoaded) return;
+
     unsigned int grammarCount = sizeof(_grammarTable) / (2 * sizeof(char *));
     unsigned int grammarCountLR = sizeof(_grammarTable_LR) / (3 * sizeof(char *));
 
@@ -491,5 +493,7 @@ void LoadGrammar() {
     if (VERBOSE) {
         GRAMMAR.Print();
     }
+
+    GRAMMAR.bIsLoaded = true;
 }   
 #endif

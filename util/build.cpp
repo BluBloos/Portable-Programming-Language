@@ -420,7 +420,6 @@ int DoCommand( char *l, const char *l2) {
     // COMPILE COMMAND.
     else if (0 == strcmp(l , "cl") ||  0 == strcmp(l, "compile")) {
 
-        // TODO: make this a lazy load grammar. we don't want to load the grammar everytime!
         LoadGrammar();
         
         int errors = 0;
