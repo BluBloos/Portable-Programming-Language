@@ -171,6 +171,7 @@ void PrintHelp() {
     printf("help            (h)               - Print this help menu.\n");
     printf("exit                              - Exit the build system.\n");
     printf("\n");
+#ifndef RELEASE
     printf(ColorHighlight "===  PASM  Commands ===" ColorNormal "\n");
     // TODO(Noah): Better naming scheme for macOS please...
     printf("pasm_x86_64     (ax64)            - pasm integration test of a single unit for x86_64 target (macOS).\n");
@@ -179,7 +180,10 @@ void PrintHelp() {
     printf("win_x86_64_all  (wax64all)        - pasm integration test of all units for x86_64 target (Windows).\n");
     printf("asmparse        (ap)              - Test pasm parsing capability.\n");
     printf("\n");
+#endif
     printf(ColorHighlight "===  PPL   Commands ===" ColorNormal "\n");
+    
+#ifndef RELEASE
     printf("lexer           (l)               - Test lexer on single unit.\n");
     printf("lexer_all       (lall)            - Test lexer on all units in tests/preparse/.\n");
     printf("preparser       (p)               - Test preparser on single unit.\n");
@@ -189,6 +193,7 @@ void PrintHelp() {
     printf("grammer_all     (gall)            - Test AST generation for all units in tests/grammer/.\n");
     printf("\n");
     printf("codegen         (c)               - Test Codegen for a single file.\n");
+#endif
     printf("compile         (cl)              - Compile a single .PPL file to the target's executable format.\n");
     printf("run             (r)               - Run the most recently compiled .PPL file.\n");
 }
@@ -222,7 +227,14 @@ int DoCommand( char *l, const char *l2) {
     }
 
 	// TODO: I'm not even sure if this is going to work on Windows.
-    if (0 == strcmp(l, "b") || 0 == strcmp(l, "build")) {
+    
+    if (0 == strcmp(l, "exit")) {
+        
+        exit(0);
+
+    }
+#ifndef RELEASE
+    else if (0 == strcmp(l, "b") || 0 == strcmp(l, "build")) {
         
         int r = CallSystem(
             ModifyPathForPlatform(
@@ -258,7 +270,26 @@ int DoCommand( char *l, const char *l2) {
         timer.TimerEnd();
         return (errors > 0);
 
-    } else if (0  == strcmp(l, "ax64") || 0 ==strcmp(l, "pasm_x86_64")) {
+    } 
+    else if (0 == strcmp(l, "gall") || 0 == strcmp(l, "grammer_all")) {
+        
+        LoadGrammar();
+        printf(
+            "\nPlease note that grammar tests use the filename to derive the grammar\n"
+              "production to test.\n");
+        return RunPtestFromCwd(
+            ptest_Grammar,
+            // TODO(Noah): Maybe we abstract the lambda here beause we use the same
+            // lambda twice?
+            [](const char *fileName) -> bool {
+                return (fileName[0] != '.');
+            },
+            "grammar_all", 
+            ModifyPathForPlatform("tests/grammar").c_str()
+        );
+
+    }
+    else if (0  == strcmp(l, "ax64") || 0 ==strcmp(l, "pasm_x86_64")) {
 
         return RunPtestFromInFile(ptest_ax64, "pasm", ModifyPathForPlatform( BACKEND_TESTS_DIR "/").c_str() );
 
@@ -377,9 +408,10 @@ int DoCommand( char *l, const char *l2) {
             "tests/"
         );
     }
+#endif
     else if (0 == strcmp(l , "r") ||  0 == strcmp(l, "run")) {
 #if defined(PLATFORM_MAC)
-        int r = CallSystem("(bin/out && echo \"return code: 0\") || echo \"return code: $?\"");
+        int r = CallSystem("(./myProgram && echo \"return code: 0\") || echo \"return code: $?\"");
 #elif defined(PLATFORM_WINDOWS)
         PPL_TODO;
 #endif
@@ -533,29 +565,8 @@ int DoCommand( char *l, const char *l2) {
 
         return (errors > 1);
 
-    } 
-    else if (0 == strcmp(l, "gall") || 0 == strcmp(l, "grammer_all")) {
-        
-        LoadGrammar();
-        printf(
-            "\nPlease note that grammar tests use the filename to derive the grammar\n"
-              "production to test.\n");
-        return RunPtestFromCwd(
-            ptest_Grammar,
-            // TODO(Noah): Maybe we abstract the lambda here beause we use the same
-            // lambda twice?
-            [](const char *fileName) -> bool {
-                return (fileName[0] != '.');
-            },
-            "grammar_all", 
-            ModifyPathForPlatform("tests/grammar").c_str()
-        );
-
-    } else if (0 == strcmp(l, "exit")) {
-        
-        exit(0);
-
-    } else if (0 == strcmp(l, "a") || 0 == strcmp(l, "about")) 
+    }
+    else if (0 == strcmp(l, "a") || 0 == strcmp(l, "about")) 
     {
         PrintAbout();
         return 0;
