@@ -150,5 +150,6 @@ ppl_console_print:
 
     ret
 
-section .data
+; NOTE: the .bss section is used for unitialized data, whereas the .data section is used for initialized data.
+section .bss
 ppl_console_print_storage: resb 256
