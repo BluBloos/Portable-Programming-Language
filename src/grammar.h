@@ -102,6 +102,9 @@ struct tree_node CreateRegexTree(Grammar &grammar, const char *regex) {
             } 
             if (grammar.DefExists(newStr.c_str()) || newStr == "symbol" || newStr == "keyword" || newStr == "literal") {
                 struct tree_node tn = CreateTree(TREE_REGEX_STR, newStr.c_str());
+                if (newStr == "symbol"  ) tn.type = TREE_REGEX_SYMBOL;
+                if (newStr == "keyword"  ) tn.type = TREE_REGEX_GENERIC_KEYWORD;
+                if (newStr == "literal"  ) tn.type = TREE_REGEX_LITERAL;
                 TreeAdoptTree(lastTree, tn);
                 n += 1 + newStr.size(); // skip over () block
             } else if (SillyStringStartsWith(newStr.c_str(), "keyword=")) {
@@ -109,7 +112,7 @@ struct tree_node CreateRegexTree(Grammar &grammar, const char *regex) {
                 TreeAdoptTree(lastTree, tn);
                 n += 1 + newStr.size(); // skip over () block
             } else if (SillyStringStartsWith(newStr.c_str(), "op,")) {
-                struct tree_node tn = CreateTree(TREE_REGEX_STR, SillyStringFmt("op%s", newStr.c_str()+strlen("op,")));
+                struct tree_node tn = CreateTree(TREE_REGEX_OP, SillyStringFmt("op%s", newStr.c_str()+strlen("op,")));
                 TreeAdoptTree(lastTree, tn);
                 n += 1 + newStr.size(); // skip over () block
             } else {

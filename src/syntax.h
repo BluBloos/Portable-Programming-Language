@@ -200,6 +200,8 @@ bool ParseTokensWithRegexTree(
         while ( infWhile ? true : n < 1 ) {
             premature_n += 1;
 
+            // TODO: why is this not just a switch statement on the childType ??
+            
             if (childType == TREE_REGEX_GROUP || childType == TREE_REGEX_ANY) {
                 // TODO(Noah): Check if there is anything smarter to do than
                 // "dummyTree"
@@ -270,7 +272,76 @@ bool ParseTokensWithRegexTree(
                     break;
                 }    
 
-            } else if (childType == TREE_REGEX_STR) {
+            } else if ( childType == TREE_REGEX_GENERIC_KEYWORD ) {
+                // NOTE(Noah): So this one is just matching ANY generic keyword.
+                // in which case we want to match like literally whatever we are looking at.
+                // save that information.
+                struct token tok = tokens.QueryNext();
+                if (tok.type == TOKEN_KEYWORD) {
+                    tokens.AdvanceNext();
+                    struct tree_node newTree = CreateTree(AST_KEYWORD);
+                    newTree.metadata.str = tok.str;
+                    TreeAdoptTree(tree, newTree);
+                } else {
+
+                    if (errorCtx.SubmitError(
+                        PPL_ERROR_KIND_PARSER,
+                        tok.line, tok.beginCol, tokens.GetSavepoint()
+                    ))
+                    {
+                        snprintf(errorCtx.errMsg, PPL_ERROR_MESSAGE_MAX_LENGTH,
+                        "Expected a keyword.");
+                    }
+
+                    break;
+                }
+                re_matched += 1;
+            }
+            else if ( childType == TREE_REGEX_SYMBOL ) {
+                struct token tok = tokens.QueryNext(); //# the whole LR k+1 idea :)
+                if (tok.type == TOKEN_SYMBOL) {
+                    tokens.AdvanceNext();
+                    struct tree_node newTree = CreateTree(AST_SYMBOL);
+                    newTree.metadata.str = tok.str;
+                    TreeAdoptTree(tree, newTree);
+                    re_matched += 1;
+                } else {
+
+                    if (errorCtx.SubmitError(
+                        PPL_ERROR_KIND_PARSER,
+                        tok.line, tok.beginCol, tokens.GetSavepoint()
+                    ))
+                    {
+                        snprintf(errorCtx.errMsg, PPL_ERROR_MESSAGE_MAX_LENGTH,
+                        "Expected a symbol.");
+                    }
+
+                    break;
+                }
+            }
+            else if (childType == TREE_REGEX_OP)
+            {
+                tree_node op;
+                bool r = ParseOperator(tokens, child_data, &op, errorCtx, currGrammarCtx);
+                if (!r) break; else {
+                    re_matched += 1;
+                    TreeAdoptTree(tree, op);
+                }
+            }
+            else if (childType == TREE_REGEX_LITERAL) {
+                
+                tree_node literal;
+                bool r = ParseLiteral(tokens, &literal, errorCtx);
+                if (!r) {
+                    break;
+                } else {
+                    TreeAdoptTree(tree, literal);
+                    re_matched +=1;
+                }
+                
+            }
+            
+            else if (childType == TREE_REGEX_STR) {
 
                 const char *child_data = child.metadata.str;    
                 if ( GRAMMAR.DefExists(child_data) ) {
@@ -304,73 +375,6 @@ bool ParseTokensWithRegexTree(
                         break;
                     }
 
-                }
-                // TODO(opt): the regex representation should not use strings.
-                // that is very slow. please we should just use simple enums or something instead of string
-                // comparison like this.
-                else if ( SillyStringStartsWith(child_data, "literal") ) {
-                    tree_node literal;
-                    bool r = ParseLiteral(tokens, &literal, errorCtx);
-                    if (!r) {
-                        break;
-                    } else {
-                        TreeAdoptTree(tree, literal);
-                        re_matched +=1;
-                    }
-
-                } else if ( SillyStringStartsWith(child_data, "symbol")) {
-                    struct token tok = tokens.QueryNext(); //# the whole LR k+1 idea :)
-                    if (tok.type == TOKEN_SYMBOL) {
-                        tokens.AdvanceNext();
-                        struct tree_node newTree = CreateTree(AST_SYMBOL);
-                        newTree.metadata.str = tok.str;
-                        TreeAdoptTree(tree, newTree);
-                        re_matched += 1;
-                    } else {
-
-                        if (errorCtx.SubmitError(
-                            PPL_ERROR_KIND_PARSER,
-                            tok.line, tok.beginCol, tokens.GetSavepoint()
-                        ))
-                        {
-                            snprintf(errorCtx.errMsg, PPL_ERROR_MESSAGE_MAX_LENGTH,
-                            "Expected a symbol.");
-                        }
-
-                        break;
-                    }
-                } else if ( SillyStringStartsWith(child_data, "op") ) {
-                    tree_node op;
-                    bool r = ParseOperator(tokens, child_data, &op, errorCtx, currGrammarCtx);
-                    if (!r) break; else {
-                        re_matched += 1;
-                        TreeAdoptTree(tree, op);
-                    }
-
-                } else if ( SillyStringStartsWith(child_data, "keyword")) {
-                    // NOTE(Noah): So this one is just matching ANY generic keyword.
-                    // in which case we want to match like literally whatever we are looking at.
-                    // save that information.
-                    struct token tok = tokens.QueryNext();
-                    if (tok.type == TOKEN_KEYWORD) {
-                        tokens.AdvanceNext();
-                        struct tree_node newTree = CreateTree(AST_KEYWORD);
-                        newTree.metadata.str = tok.str;
-                        TreeAdoptTree(tree, newTree);
-                    } else {
-
-                        if (errorCtx.SubmitError(
-                            PPL_ERROR_KIND_PARSER,
-                            tok.line, tok.beginCol, tokens.GetSavepoint()
-                        ))
-                        {
-                            snprintf(errorCtx.errMsg, PPL_ERROR_MESSAGE_MAX_LENGTH,
-                            "Expected a keyword.");
-                        }
-
-                        break;
-                    }
-                    re_matched += 1;
                 }
             }
 
