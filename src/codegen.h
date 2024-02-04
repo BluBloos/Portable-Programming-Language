@@ -612,7 +612,7 @@ static void ExpressionInferInfo(struct tree_node *ast, CG_ExpressionInfo *infoOu
        if ( child->childrenCount == 2 )
        {
             tree_node *op = &child->children[0];
-            if ( op->type == AST_OP)
+            if ( AstIsOp(*op) )
             {
                 char opc = op->metadata.str[2];
                 switch(opc)
@@ -764,7 +764,7 @@ static CG_Value ConstantExpressionCompute(struct tree_node *ast)
             tree_node *op = &TL->children[1];
             tree_node *end = &TL->children[2];
             
-            assert(op->type == AST_OP);
+            assert(AstIsOp(*op));
             
             if ( begin->type == AST_INT_LITERAL && end->type == AST_INT_LITERAL)
             {
@@ -883,7 +883,7 @@ void CollectTupleFromExpression(struct tree_node *exp, CG_Tuple *builder)
         builder->elems[builder->elemCount++] = &exp->children[0];
         assert(builder->elemCount <= CG_MAX_TUPLE_ELEMS);
 
-        assert(exp->children[1].type == AST_OP);
+        assert( AstIsOp(exp->children[1]) );
         CollectTupleFromExpression(&exp->children[2], builder);
     }
     else if (exp->childrenCount == 1)
@@ -1285,7 +1285,7 @@ void GenerateExpressionImmediate(struct tree_node *ast,
                 tree_node *op = &c->children[i];
                 tree_node *term2 = &c->children[i+1];
                 
-                assert(op->type == AST_OP);
+                assert(AstIsOp(*op));
                 char opChar = op->metadata.str[2];
                 
                 newCtx.type = ValueConstruct_PplType(PPL_TYPE_UNKNOWN);
@@ -1703,7 +1703,7 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
         
         tree_node *firstVal = nullptr;
         
-        const bool bNeedInfer = maybeType->type == AST_OP;
+        const bool bNeedInfer = AstIsOp(*maybeType);
         
         if (bNeedInfer)
         {
@@ -1726,7 +1726,7 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
             {
                 tree_node *equalsOp = &c->children[2];
                 tree_node *exp = &c->children[3];
-                assert( equalsOp->type == AST_OP );
+                assert( AstIsOp(*equalsOp) );
                 firstVal = exp;
             }
         }
@@ -1778,7 +1778,7 @@ void GenerateStatement(struct tree_node *ast, PFileWriter &fileWriter, uint32_t 
         if (firstVal)
         {
             // the variable decl also includes assignment, so do that.
-            if (firstVal->type == AST_OP)
+            if ( AstIsOp(*firstVal) )
             {
                 assert( strcmp(firstVal->metadata.str, "op?") == 0 );
             }

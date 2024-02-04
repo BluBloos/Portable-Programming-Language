@@ -47,14 +47,6 @@ char *KEYWORDS[] = {
 
 };
 
-char *OPS = "+-%*!<>=|&?[].~@^,";
-
-char *COMPOUND_OPS[] = {
-    "&&", "||", ">=", "<=", "==", "!=", "->",
-    "+=", "-=", "*=", "/=", "%=", "&=", "|=", "++", "--",
-    "^=", "<<=", ">>=", "<<", ">>", "..=", "..<"
-};
-
 // TODO: maybe there should be a compound part kind of like `->`.
 // because `->` isn't really an operator.
 char *TOKEN_PARTS = "{}():";
@@ -241,11 +233,152 @@ enum token_type {
     TOKEN_FALSE_LITERAL,
     TOKEN_NULL_LITERAL,
     TOKEN_ENDL,
-    TOKEN_OP,
-    TOKEN_COP, // compouned op.
+
+    TOKEN_OP_MEMBER_SELECTION, // "."
+    TOKEN_OP_FUNCTION_CALL, // "(" or ")"
+    TOKEN_OP_ARRAY_SUBSCRIPT, // "[" or "]"
+    TOKEN_OP_MULTIPLICATION, // "*"
+    TOKEN_OP_DIVISION, // "/"
+    TOKEN_OP_MODULUS, // "%"
+    TOKEN_OP_ADDITION, // "+"
+    TOKEN_OP_SUBTRACTION, // "-"
+
+    // unary operators.
+    TOKEN_OP_INCREMENT, // "++"
+    TOKEN_OP_DECREMENT, // "--"
+    TOKEN_OP_DATA_PACK, // "{" OR "}"
+    TOKEN_OP_LOGICAL_NOT, // "!"
+    TOKEN_OP_BITWISE_NOT, // "~"
+
+    // range/span? constructor operators.
+    TOKEN_OP_SPAN_CTOR, // "..<"
+    TOKEN_OP_SPAN_CTOR_STRICT, // "..="
+    
+    TOKEN_OP_BITWISE_LEFT_SHIFT, // "<<"
+    TOKEN_OP_BITWISE_RIGHT_SHIFT, // ">>"
+    TOKEN_OP_LESS_THAN, // "<"
+    TOKEN_OP_LESS_THAN_OR_EQUAL_TO, // "<="
+    TOKEN_OP_GREATER_THAN, // ">"
+    TOKEN_OP_GREATER_THAN_OR_EQUAL_TO, // ">="
+    TOKEN_OP_EQUAL_TO, // "=="
+    TOKEN_OP_NOT_EQUAL_TO, // "!="
+    TOKEN_OP_BITWISE_AND, // "&"
+    TOKEN_OP_BITWISE_XOR, // "^"
+    TOKEN_OP_BITWISE_OR, // "|"
+    TOKEN_OP_LOGICAL_AND, // "&&"
+    TOKEN_OP_LOGICAL_OR, // "||"
+    TOKEN_OP_TERNARY_CONDITIONAL, // "?"
+    TOKEN_OP_ASSIGNMENT, // "="
+    TOKEN_OP_ADDITION_ASSIGNMENT, // "+="
+    TOKEN_OP_SUBTRACTION_ASSIGNMENT, // "-="
+    TOKEN_OP_MULTIPLICATION_ASSIGNMENT, // "*="
+    TOKEN_OP_DIVISION_ASSIGNMENT, // "/="
+    TOKEN_OP_MODULUS_ASSIGNMENT, // "%="
+    TOKEN_OP_LEFT_SHIFT_ASSIGNMENT, // "<<="
+    TOKEN_OP_RIGHT_SHIFT_ASSIGNMENT, // ">>="
+    TOKEN_OP_BITWISE_AND_ASSIGNMENT, // "&="
+    TOKEN_OP_BITWISE_XOR_ASSIGNMENT, // "^="
+    TOKEN_OP_BITWISE_OR_ASSIGNMENT, // "|="
+    TOKEN_OP_COMMA, // ","
+
     TOKEN_PART,
     TOKEN_KEYWORD,
     TOKEN_SYMBOL
+};
+
+#define CASE_TOKEN_OP  case TOKEN_OP_MEMBER_SELECTION:\
+        case TOKEN_OP_FUNCTION_CALL:\
+        case TOKEN_OP_ARRAY_SUBSCRIPT:\
+        case TOKEN_OP_DATA_PACK:\
+        case TOKEN_OP_MULTIPLICATION:\
+        case TOKEN_OP_DIVISION:\
+        case TOKEN_OP_MODULUS:\
+        case TOKEN_OP_ADDITION:\
+        case TOKEN_OP_SUBTRACTION:\
+        case TOKEN_OP_LESS_THAN:\
+        case TOKEN_OP_GREATER_THAN:\
+        case TOKEN_OP_BITWISE_AND:\
+        case TOKEN_OP_BITWISE_XOR:\
+        case TOKEN_OP_BITWISE_OR:\
+        case TOKEN_OP_ASSIGNMENT:\
+        case TOKEN_OP_LOGICAL_NOT:\
+        case TOKEN_OP_BITWISE_NOT:\
+        case TOKEN_OP_COMMA:
+
+#define CASE_TOKEN_OP_COMPOUND case TOKEN_OP_LOGICAL_AND:\
+        case TOKEN_OP_LOGICAL_OR:\
+        case TOKEN_OP_GREATER_THAN_OR_EQUAL_TO:\
+        case TOKEN_OP_LESS_THAN_OR_EQUAL_TO:\
+        case TOKEN_OP_EQUAL_TO:\
+        case TOKEN_OP_NOT_EQUAL_TO:\
+        case TOKEN_OP_ADDITION_ASSIGNMENT:\
+        case TOKEN_OP_SUBTRACTION_ASSIGNMENT:\
+        case TOKEN_OP_MULTIPLICATION_ASSIGNMENT:\
+        case TOKEN_OP_DIVISION_ASSIGNMENT:\
+        case TOKEN_OP_MODULUS_ASSIGNMENT:\
+        case TOKEN_OP_BITWISE_AND_ASSIGNMENT:\
+        case TOKEN_OP_BITWISE_OR_ASSIGNMENT:\
+        case TOKEN_OP_INCREMENT:\
+        case TOKEN_OP_DECREMENT:\
+        case TOKEN_OP_BITWISE_XOR_ASSIGNMENT:\
+        case TOKEN_OP_LEFT_SHIFT_ASSIGNMENT:\
+        case TOKEN_OP_RIGHT_SHIFT_ASSIGNMENT:\
+        case TOKEN_OP_BITWISE_LEFT_SHIFT:\
+        case TOKEN_OP_BITWISE_RIGHT_SHIFT:\
+        case TOKEN_OP_SPAN_CTOR_STRICT:\
+        case TOKEN_OP_SPAN_CTOR:
+
+#define CASE_TOKEN_UNARY_OP case TOKEN_OP_LOGICAL_NOT:\
+        case TOKEN_OP_INCREMENT:\
+        case TOKEN_OP_DECREMENT:\
+        case TOKEN_OP_DATA_PACK:\
+        case TOKEN_OP_BITWISE_NOT:
+
+bool TokenIsCompoundOp(token_type type) {
+    switch(type) {
+        CASE_TOKEN_OP_COMPOUND
+        return true;
+        default:
+        return false;
+    }
+}
+
+bool TokenIsOp(token_type type) {
+    switch(type) {
+        CASE_TOKEN_OP
+        return true;
+        default:
+        return false;
+    }
+}
+
+struct {
+    char *str;
+    token_type type;
+} COMPOUND_OPS_TABLE[] = {
+    {"&&", TOKEN_OP_LOGICAL_AND},
+    {"||", TOKEN_OP_LOGICAL_OR},
+    {">=", TOKEN_OP_GREATER_THAN_OR_EQUAL_TO},
+    {"<=", TOKEN_OP_LESS_THAN_OR_EQUAL_TO},
+    {"==", TOKEN_OP_EQUAL_TO},
+    {"!=", TOKEN_OP_NOT_EQUAL_TO},
+    {"->", TOKEN_OP_MEMBER_SELECTION}, // Assuming "->" is used for member selection in a specific context
+    {"+=", TOKEN_OP_ADDITION_ASSIGNMENT},
+    {"-=", TOKEN_OP_SUBTRACTION_ASSIGNMENT},
+    {"*=", TOKEN_OP_MULTIPLICATION_ASSIGNMENT},
+    {"/=", TOKEN_OP_DIVISION_ASSIGNMENT},
+    {"%=", TOKEN_OP_MODULUS_ASSIGNMENT},
+    {"&=", TOKEN_OP_BITWISE_AND_ASSIGNMENT},
+    {"|=", TOKEN_OP_BITWISE_OR_ASSIGNMENT},
+    {"++", TOKEN_OP_INCREMENT}, // Assuming you have an increment operation
+    {"--", TOKEN_OP_DECREMENT}, // Assuming you have a decrement operation
+    {"^=", TOKEN_OP_BITWISE_XOR_ASSIGNMENT},
+    {"<<=", TOKEN_OP_LEFT_SHIFT_ASSIGNMENT},
+    {">>=", TOKEN_OP_RIGHT_SHIFT_ASSIGNMENT},
+    {"<<", TOKEN_OP_BITWISE_LEFT_SHIFT},
+    {">>", TOKEN_OP_BITWISE_RIGHT_SHIFT},
+    {"..=", TOKEN_OP_SPAN_CTOR_STRICT},
+    {"..<", TOKEN_OP_SPAN_CTOR}
 };
 
 // NOTE(Noah): We make tokens a class because they manage memory.
@@ -373,10 +506,10 @@ void TokenPrint(struct token tok)
         case TOKEN_ENDL:
             LOGGER.Min("TOKEN_ENDL\n");
             break;
-        case TOKEN_OP:
+        CASE_TOKEN_OP
             LOGGER.Min("TOKEN_OP: %c\n", tok.c);
             break;
-        case TOKEN_COP:
+        CASE_TOKEN_OP_COMPOUND
             Assert(tok.str != NULL);
             LOGGER.Min("TOKEN_COP: %s\n", tok.str);
             break;
@@ -783,10 +916,6 @@ bool Lex(
 
     sPatternsCount = 0;
 
-    sPatterns[sPatternsCount++] = CreateSearchPattern(
-        SEARCH_P_STRING, TOKEN_COP, COMPOUND_OPS, sizeof(COMPOUND_OPS) / sizeof(char*));
-    sPatterns[sPatternsCount++] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_OP, OPS); // some ops are substrings of compound ops.
-
     sPatterns[sPatternsCount++] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_ENDL, ENDLINE_CHAR);
     sPatterns[sPatternsCount++] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_PART, TOKEN_PARTS);
 
@@ -929,7 +1058,7 @@ bool Lex(
                 if (TokenFromLatent(token)) {
                     tokenContainer.Append(token);
                 }
-                tokenContainer.Append(Token(TOKEN_OP, '/', currentLine, n_col));
+                tokenContainer.Append(Token(TOKEN_OP_DIVISION, '/', currentLine, n_col));
                 CurrentTokenReset();
                 continue;
             }
@@ -946,6 +1075,120 @@ bool Lex(
                 }
                 currentLine = (shouldAdvanceLine) ? currentLine + 1  : currentLine; // reset.
                 if (isTokenLatent) continue;
+            }
+
+            // TODO: I don't really like that the code below was copy pasta from the copy lookahead thing.
+            // that feels like the inverse of abstraction, so can we get back to abstraction land?
+
+            // check for compound ops.
+            // note that we MUST check for compound ops first, since the single
+            // character ops are substrings of the compound ops. we don't want to
+            // recognize two single character ops instead of a single character op.
+            {
+                size_t copsCount = ARRAY_SIZE( COMPOUND_OPS_TABLE );
+                bool bFoundMatch = false;
+                for (unsigned int i = 0; i < copsCount; i++) {
+                    char *mString = COMPOUND_OPS_TABLE[i].str;
+                    int k = n; // NOTA BENE: n is a global variable - oof.
+                    int j = 0;
+                    char *pStr;
+
+                    // NOTE: the idea here that we compare the unicode codepoint to the char
+                    // is that our things that we are looking ahead we assume to always be
+                    // just plain ASCII (and not the extended ascii).
+
+                    // TODO: we need to do some sort of a compile-time check on the strings
+                    // then for sanity that this is indeed the case.
+
+                    for (pStr = mString; (raw[k++] == (uint8_t)*pStr && *pStr != 0); pStr++) { j++; }
+
+                    if (*pStr == 0) {
+                        // Means we made it through entire string and matched.
+                        struct token symbolTok;
+                        if (TokenFromLatent(symbolTok)) tokenContainer.Append(symbolTok);
+                        struct token tok = Token(COMPOUND_OPS_TABLE[i].type, mString, currentLine, n_col);
+                        //return j;
+                        tokenContainer.Append(tok);
+                        advanceChar(j);
+                        CurrentTokenReset();
+                        bFoundMatch = true; break;
+                    }
+                }
+                if (bFoundMatch) continue;
+            }
+
+            // check for single character ops.
+            token_type type = TOKEN_UNDEFINED;
+            switch(character) {
+                case '.':
+                    type = TOKEN_OP_MEMBER_SELECTION;
+                    break;
+                case '(':
+                case ')':
+                    type = TOKEN_OP_FUNCTION_CALL;
+                    break;
+                case '[':
+                case ']':
+                    type = TOKEN_OP_ARRAY_SUBSCRIPT;
+                    break;
+                case '{':
+                case '}':
+                    type = TOKEN_OP_DATA_PACK;
+                    break;
+                case '*':
+                    type = TOKEN_OP_MULTIPLICATION;
+                    break;
+                case '/':
+                    type = TOKEN_OP_DIVISION;
+                    break;
+                case '%':
+                    type = TOKEN_OP_MODULUS;
+                    break;
+                case '+':
+                    type = TOKEN_OP_ADDITION;
+                    break;
+                case '-':
+                    type = TOKEN_OP_SUBTRACTION;
+                    break;
+                case '<':
+                    type = TOKEN_OP_LESS_THAN;
+                    break;
+                case '>':
+                    type = TOKEN_OP_GREATER_THAN;
+                    break;
+                case '&':
+                    type = TOKEN_OP_BITWISE_AND;
+                    break;
+                case '^':
+                    type = TOKEN_OP_BITWISE_XOR;
+                    break;
+                case '|':
+                    type = TOKEN_OP_BITWISE_OR;
+                    break;
+                case '=':
+                    type = TOKEN_OP_ASSIGNMENT;
+                    break;
+                case ',':
+                    type = TOKEN_OP_COMMA;
+                    break;
+                case '!':
+                    type = TOKEN_OP_LOGICAL_NOT;
+                    break;
+                case '~':
+                    type = TOKEN_OP_BITWISE_NOT;
+                    break;
+                default:
+                    type = TOKEN_UNDEFINED;
+                    break;
+            }
+            if (type != TOKEN_UNDEFINED)
+            {
+                struct token symbolTok;
+                if (TokenFromLatent(symbolTok)) tokenContainer.Append(symbolTok);
+                struct token tok = Token(type, character, currentLine, n_col);
+                tokenContainer.Append(tok);
+                CurrentTokenReset();
+                continue;
             }
 
             // Go through all search patterns. Some search patterns just check the current character.
@@ -989,20 +1232,22 @@ bool Lex(
                 }
                 if (symbolTok.type != TOKEN_UNDEFINED)
                     tokenContainer.Append(symbolTok);
+                // TODO: this if statement here might not be needed. it might be the case that 
+                // if symbolTok is not undefined, so is the tok.
                 if (tok.type != TOKEN_UNDEFINED) {
                     tokenContainer.Append(tok);
                     advanceChar(skipAmount);
                     foundToken = true;
                     break;
                 }
-            }
+            } // end for loop.
             
             if (!foundToken)
                 CurrentTokenAddChar(character);
             else
                 CurrentTokenReset();
             
-        } 
+        } // end if state lexer normal or whatever.
 
     }
 

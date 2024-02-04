@@ -57,6 +57,7 @@ typedef unsigned int uint32;
 #define ColorError "\033[0;33m"
 #define ColorHighlight "\033[0;36m"
 #define ColorNormal "\033[0m"
+#define ARRAY_SIZE(x)  (sizeof(x) / sizeof((x)[0]))
 
 enum target_platform {
     MAC_OS,

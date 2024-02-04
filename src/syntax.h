@@ -38,11 +38,11 @@ bool ParseTokensWithPrattParser(
 
 bool ParseLiteral(    TokenContainer &tokens,       tree_node *tree,  ppl_error_context &errorCtx );
 
-bool ParseOperator( 
-TokenContainer &tokens,   const char *compelled_op,   tree_node *tree,  ppl_error_context &errorCtx,
-const grammar_definition &currGrammarCtx
-
- );
+bool ParseOperator(TokenContainer &tokens,
+    token_type                     compelled_op,
+    tree_node                     *tree,
+    ppl_error_context             &errorCtx,
+    const grammar_definition      &currGrammarCtx);
 
 // TODO: maybe there is C++ magic to do this is literally any other way.
 //       but right now I could not be bothered.
@@ -377,6 +377,10 @@ bool ParseTokensWithRegexTree(
 
                 }
             }
+            else
+            {
+                PPL_TODO;
+            }
 
             stable_n_checkpoint = tokens.GetSavepoint();
             n += 1;
@@ -573,60 +577,46 @@ struct {
     /* Lowest precedence */
 };
 
-bool ParseOperator( 
-TokenContainer &tokens,    const char *compelled_op,   tree_node *tree,  ppl_error_context &errorCtx,
-    const grammar_definition &currGrammarCtx
-
- ) {
+// TODO: maybe this gets a new interface where the compelled_op is not a string and is instead the enum
+// already? in fact, maybe our token representation already stores the OP enums. that seems like the most
+// sensible approach.
+bool ParseOperator(TokenContainer &tokens,
+    token_type                     compelled_op,
+    tree_node                     *tree,
+    ppl_error_context             &errorCtx,
+    const grammar_definition      &currGrammarCtx)
+{
     struct token tok = tokens.QueryNext();
-    bool didMatch = true;
-
-    const char *child_data = compelled_op;
-
-    // TODO: does the strlen below happen at compile-time?
-    const char *op = child_data + strlen("op");
     
-    bool bCompelledOp = (compelled_op != NULL);
-
-    // NOTE(Noah): Because I made the delineation between COP and OP, it actually makes
-    // this processing gross-ish.
+    bool bCompelledOp = (compelled_op != TOKEN_UNDEFINED);
+    bool didMatch;
+    
+    // TODO: right now it feels like we could do a function call like
+    // myfunction)param1, param2) and this would be valid. looks dumb, but I don't really have
+    // a problem with this right now. not that critical.
     
     switch(tok.type) {
-        case TOKEN_COP:
-        {
-            // TODO(Noah): This is gross. Fix it, you lazy fuck.
-            didMatch = bCompelledOp ? ( strlen(op) == strlen(tok.str) &&
-                SillyStringStartsWith(op, tok.str)) : true;
-        }
-        break;
-        case TOKEN_OP:
-        {
-            // TODO: again, we want to verify that our compile-time strings
-            // such as particular operation types are valid (not negative).
-            //
-            // I mean, better yet, for perf we should not be using strings at all
-            // because strings are a debug thing.
-            didMatch = bCompelledOp ? (strlen(op) == 1) && ((uint8_t)op[0] == tok.c) : true;
-        }
-        break;
+        CASE_TOKEN_OP
+        CASE_TOKEN_OP_COMPOUND
+            didMatch = bCompelledOp ? compelled_op == tok.type : true;
+            break;
         default:
-        didMatch = false;
-        break;
+            didMatch =false;
     }
+    
 
     if (didMatch) {
         tokens.AdvanceNext();
-        struct tree_node newTree = CreateTree(AST_OP);
-        
-        // TODO: we changed this to tok.str, which means the AST is different than before. need to adjust code on the other side.
-        // what's the lifetime of the tok.str string? is that good?
-        newTree.metadata.str = tok.str; 
+        struct tree_node newTree = CreateTree( TokenToAstOp(tok.type) );
+
         *tree = newTree;
         
         return true;
     } 
     else {
 
+        // TODO: get this error stuff working again.
+#if 0
         if (errorCtx.SubmitError(
             PPL_ERROR_KIND_PARSER,
             tok.line, tok.beginCol, tokens.GetSavepoint()
@@ -649,6 +639,7 @@ TokenContainer &tokens,    const char *compelled_op,   tree_node *tree,  ppl_err
 
             PrintTree(*errorCtx.currTopLevelTree, 0, HackyPrintToBuffer);
         }
+#endif
 
         return false;
     }
@@ -663,52 +654,46 @@ bool ParseLiteral(    TokenContainer &tokens,       tree_node *tree,  ppl_error_
     // that we are missing a case. Is there an elegant way in C++ to do this or is this one
     // of those things that would be best done in the new language?
 
+    struct tree_node newTree;
     switch (tok.type) {
 
         case TOKEN_QUOTE: {
             tokens.AdvanceNext();
-            struct tree_node newTree = CreateTree(AST_STRING_LITERAL);
+            newTree = CreateTree(AST_STRING_LITERAL);
             newTree.metadata.str     = tok.str;
-            
         } break;
 
         // 
         case TOKEN_NULL_LITERAL: {
             tokens.AdvanceNext();
-            struct tree_node newTree = CreateTree(AST_NULL_LITERAL);
-            
+            newTree = CreateTree(AST_NULL_LITERAL);
         } break;
 
         case TOKEN_TRUE_LITERAL: {
             tokens.AdvanceNext();
-            struct tree_node newTree = CreateTree(AST_INT_LITERAL, true);
-            
+            newTree = CreateTree(AST_INT_LITERAL, true);
         } break;
 
         case TOKEN_FALSE_LITERAL: {
             tokens.AdvanceNext();
-            struct tree_node newTree = CreateTree(AST_INT_LITERAL, false);
-            
+            newTree = CreateTree(AST_INT_LITERAL, false);
         } break;
 
         case TOKEN_DOUBLE_LITERAL: {
             tokens.AdvanceNext();
-            struct tree_node newTree = CreateTree(AST_DECIMAL_LITERAL, (double)tok.dnum);
-            
+            newTree = CreateTree(AST_DECIMAL_LITERAL, (double)tok.dnum);
         } break;
         case TOKEN_FLOAT_LITERAL: {
             // TODO: I know that f64 is more bits than f32, but is there e.g. a loss in precision
             // when we cast from double to float? some odd floating point representation thing.
             tokens.AdvanceNext();
-            struct tree_node newTree = CreateTree(AST_DECIMAL_LITERAL, (float)tok.dnum);
-            
+            newTree = CreateTree(AST_DECIMAL_LITERAL, (float)tok.dnum);
         } break;
 
         case TOKEN_UINT_LITERAL:
         {
             tokens.AdvanceNext();
-            struct tree_node newTree = CreateTree(AST_INT_LITERAL, tok.num);
-            
+            newTree = CreateTree(AST_INT_LITERAL, tok.num);
         } break;
 
         case TOKEN_INTEGER_LITERAL: {
@@ -720,8 +705,7 @@ bool ParseLiteral(    TokenContainer &tokens,       tree_node *tree,  ppl_error_
             // -> this should  be a compiler error about a non-explicit truncation.
             assert( tok.num <= uint64_t(INT64_MAX) );
 
-            struct tree_node newTree = CreateTree(AST_INT_LITERAL, (int64_t)tok.num);
-            
+            newTree = CreateTree(AST_INT_LITERAL, (int64_t)tok.num);
         } break;
         case TOKEN_CHARACTER_LITERAL: {
             tokens.AdvanceNext();
@@ -729,8 +713,7 @@ bool ParseLiteral(    TokenContainer &tokens,       tree_node *tree,  ppl_error_
             // TODO: revisit this stuff.
             assert( tok.c <= uint64_t(INT8_MAX) );
 
-            struct tree_node newTree = CreateTree(AST_INT_LITERAL, (char)tok.c);
-            
+            newTree = CreateTree(AST_INT_LITERAL, (char)tok.c);
         } break;
 
         default:
@@ -756,6 +739,8 @@ bool ParseLiteral(    TokenContainer &tokens,       tree_node *tree,  ppl_error_
 
         return false;
     }
+    
+    *tree = newTree;
 
     // re_matched += 1;
     return true;
@@ -777,12 +762,33 @@ int ParseTokensAsRightLeaningTree(
     tree_node literal;
     tree_node op;
     // NOTE: a literal is 1 token.
-    bool r = ParseLiteral( tokens, &literal, errorCtx );
-    if (r){
+    // NOTE: an operator is 1 token.
+    if (!ParseLiteral( tokens, &literal, errorCtx )){
+        // it wasn't a literal, is it a unary?
+        struct token tok = tokens.QueryNext(); // # the whole LR k+1 idea :)
+        bool bIsUnary = false;
+        switch(tok.type) {
+            CASE_TOKEN_UNARY_OP
+            bIsUnary = true;
+        }
+        if (bIsUnary) {
+            if (ParseOperator( tokens, TOKEN_UNDEFINED, &op, errorCtx, currGrammarCtx ) ) {
+                tokenCount += 1;
+                tree_node rlt;
+                tokenCount += ParseTokensAsRightLeaningTree(tokens, &rlt, errorCtx, currGrammarCtx);
+                if (tokenCount > 1) {
+                    TreeAdoptTree(op, rlt);
+                    *tree = op;
+                }
+            }else {PPL_TODO; // if it's a unary op, parsing the operator should not fail.
+            }
+        }
+    } else {
         tokenCount += 1;
-        // NOTE: an operator is 1 token.
-        r &= ParseOperator( tokens, NULL, &op, errorCtx, currGrammarCtx ); // passing NULL means it could be any operator.
-        if (r) {
+        if (
+            // passing NULL means it could be any operator.
+            ParseOperator( tokens, TOKEN_UNDEFINED, &op, errorCtx, currGrammarCtx )
+        ) {
             tokenCount += 1;
             tree_node rlt;
             tokenCount += ParseTokensAsRightLeaningTree(tokens, &rlt, errorCtx, currGrammarCtx);
@@ -813,7 +819,7 @@ bool ParseTokensAsLeftLeaningTree(
     // lhs = tree.
     // rhs = leaf.
     bool r = ParseTokensAsLeftLeaningTree( tokens, tree, errorCtx, currGrammarCtx );
-    if (r) r &= ParseOperator( tokens, NULL, &opNode, errorCtx, currGrammarCtx ); // passing NULL means it could be any operator.
+    if (r) r &= ParseOperator( tokens, TOKEN_UNDEFINED, &opNode, errorCtx, currGrammarCtx ); // passing NULL means it could be any operator.
     if (r) r &= ParseLiteral(tokens, &literal, errorCtx);
     return r;
 }
@@ -869,9 +875,9 @@ bool ParseTokensWithPrattParser(
         tokens, &exp,
         errorCtx, currGrammarCtx
     );
-    assert( tokenCount % 3 == 0 );
-    if ( tokenCount >= 3 ) {        
+    // assert( (tokenCount >= 3) && (tokenCount % 2 != 0) );
+    if ( tokenCount >= 2 ) {
         TreeAdoptTree(tree, exp);
     }
-    return tokenCount >= 3;
+    return tokenCount >= 2;
 }

@@ -32,9 +32,253 @@ enum tree_type {
     AST_NULL_LITERAL,
 
     AST_SYMBOL,
-    AST_OP,
+    
+    // NOTE: why is there duplication of the token op enums and the ast op enums?
+    // the reason is that they mean different things! so, the ast nodes exist to indicate structure.
+    // so if I have an ast node for function call, there is one of those but two tokens that go as  "(" and ")".
+    AST_OP_MEMBER_SELECTION, // "."
+    AST_OP_FUNCTION_CALL, // "()"
+    AST_OP_ARRAY_SUBSCRIPT, // "[]"
+    AST_OP_MULTIPLICATION, // "*"
+    AST_OP_DIVISION, // "/"
+    AST_OP_MODULUS, // "%"
+    AST_OP_ADDITION, // "+"
+    AST_OP_SUBTRACTION, // "-"
+    AST_OP_BITWISE_LEFT_SHIFT, // "<<"
+    AST_OP_BITWISE_RIGHT_SHIFT, // ">>"
+    AST_OP_LESS_THAN, // "<"
+    AST_OP_LESS_THAN_OR_EQUAL_TO, // "<="
+    AST_OP_GREATER_THAN, // ">"
+    AST_OP_GREATER_THAN_OR_EQUAL_TO, // ">="
+    AST_OP_EQUAL_TO, // "=="
+    AST_OP_NOT_EQUAL_TO, // "!="
+    AST_OP_BITWISE_AND, // "&"
+    AST_OP_BITWISE_XOR, // "^"
+    AST_OP_BITWISE_OR, // "|"
+    AST_OP_LOGICAL_AND, // "&&"
+    AST_OP_LOGICAL_OR, // "||"
+    AST_OP_TERNARY_CONDITIONAL, // "?"
+    AST_OP_ASSIGNMENT, // "="
+    AST_OP_ADDITION_ASSIGNMENT, // "+="
+    AST_OP_SUBTRACTION_ASSIGNMENT, // "-="
+    AST_OP_MULTIPLICATION_ASSIGNMENT, // "*="
+    AST_OP_DIVISION_ASSIGNMENT, // "/="
+    AST_OP_MODULUS_ASSIGNMENT, // "%="
+    AST_OP_LEFT_SHIFT_ASSIGNMENT, // "<<="
+    AST_OP_RIGHT_SHIFT_ASSIGNMENT, // ">>="
+    AST_OP_BITWISE_AND_ASSIGNMENT, // "&="
+    AST_OP_BITWISE_XOR_ASSIGNMENT, // "^="
+    AST_OP_BITWISE_OR_ASSIGNMENT, // "|="
+    AST_OP_COMMA, // ","
+
+    AST_OP_PREFIX_INCREMENT, // "++"
+    AST_OP_SUFFIX_INCREMENT, // "++"
+    AST_OP_PREFIX_DECREMENT, // "--"
+    AST_OP_SUFFIX_DECREMENT, // "--"
+
+    AST_OP_LOGICAL_NOT, // "~"
+    AST_OP_BITWISE_NOT, // "!"
+
+    AST_OP_DATA_PACK, // "{}"
+    AST_OP_SPAN_CTOR, // "..<"
+    AST_OP_SPAN_CTOR_STRICT, // "..="
+
     AST_KEYWORD
 };
+
+#define CASE_AST_OP case AST_OP_MEMBER_SELECTION:\
+    case AST_OP_LOGICAL_NOT:\
+    case AST_OP_BITWISE_NOT:\
+    case AST_OP_FUNCTION_CALL:\
+    case AST_OP_ARRAY_SUBSCRIPT:\
+    case AST_OP_MULTIPLICATION:\
+    case AST_OP_DIVISION:\
+    case AST_OP_MODULUS:\
+    case AST_OP_ADDITION:\
+    case AST_OP_SUBTRACTION:\
+    case AST_OP_BITWISE_LEFT_SHIFT:\
+    case AST_OP_BITWISE_RIGHT_SHIFT:\
+    case AST_OP_LESS_THAN:\
+    case AST_OP_LESS_THAN_OR_EQUAL_TO:\
+    case AST_OP_GREATER_THAN:\
+    case AST_OP_GREATER_THAN_OR_EQUAL_TO:\
+    case AST_OP_EQUAL_TO:\
+    case AST_OP_NOT_EQUAL_TO:\
+    case AST_OP_BITWISE_AND:\
+    case AST_OP_BITWISE_XOR:\
+    case AST_OP_BITWISE_OR:\
+    case AST_OP_LOGICAL_AND:\
+    case AST_OP_LOGICAL_OR:\
+    case AST_OP_TERNARY_CONDITIONAL:\
+    case AST_OP_ASSIGNMENT:\
+    case AST_OP_ADDITION_ASSIGNMENT:\
+    case AST_OP_SUBTRACTION_ASSIGNMENT:\
+    case AST_OP_MULTIPLICATION_ASSIGNMENT:\
+    case AST_OP_DIVISION_ASSIGNMENT:\
+    case AST_OP_MODULUS_ASSIGNMENT:\
+    case AST_OP_LEFT_SHIFT_ASSIGNMENT:\
+    case AST_OP_RIGHT_SHIFT_ASSIGNMENT:\
+    case AST_OP_BITWISE_AND_ASSIGNMENT:\
+    case AST_OP_BITWISE_XOR_ASSIGNMENT:\
+    case AST_OP_BITWISE_OR_ASSIGNMENT:\
+    case AST_OP_COMMA:\
+    case AST_OP_PREFIX_INCREMENT:\
+    case AST_OP_SUFFIX_INCREMENT:\
+    case AST_OP_PREFIX_DECREMENT:\
+    case AST_OP_SUFFIX_DECREMENT:\
+    case AST_OP_DATA_PACK:\
+    case AST_OP_SPAN_CTOR:\
+    case AST_OP_SPAN_CTOR_STRICT:
+
+tree_type TokenToAstOp(token_type tokenOp) {
+    switch (tokenOp) {
+        case TOKEN_OP_MEMBER_SELECTION: return AST_OP_MEMBER_SELECTION;
+        case TOKEN_OP_FUNCTION_CALL: return AST_OP_FUNCTION_CALL;
+        case TOKEN_OP_ARRAY_SUBSCRIPT: return AST_OP_ARRAY_SUBSCRIPT;
+        case TOKEN_OP_MULTIPLICATION: return AST_OP_MULTIPLICATION;
+        case TOKEN_OP_DIVISION: return AST_OP_DIVISION;
+        case TOKEN_OP_MODULUS: return AST_OP_MODULUS;
+        case TOKEN_OP_ADDITION: return AST_OP_ADDITION;
+        case TOKEN_OP_SUBTRACTION: return AST_OP_SUBTRACTION;
+        //case TOKEN_OP_INCREMENT: return AST_OP_INCREMENT;
+        //case TOKEN_OP_DECREMENT: return AST_OP_DECREMENT;
+        case TOKEN_OP_LOGICAL_NOT: return AST_OP_LOGICAL_NOT;
+        case TOKEN_OP_BITWISE_NOT: return AST_OP_BITWISE_NOT;
+        case TOKEN_OP_DATA_PACK: return AST_OP_DATA_PACK;
+        case TOKEN_OP_SPAN_CTOR: return AST_OP_SPAN_CTOR;
+        case TOKEN_OP_SPAN_CTOR_STRICT: return AST_OP_SPAN_CTOR_STRICT;
+        case TOKEN_OP_BITWISE_LEFT_SHIFT: return AST_OP_BITWISE_LEFT_SHIFT;
+        case TOKEN_OP_BITWISE_RIGHT_SHIFT: return AST_OP_BITWISE_RIGHT_SHIFT;
+        case TOKEN_OP_LESS_THAN: return AST_OP_LESS_THAN;
+        case TOKEN_OP_LESS_THAN_OR_EQUAL_TO: return AST_OP_LESS_THAN_OR_EQUAL_TO;
+        case TOKEN_OP_GREATER_THAN: return AST_OP_GREATER_THAN;
+        case TOKEN_OP_GREATER_THAN_OR_EQUAL_TO: return AST_OP_GREATER_THAN_OR_EQUAL_TO;
+        case TOKEN_OP_EQUAL_TO: return AST_OP_EQUAL_TO;
+        case TOKEN_OP_NOT_EQUAL_TO: return AST_OP_NOT_EQUAL_TO;
+        case TOKEN_OP_BITWISE_AND: return AST_OP_BITWISE_AND;
+        case TOKEN_OP_BITWISE_XOR: return AST_OP_BITWISE_XOR;
+        case TOKEN_OP_BITWISE_OR: return AST_OP_BITWISE_OR;
+        case TOKEN_OP_LOGICAL_AND: return AST_OP_LOGICAL_AND;
+        case TOKEN_OP_LOGICAL_OR: return AST_OP_LOGICAL_OR;
+        case TOKEN_OP_TERNARY_CONDITIONAL: return AST_OP_TERNARY_CONDITIONAL;
+        case TOKEN_OP_ASSIGNMENT: return AST_OP_ASSIGNMENT;
+        case TOKEN_OP_ADDITION_ASSIGNMENT: return AST_OP_ADDITION_ASSIGNMENT;
+        case TOKEN_OP_SUBTRACTION_ASSIGNMENT: return AST_OP_SUBTRACTION_ASSIGNMENT;
+        case TOKEN_OP_MULTIPLICATION_ASSIGNMENT: return AST_OP_MULTIPLICATION_ASSIGNMENT;
+        case TOKEN_OP_DIVISION_ASSIGNMENT: return AST_OP_DIVISION_ASSIGNMENT;
+        case TOKEN_OP_MODULUS_ASSIGNMENT: return AST_OP_MODULUS_ASSIGNMENT;
+        case TOKEN_OP_LEFT_SHIFT_ASSIGNMENT: return AST_OP_LEFT_SHIFT_ASSIGNMENT;
+        case TOKEN_OP_RIGHT_SHIFT_ASSIGNMENT: return AST_OP_RIGHT_SHIFT_ASSIGNMENT;
+        case TOKEN_OP_BITWISE_AND_ASSIGNMENT: return AST_OP_BITWISE_AND_ASSIGNMENT;
+        case TOKEN_OP_BITWISE_XOR_ASSIGNMENT: return AST_OP_BITWISE_XOR_ASSIGNMENT;
+        case TOKEN_OP_BITWISE_OR_ASSIGNMENT: return AST_OP_BITWISE_OR_ASSIGNMENT;
+        case TOKEN_OP_COMMA: return AST_OP_COMMA;
+        default:
+        // note: you should never call this function unless you know what you are doing.
+        // to reach here is what we would consider a bug.
+            PPL_TODO;
+    }
+    return AST_OP_COMMA;
+}
+
+const char* astOpToString(tree_type op) {
+    switch (op) {
+        case AST_OP_MEMBER_SELECTION: return "AST_OP_MEMBER_SELECTION";
+        case AST_OP_FUNCTION_CALL: return "AST_OP_FUNCTION_CALL";
+        case AST_OP_ARRAY_SUBSCRIPT: return "AST_OP_ARRAY_SUBSCRIPT";
+        case AST_OP_MULTIPLICATION: return "AST_OP_MULTIPLICATION";
+        case AST_OP_DIVISION: return "AST_OP_DIVISION";
+        case AST_OP_MODULUS: return "AST_OP_MODULUS";
+        case AST_OP_ADDITION: return "AST_OP_ADDITION";
+        case AST_OP_SUBTRACTION: return "AST_OP_SUBTRACTION";
+        case AST_OP_BITWISE_LEFT_SHIFT: return "AST_OP_BITWISE_LEFT_SHIFT";
+        case AST_OP_BITWISE_RIGHT_SHIFT: return "AST_OP_BITWISE_RIGHT_SHIFT";
+        case AST_OP_LESS_THAN: return "AST_OP_LESS_THAN";
+        case AST_OP_LESS_THAN_OR_EQUAL_TO: return "AST_OP_LESS_THAN_OR_EQUAL_TO";
+        case AST_OP_GREATER_THAN: return "AST_OP_GREATER_THAN";
+        case AST_OP_GREATER_THAN_OR_EQUAL_TO: return "AST_OP_GREATER_THAN_OR_EQUAL_TO";
+        case AST_OP_EQUAL_TO: return "AST_OP_EQUAL_TO";
+        case AST_OP_NOT_EQUAL_TO: return "AST_OP_NOT_EQUAL_TO";
+        case AST_OP_BITWISE_AND: return "AST_OP_BITWISE_AND";
+        case AST_OP_BITWISE_XOR: return "AST_OP_BITWISE_XOR";
+        case AST_OP_BITWISE_OR: return "AST_OP_BITWISE_OR";
+        case AST_OP_LOGICAL_AND: return "AST_OP_LOGICAL_AND";
+        case AST_OP_LOGICAL_OR: return "AST_OP_LOGICAL_OR";
+        case AST_OP_TERNARY_CONDITIONAL: return "AST_OP_TERNARY_CONDITIONAL";
+        case AST_OP_ASSIGNMENT: return "AST_OP_ASSIGNMENT";
+        case AST_OP_ADDITION_ASSIGNMENT: return "AST_OP_ADDITION_ASSIGNMENT";
+        case AST_OP_SUBTRACTION_ASSIGNMENT: return "AST_OP_SUBTRACTION_ASSIGNMENT";
+        case AST_OP_MULTIPLICATION_ASSIGNMENT: return "AST_OP_MULTIPLICATION_ASSIGNMENT";
+        case AST_OP_DIVISION_ASSIGNMENT: return "AST_OP_DIVISION_ASSIGNMENT";
+        case AST_OP_MODULUS_ASSIGNMENT: return "AST_OP_MODULUS_ASSIGNMENT";
+        case AST_OP_LEFT_SHIFT_ASSIGNMENT: return "AST_OP_LEFT_SHIFT_ASSIGNMENT";
+        case AST_OP_RIGHT_SHIFT_ASSIGNMENT: return "AST_OP_RIGHT_SHIFT_ASSIGNMENT";
+        case AST_OP_BITWISE_AND_ASSIGNMENT: return "AST_OP_BITWISE_AND_ASSIGNMENT";
+        case AST_OP_BITWISE_XOR_ASSIGNMENT: return "AST_OP_BITWISE_XOR_ASSIGNMENT";
+        case AST_OP_BITWISE_OR_ASSIGNMENT: return "AST_OP_BITWISE_OR_ASSIGNMENT";
+        case AST_OP_COMMA: return "AST_OP_COMMA";
+       // case AST_OP_INCREMENT: return "AST_OP_INCREMENT";
+       // case AST_OP_DECREMENT: return "AST_OP_DECREMENT";
+        case AST_OP_DATA_PACK: return "AST_OP_DATA_PACK";
+        case AST_OP_SPAN_CTOR: return "AST_OP_SPAN_CTOR";
+        case AST_OP_SPAN_CTOR_STRICT: return "AST_OP_SPAN_CTOR_STRICT";
+        default: 
+            PPL_TODO;
+            return "<Unknown AST_OP*>";
+    }
+}
+
+// TODO: it's kind of annoying that we go full circle here. because at one point we indeed had the string
+// representation. if we could somehow link the AST to the token or set of tokens that it corresponds to that
+// would be quite dope.
+const char* astOpToHumanReadableString(tree_type op) {
+    switch (op) {
+        case AST_OP_MEMBER_SELECTION: return ".";
+        case AST_OP_FUNCTION_CALL: return "FUNCTION_CALL";
+        case AST_OP_ARRAY_SUBSCRIPT: return "ARRAY_SUBSCRIPT";
+        case AST_OP_MULTIPLICATION: return "*";
+        case AST_OP_DIVISION: return "/";
+        case AST_OP_MODULUS: return "%";
+        case AST_OP_ADDITION: return "+";
+        case AST_OP_SUBTRACTION: return "-";
+        case AST_OP_BITWISE_LEFT_SHIFT: return "<<";
+        case AST_OP_BITWISE_RIGHT_SHIFT: return ">>";
+        case AST_OP_LESS_THAN: return "<";
+        case AST_OP_LESS_THAN_OR_EQUAL_TO: return "<=";
+        case AST_OP_GREATER_THAN: return ">";
+        case AST_OP_GREATER_THAN_OR_EQUAL_TO: return ">=";
+        case AST_OP_EQUAL_TO: return "==";
+        case AST_OP_NOT_EQUAL_TO: return "!=";
+        case AST_OP_BITWISE_AND: return "&";
+        case AST_OP_BITWISE_XOR: return "^";
+        case AST_OP_BITWISE_OR: return "|";
+        case AST_OP_LOGICAL_AND: return "&&";
+        case AST_OP_LOGICAL_OR: return "||";
+        case AST_OP_LOGICAL_NOT: return "!";
+        case AST_OP_BITWISE_NOT: return "~";
+        case AST_OP_TERNARY_CONDITIONAL: return "TERNARY_CONDITIONAL";
+        case AST_OP_ASSIGNMENT: return "=";
+        case AST_OP_ADDITION_ASSIGNMENT: return "+=";
+        case AST_OP_SUBTRACTION_ASSIGNMENT: return "-=";
+        case AST_OP_MULTIPLICATION_ASSIGNMENT: return "*=";
+        case AST_OP_DIVISION_ASSIGNMENT: return "/=";
+        case AST_OP_MODULUS_ASSIGNMENT: return "%=";
+        case AST_OP_LEFT_SHIFT_ASSIGNMENT: return "<<=";
+        case AST_OP_RIGHT_SHIFT_ASSIGNMENT: return ">>=";
+        case AST_OP_BITWISE_AND_ASSIGNMENT: return "&=";
+        case AST_OP_BITWISE_XOR_ASSIGNMENT: return "^=";
+        case AST_OP_BITWISE_OR_ASSIGNMENT: return "|=";
+        case AST_OP_COMMA: return ",";
+        //case AST_OP_PREFIX_INCREMENT: return "++";
+        //case AST_OP_DECREMENT: return "AST_OP_DECREMENT";
+        case AST_OP_DATA_PACK: return "DATA_PACK";
+        case AST_OP_SPAN_CTOR: return "..<";
+        case AST_OP_SPAN_CTOR_STRICT: return "..=";
+        default: 
+            PPL_TODO;
+            return "<Unknown AST_OP*>";
+    }
+}
 
 struct tree_metadata {
 
@@ -75,6 +319,15 @@ struct tree_node {
     enum tree_type type;
     struct tree_metadata metadata;
 };
+
+bool AstIsOp(const tree_node &tn) {
+    switch(tn.type) {
+        CASE_AST_OP
+        return true;
+        default:
+        return false;
+    }
+}
 
 // TODO: I do not know if these CreateTree calls are the best idea.
 
@@ -268,9 +521,8 @@ void PrintTree(const struct tree_node &tn, unsigned int indentation,
             Assert(tn.metadata.str != NULL);
             PrintFn("%sSYMBOL:%s", sillyBuff, tn.metadata.str);
             break;
-        case AST_OP:
-            Assert(tn.metadata.str != NULL);
-            PrintFn("%sOP:%s", sillyBuff, tn.metadata.str);
+        CASE_AST_OP
+            PrintFn("%s%s", sillyBuff, astOpToHumanReadableString(tn.type));
             break;
         case AST_KEYWORD:
             Assert(tn.metadata.str != NULL);
