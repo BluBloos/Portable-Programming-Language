@@ -71,15 +71,15 @@ enum tree_type {
     AST_OP_BITWISE_OR_ASSIGNMENT, // "|="
     AST_OP_COMMA, // ","
 
+    // unary ops.
     AST_OP_PREFIX_INCREMENT, // "++"
     AST_OP_SUFFIX_INCREMENT, // "++"
     AST_OP_PREFIX_DECREMENT, // "--"
     AST_OP_SUFFIX_DECREMENT, // "--"
-
     AST_OP_LOGICAL_NOT, // "~"
     AST_OP_BITWISE_NOT, // "!"
-
     AST_OP_DATA_PACK, // "{}"
+
     AST_OP_SPAN_CTOR, // "..<"
     AST_OP_SPAN_CTOR_STRICT, // "..="
 
@@ -133,7 +133,7 @@ enum tree_type {
 tree_type TokenToAstOp(token_type tokenOp) {
     switch (tokenOp) {
         case TOKEN_OP_MEMBER_SELECTION: return AST_OP_MEMBER_SELECTION;
-        case TOKEN_OP_FUNCTION_CALL: return AST_OP_FUNCTION_CALL;
+        case TOKEN_OP_PAREN: return AST_OP_FUNCTION_CALL; // NOTE: paren can also be for other things, but the caller of this function wants to create function call node.
         case TOKEN_OP_ARRAY_SUBSCRIPT: return AST_OP_ARRAY_SUBSCRIPT;
         case TOKEN_OP_MULTIPLICATION: return AST_OP_MULTIPLICATION;
         case TOKEN_OP_DIVISION: return AST_OP_DIVISION;

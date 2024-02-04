@@ -28,15 +28,16 @@ static char    *g_bufferToPrintTo = nullptr;
 static uint32_t g_bufferToPrintToLen = 0;
 static uint32_t g_lastBufPos = 0;
 
-bool ParseTokensWithPrattParser(
-    TokenContainer &tokens, 
-    const tree_node &regexTree,
-    const grammar_definition &currGrammarCtx,
-    tree_node &tree,
-    ppl_error_context &errorCtx,
-    bool parentWantsVerboseAST = false);
+bool ParseTokensWithPrattParser(TokenContainer &tokens,
+    const tree_node                            &regexTree,
+    const grammar_definition                   &currGrammarCtx,
+    tree_node                                  &tree,
+    ppl_error_context                          &errorCtx,
+    bool                                        parentWantsVerboseAST = false);
 
-bool ParseLiteral(    TokenContainer &tokens,       tree_node *tree,  ppl_error_context &errorCtx );
+bool ParseLiteral(TokenContainer &tokens, tree_node *tree, ppl_error_context &errorCtx);
+
+bool ParseSymbol(TokenContainer &tokens, tree_node *tree, ppl_error_context &errorCtx);
 
 bool ParseOperator(TokenContainer &tokens,
     token_type                     compelled_op,
@@ -298,24 +299,12 @@ bool ParseTokensWithRegexTree(
                 re_matched += 1;
             }
             else if ( childType == TREE_REGEX_SYMBOL ) {
-                struct token tok = tokens.QueryNext(); //# the whole LR k+1 idea :)
-                if (tok.type == TOKEN_SYMBOL) {
-                    tokens.AdvanceNext();
-                    struct tree_node newTree = CreateTree(AST_SYMBOL);
-                    newTree.metadata.str = tok.str;
-                    TreeAdoptTree(tree, newTree);
+
+                tree_node symbol;
+                if (ParseSymbol(tokens, &symbol, errorCtx)) {
+                    TreeAdoptTree(tree, symbol);
                     re_matched += 1;
                 } else {
-
-                    if (errorCtx.SubmitError(
-                        PPL_ERROR_KIND_PARSER,
-                        tok.line, tok.beginCol, tokens.GetSavepoint()
-                    ))
-                    {
-                        snprintf(errorCtx.errMsg, PPL_ERROR_MESSAGE_MAX_LENGTH,
-                        "Expected a symbol.");
-                    }
-
                     break;
                 }
             }
@@ -526,56 +515,63 @@ def Run(tokens, logger):
 */
 
 struct {
-    const char *op;
-    int prec; /* Highest precedence is lowest number, i.e. the thing that happens first. */
+    token_type tokType;
+    int prec; /* Highest precedence is the thing that happens first. */ 
 } g_operator_precedence_table[] = {    
-    { ".", 2 }, // Member selection
-   // { "++", 2 }, // Postfix increment
- //   { "--", 2 }, // Postfix decrement
-    { "(", 2 }, // Function call
-    { "[", 2 }, // Array subscripting
-   // { "!", 3 }, // Logical NOT
-   // { "~", 3 }, // Bitwise NOT
-  //  { "++", 3 }, // Prefix increment
-   // { "--", 3 }, // Prefix decrement
-  //  { "+", 3 }, // Unary plus
-  //  { "-", 3 }, // Unary minus
-  //  { "*", 3 }, // Indirection (dereference)
-  //  { "&", 3 }, // Address-of
-  //  { "sizeof", 3 }, // Size-of.
-    { "*", 5 }, // Multiplication
-    { "/", 5 }, // Division
-    { "%", 5 }, // Modulus
-    { "+", 6 }, // Addition
-    { "-", 6 }, // Subtraction
-    { "<<", 7 }, // Bitwise left shift
-    { ">>", 7 }, // Bitwise right shift
-    { "<", 8 }, // Less than
-    { "<=", 8 }, // Less than or equal to
-    { ">", 8 }, // Greater than
-    { ">=", 8 }, // Greater than or equal to
-    { "==", 9 }, // Equal to
-    { "!=", 9 }, // Not equal to
-    { "&", 10 }, // Bitwise AND
-    { "^", 11 }, // Bitwise XOR
-    { "|", 12 }, // Bitwise OR
-    { "&&", 13 }, // Logical AND
-    { "||", 14 }, // Logical OR
-    { "?", 15 }, // Ternary conditional
-    { "=", 16 }, // Assignment
-    { "+=", 16 }, // Addition assignment
-    { "-=", 16 }, // Subtraction assignment
-    { "*=", 16 }, // Multiplication assignment
-    { "/=", 16 }, // Division assignment
-    { "%=", 16 }, // Modulus assignment
-    { "<<=", 16 }, // Left shift assignment
-    { ">>=", 16 }, // Right shift assignment
-    { "&=", 16 }, // Bitwise AND assignment
-    { "^=", 16 }, // Bitwise XOR assignment
-    { "|=", 16 }, // Bitwise OR assignment
-    { ",", 17 } // Comma operator
-    /* Lowest precedence */
+    { TOKEN_OP_MEMBER_SELECTION, 1 }, // Member selection
+    { TOKEN_OP_INCREMENT, 1 }, // suffix/Postfix increment 
+    { TOKEN_OP_DECREMENT, 1 }, // suffix/Postfix decrement 
+    { TOKEN_OP_PAREN, 1 }, // Function call
+    { TOKEN_OP_ARRAY_SUBSCRIPT, 1 }, // Array subscripting
+   
+    { TOKEN_OP_LOGICAL_NOT, 2 }, // Logical NOT 
+    { TOKEN_OP_BITWISE_NOT, 2 }, // Bitwise NOT
+
+    { TOKEN_OP_MULTIPLICATION, 3 }, // Multiplication
+    { TOKEN_OP_DIVISION, 3 }, // Division
+    { TOKEN_OP_MODULUS, 3 }, // Modulus
+
+    { TOKEN_OP_ADDITION, 4 },    // Addition
+    { TOKEN_OP_SUBTRACTION, 4 }, // Subtraction
+      
+    { TOKEN_OP_BITWISE_LEFT_SHIFT, 5 }, // Bitwise left shift
+    { TOKEN_OP_BITWISE_RIGHT_SHIFT, 5 }, // Bitwise right shift
+
+    { TOKEN_OP_LESS_THAN, 6 }, // Less than
+    { TOKEN_OP_LESS_THAN_OR_EQUAL_TO, 6 }, // Less than or equal to
+    { TOKEN_OP_GREATER_THAN, 6 }, // Greater than
+    { TOKEN_OP_GREATER_THAN_OR_EQUAL_TO, 6 }, // Greater than or equal to
+
+    { TOKEN_OP_EQUAL_TO, 9 }, // Equal to
+    { TOKEN_OP_NOT_EQUAL_TO, 9 }, // Not equal to
+
+    { TOKEN_OP_BITWISE_AND, 10 }, // Bitwise AND
+
+    { TOKEN_OP_BITWISE_XOR, 11 }, // Bitwise XOR
+
+    { TOKEN_OP_BITWISE_OR, 12 }, // Bitwise OR
+
+    { TOKEN_OP_LOGICAL_AND, 13 }, // Logical AND
+
+    { TOKEN_OP_LOGICAL_OR, 14 }, // Logical OR
+
+    { TOKEN_OP_TERNARY_CONDITIONAL, 15 }, // Ternary conditional
+    
+    { TOKEN_OP_ASSIGNMENT, 16 }, // Assignment
+    { TOKEN_OP_ADDITION_ASSIGNMENT, 16 }, // Addition assignment
+    { TOKEN_OP_SUBTRACTION_ASSIGNMENT, 16 }, // Subtraction assignment
+    { TOKEN_OP_MULTIPLICATION_ASSIGNMENT, 16 }, // Multiplication assignment
+    { TOKEN_OP_DIVISION_ASSIGNMENT, 16 }, // Division assignment
+    { TOKEN_OP_MODULUS_ASSIGNMENT, 16 }, // Modulus assignment
+    { TOKEN_OP_LEFT_SHIFT_ASSIGNMENT, 16 }, // Left shift assignment
+    { TOKEN_OP_RIGHT_SHIFT_ASSIGNMENT, 16 }, // Right shift assignment
+    { TOKEN_OP_BITWISE_AND_ASSIGNMENT, 16 }, // Bitwise AND assignment
+    { TOKEN_OP_BITWISE_XOR_ASSIGNMENT, 16 }, // Bitwise XOR assignment
+    { TOKEN_OP_BITWISE_OR_ASSIGNMENT, 16 }, // Bitwise OR assignment
+    
+    { TOKEN_OP_COMMA, 17 } // Comma operator
 };
+
 
 // TODO: maybe this gets a new interface where the compelled_op is not a string and is instead the enum
 // already? in fact, maybe our token representation already stores the OP enums. that seems like the most
@@ -746,6 +742,167 @@ bool ParseLiteral(    TokenContainer &tokens,       tree_node *tree,  ppl_error_
     return true;
 }
 
+bool ParseSymbol(TokenContainer &tokens, tree_node *tree, ppl_error_context &errorCtx)
+{
+    struct token tok = tokens.QueryNext();  //# the whole LR k+1 idea :)
+    if (tok.type == TOKEN_SYMBOL) {
+        tokens.AdvanceNext();
+        struct tree_node newTree = CreateTree(AST_SYMBOL);
+        newTree.metadata.str     = tok.str;
+        *tree                    = newTree;
+        return true;
+    } else {
+        if (errorCtx.SubmitError(PPL_ERROR_KIND_PARSER, tok.line, tok.beginCol, tokens.GetSavepoint())) {
+            snprintf(errorCtx.errMsg, PPL_ERROR_MESSAGE_MAX_LENGTH, "Expected a symbol.");
+        }
+
+        return false;
+    }
+}
+
+bool ParseTypeLiteral(TokenContainer &tokens, tree_node *tree, ppl_error_context &errorCtx) {
+    // TODO: this grammar object is quite broad.
+}
+
+// TODO: okay, it's time to watch the stream again. it feels like things are more complicated than they need to be.
+
+/*
+
+RIGHT LEANING
+
+1 > 2 + 3 * 4
+1 > (2 + (3 * 4))
+
+    >
+   / \
+  1   +
+     / \
+    2   *
+       / \
+      3   4
+
+parse_leaf():
+    get the leaf thing/
+
+parse_single_binary():
+    left = parse_leaf()
+    operator = parse_op()
+    right = parse_leaf()
+    return make_binary()
+
+parse_expression():
+    left = parse_leaf()
+
+    next = op()
+
+    if is_binary_op(next) {
+        right = parse_leaf()
+        right make_binary()
+    } else {
+        return left
+    }
+
+make it recursive,
+
+parse_expression():
+    left = parse_leaf()
+    next = op()
+    if !is_binary_op(next) return left
+
+    right = parse_expression()
+    return make_binary()
+
+now, the above code will generate a right leaning tree.
+how could we create a left leaning tree?
+
+LEFT LEANING
+
+1 * 2 + 3 - 4
+((1 * 2) + 3) - 4)
+
+      -
+     / \
+    +   4
+   / \
+  *   3
+ / \
+1   2
+
+parse_binary(left):
+    op = parse_op()
+    if !is_binary_op(next) return left
+
+    right = parse_left()
+    return make_binary(left, op, right)
+
+parse_expression():
+    left = parse_leaf()
+    
+    while(true) {
+        new_tree = parse_binary(left)
+
+        if new_tree == left return left
+
+        left = new_tree
+    }
+
+the key idea (insight) to pratt parser is that ... 
+
+right leaning tree (or right associative tree).
+correct when ... precedence is increasing.
+
+left leaning tree (or left associative tree).
+correct when ... precedence is decreasing.
+
+what we can do is to build a left leaning tree where some of the rhs are right leaning trees.
+
+here is the new code:
+
+parse_increasing_precedence(left, min_prec):
+    next = get_next_token()
+    if !is_binary_op(next) return left
+
+    next_prec = get_prec(next)
+
+    if next_prec <= min_prec {
+        right = parse_left()
+        return make_binary(left, op, right)
+    } else {
+        right = parse_expression(next_prec)
+        return make_binary(left, op, right)
+    }
+
+parse_expression(min_prec):
+    left = parse_leaf()
+
+    while true {
+        new_tree = parse_increasing_precedence(left, min_prec)
+        if new_tree == left return left
+        left = new_tree
+    }
+*/
+
+bool IsTokBinaryOp(token tok)
+{
+    bool bIsOp = true;
+    bool bIsUnary = false;
+    switch(tok.type) {
+        CASE_TOKEN_BINARY_OP
+            break;
+        CASE_TOKEN_UNARY_OP
+            bIsUnary = true;
+            break;
+        // NOTE: in the above switch, close paren is consider not unary. while close paren is not
+        // unary, it is also not a binary op. so for the sake of the code here, we'll allow it to be
+        // "unary".
+        default:
+            bIsOp = false;
+    }
+
+    return (bIsOp && !bIsUnary);
+}
+
+#if 0
 // returns the token count parsed as an expression.
 // if we get back zero, it means the sequence of tokens currently pointed at
 // does not begin with an expression at all.
@@ -806,54 +963,90 @@ int ParseTokensAsRightLeaningTree(
     
     return tokenCount;
 }
+#endif
 
-bool ParseTokensAsLeftLeaningTree(
- TokenContainer &tokens,
-    tree_node &tree,
-    ppl_error_context &errorCtx, const grammar_definition &currGrammarCtx
-)
+bool ParseExpressionLeaf(TokenContainer &tokens, tree_node *tree, ppl_error_context &errorCtx)
 {
-    tree_node opNode;
-    tree_node literal;
-
-    // lhs = tree.
-    // rhs = leaf.
-    bool r = ParseTokensAsLeftLeaningTree( tokens, tree, errorCtx, currGrammarCtx );
-    if (r) r &= ParseOperator( tokens, TOKEN_UNDEFINED, &opNode, errorCtx, currGrammarCtx ); // passing NULL means it could be any operator.
-    if (r) r &= ParseLiteral(tokens, &literal, errorCtx);
-    return r;
+    return ParseLiteral( tokens, tree, errorCtx ) || ParseSymbol( tokens, tree, errorCtx );
 }
 
-/*
+// make the tree about op.
+tree_node MakeBinary(const tree_node &left, const tree_node &op, const tree_node &right)
+{
+    tree_node newOp = op;
+    TreeAdoptTree(newOp, left);
+    TreeAdoptTree(newOp, right);
+    return newOp;
+}
 
-LEFT LEANING
+// TODO: this could be even more efficient if we use the enum as an index.
+int OpPrecedence(const token &op)
+{
+    size_t opsCount = ARRAY_SIZE(g_operator_precedence_table);
+    for (int i=0; i < opsCount;i++)
+    {
+        auto thing = g_operator_precedence_table[i];
+        if (thing.tokType== op.type){
+            return thing.prec; 
+        }
+    }
+    PPL_TODO; // this is bug
+    return 0;
+}
 
-1 * 2 + 3 - 4
-((1 * 2) + 3) - 4)
+tree_node ParseExpression(TokenContainer &tokens, int prec, ppl_error_context &errorCtx,     const grammar_definition &currGrammarCtx);
 
-      -
-     / \
-    +   4
-   / \
-  *   3
- / \
-1   2
+// TODO: think about unary after.
+// TODO: think about errors after.
+// TODO: why we pass around so many contexts :(
 
+bool ParseIncreasingPrecedence(TokenContainer &tokens, const tree_node &left, int prec, tree_node *tree, 
+ppl_error_context &errorCtx,     const grammar_definition &currGrammarCtx)
+{
+    struct token tok = tokens.QueryNext(); // # the whole LR k+1 idea :)
 
-RIGHT LEANING
+    tree_node op;
+    tree_node right;
 
-1 + 2 + 3 * 4
-1 + (2 + (3 * 4))
+    if (!IsTokBinaryOp(tok)) {
+        *tree = left;
+        return true; // terminal condition.
+    }
 
-    +
-   / \
-  1   +
-     / \
-    2   *
-       / \
-      3   4
+    int next_prec = OpPrecedence(tok);
 
-*/
+    if (next_prec > prec) {
+#if 0
+        bool r = ParseExpressionLeaf(tokens, &right, errorCtx);
+        auto tn = MakeBinary(left, op, right);
+        *tree = tn;
+#else
+        *tree = left;
+        return true;
+#endif
+    } else {
+        ParseOperator(tokens, TOKEN_UNDEFINED, &op, errorCtx, currGrammarCtx);
+        right = ParseExpression(tokens, next_prec, errorCtx, currGrammarCtx);
+        auto tn = MakeBinary(left, op, right);
+        *tree = tn;
+    }
+
+    return false;
+}
+
+// prec is precedence.
+tree_node ParseExpression(TokenContainer &tokens, int prec, ppl_error_context &errorCtx,     const grammar_definition &currGrammarCtx)
+{
+    tree_node left;
+    ParseExpressionLeaf(tokens, &left, errorCtx);
+
+    while (true) {
+        tree_node new_tree;
+        bool bSame = ParseIncreasingPrecedence(tokens, left, prec, &new_tree, errorCtx, currGrammarCtx);
+        if (bSame) return left;
+        left = new_tree;
+    }
+}
 
 bool ParseTokensWithPrattParser(
     TokenContainer &tokens, 
@@ -863,21 +1056,25 @@ bool ParseTokensWithPrattParser(
     ppl_error_context &errorCtx,
     bool parentWantsVerboseAST)
 {
-    // right leaning tree (or right associative tree).
-    // = correct when ... precedence is decreasing.
-    // left leaning tree (or left associative tree).
-    // = correct when ... precedence is increasing.
+
+
     
     // TODO: interweve them. for now we parse as a right leaning tree.
-    
-    tree_node exp;
-    int tokenCount = ParseTokensAsRightLeaningTree(
-        tokens, &exp,
+
+    tree_node exp = ParseExpression(
+        tokens, 1000,
         errorCtx, currGrammarCtx
     );
+    tree = exp;
+    // TODO: handle failure later. maybe we can have the error be indicated in the error context.
+
+#if 0
     // assert( (tokenCount >= 3) && (tokenCount % 2 != 0) );
     if ( tokenCount >= 2 ) {
         TreeAdoptTree(tree, exp);
     }
     return tokenCount >= 2;
+#endif
+
+    return true;
 }

@@ -235,7 +235,7 @@ enum token_type {
     TOKEN_ENDL,
 
     TOKEN_OP_MEMBER_SELECTION, // "."
-    TOKEN_OP_FUNCTION_CALL, // "(" or ")"
+    TOKEN_OP_PAREN, // "(" or ")"
     TOKEN_OP_ARRAY_SUBSCRIPT, // "[" or "]"
     TOKEN_OP_MULTIPLICATION, // "*"
     TOKEN_OP_DIVISION, // "/"
@@ -287,7 +287,7 @@ enum token_type {
 };
 
 #define CASE_TOKEN_OP  case TOKEN_OP_MEMBER_SELECTION:\
-        case TOKEN_OP_FUNCTION_CALL:\
+        case TOKEN_OP_PAREN:\
         case TOKEN_OP_ARRAY_SUBSCRIPT:\
         case TOKEN_OP_DATA_PACK:\
         case TOKEN_OP_MULTIPLICATION:\
@@ -332,7 +332,43 @@ enum token_type {
         case TOKEN_OP_INCREMENT:\
         case TOKEN_OP_DECREMENT:\
         case TOKEN_OP_DATA_PACK:\
-        case TOKEN_OP_BITWISE_NOT:
+        case TOKEN_OP_BITWISE_NOT:\
+        case TOKEN_OP_PAREN:
+
+#define CASE_TOKEN_BINARY_OP case TOKEN_OP_LOGICAL_AND:\
+        case TOKEN_OP_LOGICAL_OR:\
+        case TOKEN_OP_GREATER_THAN_OR_EQUAL_TO:\
+        case TOKEN_OP_LESS_THAN_OR_EQUAL_TO:\
+        case TOKEN_OP_EQUAL_TO:\
+        case TOKEN_OP_NOT_EQUAL_TO:\
+        case TOKEN_OP_ADDITION_ASSIGNMENT:\
+        case TOKEN_OP_SUBTRACTION_ASSIGNMENT:\
+        case TOKEN_OP_MULTIPLICATION_ASSIGNMENT:\
+        case TOKEN_OP_DIVISION_ASSIGNMENT:\
+        case TOKEN_OP_MODULUS_ASSIGNMENT:\
+        case TOKEN_OP_BITWISE_AND_ASSIGNMENT:\
+        case TOKEN_OP_BITWISE_OR_ASSIGNMENT:\
+        case TOKEN_OP_BITWISE_XOR_ASSIGNMENT:\
+        case TOKEN_OP_LEFT_SHIFT_ASSIGNMENT:\
+        case TOKEN_OP_RIGHT_SHIFT_ASSIGNMENT:\
+        case TOKEN_OP_BITWISE_LEFT_SHIFT:\
+        case TOKEN_OP_BITWISE_RIGHT_SHIFT:\
+        case TOKEN_OP_SPAN_CTOR_STRICT:\
+        case TOKEN_OP_SPAN_CTOR:\
+        case TOKEN_OP_MEMBER_SELECTION:\
+        case TOKEN_OP_ARRAY_SUBSCRIPT:\
+        case TOKEN_OP_MULTIPLICATION:\
+        case TOKEN_OP_DIVISION:\
+        case TOKEN_OP_MODULUS:\
+        case TOKEN_OP_ADDITION:\
+        case TOKEN_OP_SUBTRACTION:\
+        case TOKEN_OP_LESS_THAN:\
+        case TOKEN_OP_GREATER_THAN:\
+        case TOKEN_OP_BITWISE_AND:\
+        case TOKEN_OP_BITWISE_XOR:\
+        case TOKEN_OP_BITWISE_OR:\
+        case TOKEN_OP_ASSIGNMENT:\
+        case TOKEN_OP_COMMA:
 
 bool TokenIsCompoundOp(token_type type) {
     switch(type) {
@@ -1125,7 +1161,7 @@ bool Lex(
                     break;
                 case '(':
                 case ')':
-                    type = TOKEN_OP_FUNCTION_CALL;
+                    type = TOKEN_OP_PAREN;
                     break;
                 case '[':
                 case ']':
