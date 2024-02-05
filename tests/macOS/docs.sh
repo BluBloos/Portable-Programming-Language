@@ -94,7 +94,8 @@ grep '^#' $0
 #
 # easy to write new tests.
 # - writing a black box test is already easy; just execute the build artefact,
-#   varying the parameters.
+#   varying the parameters. there exists abstractions so that each test isn't a
+#   copy pasta of most of another test with just one thing different.
 # - writing a more integrated test means maintaing clean codebase-internal
 #   abstractions.
 #
