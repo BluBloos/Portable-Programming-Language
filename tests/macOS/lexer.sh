@@ -5,15 +5,6 @@ GREEN='\033[0;32m'
 BLUE="\033[0;36m"
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}Test short description${NC}"
-
-cat << EOF
-======================
-This test is a broad test that runs all tests associated with the lexer
-subcomponent of the PPL compiler toolchain.
-
-EOF
-
 has_help=0
 unrecognized_args=()
 
@@ -28,8 +19,18 @@ do
 done
 
 if (( ${#unrecognized_args[@]} > 0 )); then
+    # NOTE: -e is require for handle ANSI colors.
     echo -e "${RED}Warning:${NC} ignoring invalid argument(s); ( ${unrecognized_args[@]} )\n"
 fi
+
+echo -e "${BLUE}Test short description${NC}"
+
+cat << EOF
+======================
+This test is a broad test that runs all tests associated with the lexer
+subcomponent of the PPL compiler toolchain.
+
+EOF
 
 if (( has_help )); then
     echo -e "${BLUE}Help menu${NC}"
@@ -44,13 +45,34 @@ fi
 echo -e "${BLUE}Current state${NC}"
 echo "======================"
 git log -1 --format="Git HEAD = '%h'"
+# wc is "word count" command. we're using it here to count lines.
 git_status_lines=$(git status -s | wc -l)
 limit=10
 if [ "$git_status_lines" -gt "$limit" ]; then
+    # head is a program for "display first lines of a file".
     git status -s | head -n "$limit"
-    echo "... output truncated, $git_status_lines changes total ..."
+    cat << EOF
+... output truncated, $git_status_lines changes total ...
+
+EOF
 else
     git status -s
+fi
+
+# NOTE: line below may not work in all cases.
+script_dir=$(cd "$(dirname "$0")"; pwd)
+
+ppl_artefact_path="$script_dir/../../bin/ppl"
+
+if [ -e "$ppl_artefact_path" ]; then
+    echo -e "'bin/ppl' last modified time: $(stat -f %Sm "$ppl_artefact_path")\n"
+else
+    echo -e "${RED}Error:${NC}"
+    cat << EOF
+'bin/ppl' does not exist. Please compile the compiler toolchain before
+running this test.
+
+EOF
 fi
 
 
