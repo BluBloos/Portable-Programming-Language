@@ -27,8 +27,8 @@ echo -e "${BLUE}Test short description${NC}"
 
 cat << EOF
 ======================
-This test is a broad test that runs all tests associated with the lexer
-subcomponent of the PPL compiler toolchain.
+This is a broad test that runs all tests associated with the lexer subcomponent
+of the PPL compiler toolchain.
 
 EOF
 
@@ -75,6 +75,23 @@ running this test.
 EOF
 fi
 
+echo -e "${BLUE}Running test${NC}"
 
+cmd="$ppl_artefact_path lall"
 
+cat << EOF
+======================
+With command: '$cmd'
+
+BEGIN command printout:
+======================
+EOF
+
+if $cmd; then
+    echo -e "======================\nEND command printout"
+    echo -e "\n${GREEN}test command completed successfully${NC}\n"
+else
+    echo -e "======================\nEND command printout"
+    echo -e "\n${RED}test command failed${NC}\n"
+fi
 
