@@ -6,12 +6,15 @@ BLUE="\033[0;36m"
 NC='\033[0m' # No Color
 
 has_help=0
+has_verbose=0
 unrecognized_args=()
 
 while (( $# > 0 ))
 do
     if [ $1 == "-h" ]; then
         has_help=1
+    elif [ $1 == "-v" ]; then
+        has_verbose=1
     else
         unrecognized_args=( ${unrecognized_args[@]} $1 )
     fi
@@ -73,6 +76,27 @@ else
 running this test.
 
 EOF
+fi
+
+if (($has_verbose)); then
+    echo "Operating System Information:"
+    sw_vers
+
+    echo
+    echo "Hardware Information:"
+    system_profiler SPHardwareDataType
+
+    echo
+    echo "GPU Information:"
+    system_profiler SPDisplaysDataType
+
+    echo
+    echo "Disk Drive Information:"
+    system_profiler SPStorageDataType
+
+    echo "Git Version:"
+    git --version
+    echo
 fi
 
 echo -e "${BLUE}Running test${NC}"
