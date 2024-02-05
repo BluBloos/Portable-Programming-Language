@@ -107,6 +107,9 @@ cat << EOF
 ======================
 With command: '$cmd'
 
+To "attach" the debugger, open the Xcode project. Ensure that the 'test_lexer'
+scheme is selected.
+
 BEGIN command printout:
 ======================
 EOF
