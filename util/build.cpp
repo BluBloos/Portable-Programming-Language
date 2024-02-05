@@ -56,11 +56,12 @@ HOW PPL PROGRAMS ARE BUILT */
 // Standard for any compilation unit of this project.
 // NOTE(Noah): ppl.h on Windows is the parallel platforms library....I HATE EVERYTHING.
 #include <ppl_core.h>
-void ptest_Lexer(char *inFilePath, int &errors);
+void ptest_Lexer(char *inFilePath, TokenContainer groundTruth, int &errors);
 void ptest_Grammar(char *inFilePath, int &errors);
 void ptest_Codegen(char *inFilePath, int &errors);
 void ptest_Preparser(char *inFilePath, int &errors);
 void ptest_wax64(char *inFilePath, int &errors);
+int ptest_Lexer_all();
 void ptest_ax64(char *inFilePath, int &errors);
 int RunPtestFromInFile(void (*ptest)(char *inFilePath, int &errors), const char *testName, const char *cwd);
 int RunPtestFromInFile(void (*ptest)(char *inFilePath, int &errors), const char *testName, const char *cwd, const char *inFile);
@@ -346,19 +347,16 @@ int DoCommand( char *l, const char *l2) {
 
     } else if (0  == strcmp(l, "l") || 0 ==strcmp(l, "lexer")) {
         
+        #if 0
         return RunPtestFromInFile(
             ptest_Lexer, "lexer", ModifyPathForPlatform("tests/preparse/").c_str() );
+#else
+return 1;
+#endif
 
     } else if (0 == strcmp(l, "lall") || 0 == strcmp(l, "lexer_all")) {
 
-        return RunPtestFromCwd(
-            ptest_Lexer, 
-            [](const char *fileName) -> bool {
-                return (fileName[0] != '.');
-            }, 
-            "lexer_all",
-            ModifyPathForPlatform("tests/preparse").c_str()
-        );
+        return ptest_Lexer_all();
 
     } else if (0  == strcmp(l, "p") || 0 ==strcmp(l, "preparser")) {
 
@@ -761,7 +759,35 @@ void ptest_Grammar(char *inFilePath, int&errors) {
     }
 }
 
-void ptest_Lexer(char *inFilePath, int &errors) {
+
+#define GENERATE_GROUND_TRUTH ptest_Lexer_gt_compound_ops
+#include "preparse/compound_ops.gt.c"
+#undef GENERATE_GROUND_TRUTH
+
+int ptest_Lexer_all()
+{
+    Timer timer = Timer("lexer_all");
+    LOGGER.InitFileLogging("w");
+
+    // Initialize variables
+    int errors = 0;
+
+#define LEXER_TEST_NAME "compound_ops"
+
+    {
+        TokenContainer tokensContainer;
+        // TODO: is discard qualifier here safe ?
+        LOGGER.logContext.currFile = (char *)ModifyPathForPlatform("tests/preparse/" LEXER_TEST_NAME ".c").c_str();
+        ptest_Lexer_gt_compound_ops( tokensContainer );
+        ptest_Lexer(LOGGER.logContext.currFile, tokensContainer, errors);
+    }
+
+    PrintIfError(errors);
+    timer.TimerEnd();
+    return (errors > 0);
+}
+
+void ptest_Lexer(char *inFilePath, TokenContainer groundTruth, int &errors) {
     FILE *inFile = fopen(inFilePath, "r");
     LOGGER.Log("Testing lexer for: %s", inFilePath);
     if (inFile == NULL) {
@@ -775,6 +801,58 @@ void ptest_Lexer(char *inFilePath, int &errors) {
             if (VERBOSE) {
                 tokensContainer.Print();
             }
+
+            // compare our container wih the ground truth container.
+            {
+                if (groundTruth.tokenCount != tokensContainer.tokenCount) {
+                    LOGGER.Error("parsed %d tokens but expected %d", tokensContainer.tokenCount, groundTruth.tokenCount);
+                    errors += 1;
+                } else {
+                    for (int i = 0; i < groundTruth.tokenCount; i++)
+                    {
+                        auto t1 = groundTruth.QueryDistance(i);
+                        auto t2 = tokensContainer.QueryDistance(i);
+                        
+                        if (t1.type != t2.type) {
+                            LOGGER.Error("token %d type mismatch", i );
+                            errors += 1;
+                        } else {
+                            bool bMismatch = false;
+                            switch(t1.type) {
+                                case TOKEN_QUOTE: 
+                                CASE_TOKEN_OP_COMPOUND
+                                case TOKEN_KEYWORD: // TODO: really ought to have keywords not be generic and use TOKEN_OP_KEYWORD* for the different kinds.
+                                case TOKEN_SYMBOL:
+                                {
+                                    bool bSame = strcmp( t1.str, t2.str ) == 0 && t1.beginCol == t2.beginCol && t1.line == t2.line;
+                                    if (!bSame) bMismatch = true;
+                                } break;
+                                case TOKEN_UNDEFINED:
+                                case TOKEN_TRUE_LITERAL:
+                                case TOKEN_FALSE_LITERAL:
+                                case TOKEN_NULL_LITERAL:
+                                case TOKEN_UINT_LITERAL:
+                                case TOKEN_INTEGER_LITERAL:
+                                case TOKEN_DOUBLE_LITERAL:
+                                case TOKEN_FLOAT_LITERAL:
+                                case TOKEN_ENDL:
+                                case TOKEN_CHARACTER_LITERAL: // NOTE: this is merely the unicode point.
+                                CASE_TOKEN_OP
+                                case TOKEN_PART:
+                                default:
+                                if (memcmp( &t1, &t2, sizeof(struct token) ) != 0) {
+                                        bMismatch = true;
+                                    } break;                    
+                            }
+                            if (bMismatch) {
+                                LOGGER.Error("token %d bytes mismatch", i );
+                                errors += 1;
+                            }
+                        }                        
+                    }
+                }
+            }
+
         } else {
             LOGGER.Error("Lex() failed.");
             errors += 1;
