@@ -9,9 +9,6 @@ log.txt
 design/*
 bin/*
 build/*
-tests/*.cpp
-tests/*
-!/tests/*.c
 *.o
 !tests/preparse/
 !tests/grammar
