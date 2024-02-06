@@ -34,13 +34,13 @@ void GENERATE_GROUND_TRUTH(TokenContainer &tokens)
     tokens.Append(Token(TOKEN_OP_SPAN_CTOR_STRICT, "..=", 7, bc=3));
     tokens.Append(Token(TOKEN_INTEGER_LITERAL, l=1, 7, bc=7));
 
-    tokens.Append(Token(TOKEN_INTEGER_LITERAL, l=1, 8, bc));
+    tokens.Append(Token(TOKEN_INTEGER_LITERAL, l=1, 8, bc=1));
     tokens.Append(Token(TOKEN_OP_BITWISE_LEFT_SHIFT, "<<", 8, bc=3));
     tokens.Append(Token(TOKEN_INTEGER_LITERAL, l=2, 8, bc=5));
-    tokens.Append(Token(TOKEN_OP_BITWISE_RIGHT_SHIFT, ">>", 8, bc=3));
+    tokens.Append(Token(TOKEN_OP_BITWISE_RIGHT_SHIFT, ">>", 8, bc=6));
     tokens.Append(Token(TOKEN_INTEGER_LITERAL, l=3, 8, bc=8));
-    tokens.Append(Token(TOKEN_OP_LEFT_SHIFT_ASSIGNMENT, "<<=", 8, bc=3));
+    tokens.Append(Token(TOKEN_OP_LEFT_SHIFT_ASSIGNMENT, "<<=", 8, bc=9));
     tokens.Append(Token(TOKEN_INTEGER_LITERAL, l=4, 8, bc=12));
-    tokens.Append(Token(TOKEN_OP_RIGHT_SHIFT_ASSIGNMENT, ">>=", 8, bc=3));
+    tokens.Append(Token(TOKEN_OP_RIGHT_SHIFT_ASSIGNMENT, ">>=", 8, bc=13));
     tokens.Append(Token(TOKEN_INTEGER_LITERAL, l=5, 8, bc=16));
 }
