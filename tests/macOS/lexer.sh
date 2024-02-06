@@ -60,6 +60,7 @@ if [ "$git_status_lines" -gt "$limit" ]; then
 EOF
 else
     git status -s
+    echo
 fi
 
 # NOTE: line below may not work in all cases.

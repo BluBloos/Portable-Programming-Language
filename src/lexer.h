@@ -439,14 +439,12 @@ struct token Token() {
     struct token t = {};
     t.type = TOKEN_UNDEFINED;
     t.line = 0;
-    t.str = NULL;
     t.beginCol = 0;
     return t;
 }
 
 struct token Token(enum token_type type, unsigned int line, uint32_t bc) {
-    struct token t;
-    t.num = 0ull;
+    struct token t = {};
     t.type = type;
     t.line = line;
     t.beginCol = bc;

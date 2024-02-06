@@ -817,6 +817,14 @@ void ptest_Lexer(char *inFilePath, TokenContainer groundTruth, int &errors) {
                             LOGGER.Error("token %d type mismatch", i );
                             errors += 1;
                         } else {
+                            if ( t1.beginCol != t2.beginCol ) {
+                                LOGGER.Error("token %d col mismatch. parsed %u but expected %u", i, t2.beginCol, t1.beginCol );
+                                errors += 1;
+                            } 
+                            if ( t1.line != t2.line ) {
+                                LOGGER.Error("token %d line mismatch. parsed %u but expected %u", i, t2.line, t1.line );
+                                errors += 1;
+                            }
                             bool bMismatch = false;
                             switch(t1.type) {
                                 case TOKEN_QUOTE: 
@@ -824,8 +832,10 @@ void ptest_Lexer(char *inFilePath, TokenContainer groundTruth, int &errors) {
                                 case TOKEN_KEYWORD: // TODO: really ought to have keywords not be generic and use TOKEN_OP_KEYWORD* for the different kinds.
                                 case TOKEN_SYMBOL:
                                 {
-                                    bool bSame = strcmp( t1.str, t2.str ) == 0 && t1.beginCol == t2.beginCol && t1.line == t2.line;
-                                    if (!bSame) bMismatch = true;
+                                    if (strcmp( t1.str, t2.str ) != 0){
+                                        LOGGER.Error("token %d .str mismatch. parsed %s but expected %s", i, t2.str, t1.str );
+                                        errors += 1;
+                                    }
                                 } break;
                                 case TOKEN_UNDEFINED:
                                 case TOKEN_TRUE_LITERAL:
@@ -840,13 +850,10 @@ void ptest_Lexer(char *inFilePath, TokenContainer groundTruth, int &errors) {
                                 CASE_TOKEN_OP
                                 case TOKEN_PART:
                                 default:
-                                if (memcmp( &t1, &t2, sizeof(struct token) ) != 0) {
-                                        bMismatch = true;
-                                    } break;                    
-                            }
-                            if (bMismatch) {
-                                LOGGER.Error("token %d bytes mismatch", i );
-                                errors += 1;
+                                if (memcmp( &t1, &t2, sizeof(struct token) ) != 0 ) {
+                                    LOGGER.Error("token %d bytes mismatch", i );
+                                    errors += 1;
+                                } break;
                             }
                         }                        
                     }
