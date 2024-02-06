@@ -742,6 +742,9 @@ bool TokenFromLatent(struct token &token) {
     // Latent currentTokens can be literal or symbol tokens
     if (*cleanToken != "") {
 
+        // TODO: this is looking like it might be sus.
+        size_t cleanTokenSize = cleanToken->size();
+        assert (cleanTokenSize < n_col);
         uint32_t bc = n_col - cleanToken->size();
 
         bool dFlag; bool fFlag; bool uFlag;
@@ -1011,19 +1014,23 @@ bool Lex(
 
         // Handle comment, multiline, and quote states.
         if (state == LEXER_COMMENT) {
-            if (character == '\n' || character == CP_EOF) // end condition check
+            if ( shouldAdvanceLine ) // end condition check
             {
+                advanceLine();
                 changeState(LEXER_NORMAL, currentLine, n + 1, n_col + 1);
             }
             continue;
         } else if (state == LEXER_MULTILINE_COMMENT) {
+            if ( shouldAdvanceLine ) advanceLine();
             if (character == '*' && raw[n+1] == '/') { // end condition check
                 advanceChar(1);
                 changeState(LEXER_NORMAL, currentLine, n + 1, n_col + 1);
             }
             continue;
         }
+        // TODO: cursory look at this code makes it feel like quotes will span multiple lines. is that what we desire?
         else if (state == LEXER_QUOTE) {
+            if ( shouldAdvanceLine ) advanceLine();
             if (character == '"' && raw[n-1] != '\\') { // end condition check.
                 changeState(LEXER_NORMAL, currentLine, n + 1, n_col + 1);
                 tokenContainer.Append(Token(TOKEN_QUOTE, *currentToken, currentLine, stateBeginCol));
@@ -1110,16 +1117,18 @@ bool Lex(
             }
 
             // We want to check for a latent token if we have hit whitespace.
-            if (character == ' ' || character == '\n' || character == CP_EOF) {
-                // the latent token isn't on the new line, so pull this back for now.
-                currentLine = (shouldAdvanceLine) ? currentLine - 1  : currentLine;
+            if (character == ' ' || shouldAdvanceLine ) {
+
                 struct token token;
+
                 bool isTokenLatent = TokenFromLatent(token);
                 if (isTokenLatent) {
                     tokenContainer.Append(token);
                     CurrentTokenReset();
                 }
-                currentLine = (shouldAdvanceLine) ? currentLine + 1  : currentLine; // reset.
+                if ( shouldAdvanceLine ) advanceLine();
+                
+                // TODO: feels like we could always do the continue here ?
                 if (isTokenLatent) continue;
             }
 
@@ -1296,7 +1305,7 @@ bool Lex(
             
         } // end if state lexer normal or whatever.
 
-    }
+    } // end while loop. at this point, we are done lexing.
 
     if ((state == LEXER_QUOTE) || (state == LEXER_MULTILINE_COMMENT)) {
 
