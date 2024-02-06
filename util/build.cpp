@@ -56,7 +56,7 @@ HOW PPL PROGRAMS ARE BUILT */
 // Standard for any compilation unit of this project.
 // NOTE(Noah): ppl.h on Windows is the parallel platforms library....I HATE EVERYTHING.
 #include <ppl_core.h>
-void ptest_Lexer(char *inFilePath, TokenContainer groundTruth, int &errors);
+void ptest_Lexer(char *inFilePath, TokenContainer &groundTruth, int &errors);
 void ptest_Grammar(char *inFilePath, int &errors);
 void ptest_Codegen(char *inFilePath, int &errors);
 void ptest_Preparser(char *inFilePath, int &errors);
@@ -787,7 +787,7 @@ int ptest_Lexer_all()
     return (errors > 0);
 }
 
-void ptest_Lexer(char *inFilePath, TokenContainer groundTruth, int &errors) {
+void ptest_Lexer(char *inFilePath, TokenContainer &groundTruth, int &errors) {
     FILE *inFile = fopen(inFilePath, "r");
     LOGGER.Log("Testing lexer for: %s", inFilePath);
     if (inFile == NULL) {

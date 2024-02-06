@@ -494,7 +494,7 @@ struct token Token(enum token_type type, uint64 num, unsigned int line, uint32_t
 // project, but it makes sense because we are defining function for operating on a specific data type.
 void TokenPrint(struct token tok)
 {
-    LOGGER.Min("%d, ", tok.line);
+    LOGGER.Min(", line: %u, bc: %u, ", tok.line, tok.beginCol);
     switch (tok.type) {
         case TOKEN_UNDEFINED:
             LOGGER.Min("TOKEN_UNDEFINED\n");
@@ -563,7 +563,9 @@ void TokenPrint(struct token tok)
 
 // TODO(Noah): Change the TokenContainer to use StretchyBuffers.
 class TokenContainer {
-    public:
+private:
+    struct token* tokens;
+public:
     TokenContainer() {
         containerSize = 100;
         tokens = (struct token *)malloc(containerSize * sizeof(struct token));
@@ -576,11 +578,20 @@ class TokenContainer {
             free(tokens);
         }
     }
-    struct token* tokens;
+
+    // copy-constructor and -assignment.
+    TokenContainer(const TokenContainer &other)=delete;
+    TokenContainer &operator=(const TokenContainer &other)=delete;
+    
+    // move-constructor and -assignment.
+    TokenContainer(TokenContainer &&other)=delete;
+    TokenContainer &operator=(TokenContainer &&other)=delete;
+    
     unsigned int tokenCount;
     unsigned int containerSize; // in token count.
     // NOTE(Noah): What if I have many many tokens??? 
     unsigned int _checkpoint;
+    
     unsigned int GetSavepoint() { return _checkpoint; }
     void ResetSavepoint(unsigned int check) { 
         _checkpoint = check;
@@ -631,6 +642,7 @@ class TokenContainer {
     void Print() {
         for (unsigned int i = 0; i < tokenCount; i++) {
             struct token &tok = tokens[i];
+            LOGGER.Min("%u: ", i);
             TokenPrint(tok);
         }
     }
