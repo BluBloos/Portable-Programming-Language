@@ -1143,9 +1143,10 @@ bool Lex(
                         struct token symbolTok;
                         if (TokenFromLatent(symbolTok)) tokenContainer.Append(symbolTok);
                         struct token tok = Token(COMPOUND_OPS_TABLE[i].type, mString, currentLine, n_col);
-                        //return j;
                         tokenContainer.Append(tok);
-                        advanceChar(j);
+                        // NOTE: skip by how many characters we look ahead. count j includes current char,
+                        // so we do a -1 here to compute the advance amount.
+                        advanceChar(j-1);
                         CurrentTokenReset();
                         bFoundMatch = true; break;
                     }
