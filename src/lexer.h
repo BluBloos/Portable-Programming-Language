@@ -235,8 +235,7 @@ enum token_type {
     TOKEN_ENDL,
 
     TOKEN_OP_MEMBER_SELECTION, // "."
-    TOKEN_OP_PAREN, // "(" or ")"
-    TOKEN_OP_ARRAY_SUBSCRIPT, // "[" or "]"
+    
     TOKEN_OP_MULTIPLICATION, // "*"
     TOKEN_OP_DIVISION, // "/"
     TOKEN_OP_MODULUS, // "%"
@@ -246,14 +245,15 @@ enum token_type {
     // unary operators.
     TOKEN_OP_INCREMENT, // "++"
     TOKEN_OP_DECREMENT, // "--"
-    TOKEN_OP_DATA_PACK, // "{" OR "}"
+ 
     TOKEN_OP_LOGICAL_NOT, // "!"
     TOKEN_OP_BITWISE_NOT, // "~"
 
     // range/span? constructor operators.
     TOKEN_OP_SPAN_CTOR, // "..<"
     TOKEN_OP_SPAN_CTOR_STRICT, // "..="
-    
+        TOKEN_OP_LEFT_SHIFT_ASSIGNMENT, // "<<="
+    TOKEN_OP_RIGHT_SHIFT_ASSIGNMENT, // ">>="
     TOKEN_OP_BITWISE_LEFT_SHIFT, // "<<"
     TOKEN_OP_BITWISE_RIGHT_SHIFT, // ">>"
     TOKEN_OP_LESS_THAN, // "<"
@@ -274,8 +274,7 @@ enum token_type {
     TOKEN_OP_MULTIPLICATION_ASSIGNMENT, // "*="
     TOKEN_OP_DIVISION_ASSIGNMENT, // "/="
     TOKEN_OP_MODULUS_ASSIGNMENT, // "%="
-    TOKEN_OP_LEFT_SHIFT_ASSIGNMENT, // "<<="
-    TOKEN_OP_RIGHT_SHIFT_ASSIGNMENT, // ">>="
+
     TOKEN_OP_BITWISE_AND_ASSIGNMENT, // "&="
     TOKEN_OP_BITWISE_XOR_ASSIGNMENT, // "^="
     TOKEN_OP_BITWISE_OR_ASSIGNMENT, // "|="
@@ -283,13 +282,12 @@ enum token_type {
 
     TOKEN_PART,
     TOKEN_KEYWORD,
-    TOKEN_SYMBOL
+    TOKEN_SYMBOL,
+
+    TOKEN_TYPE_COUNT
 };
 
 #define CASE_TOKEN_OP  case TOKEN_OP_MEMBER_SELECTION:\
-        case TOKEN_OP_PAREN:\
-        case TOKEN_OP_ARRAY_SUBSCRIPT:\
-        case TOKEN_OP_DATA_PACK:\
         case TOKEN_OP_MULTIPLICATION:\
         case TOKEN_OP_DIVISION:\
         case TOKEN_OP_MODULUS:\
@@ -331,9 +329,7 @@ enum token_type {
 #define CASE_TOKEN_UNARY_OP case TOKEN_OP_LOGICAL_NOT:\
         case TOKEN_OP_INCREMENT:\
         case TOKEN_OP_DECREMENT:\
-        case TOKEN_OP_DATA_PACK:\
-        case TOKEN_OP_BITWISE_NOT:\
-        case TOKEN_OP_PAREN:
+        case TOKEN_OP_BITWISE_NOT:
 
 #define CASE_TOKEN_BINARY_OP case TOKEN_OP_LOGICAL_AND:\
         case TOKEN_OP_LOGICAL_OR:\
@@ -356,7 +352,6 @@ enum token_type {
         case TOKEN_OP_SPAN_CTOR_STRICT:\
         case TOKEN_OP_SPAN_CTOR:\
         case TOKEN_OP_MEMBER_SELECTION:\
-        case TOKEN_OP_ARRAY_SUBSCRIPT:\
         case TOKEN_OP_MULTIPLICATION:\
         case TOKEN_OP_DIVISION:\
         case TOKEN_OP_MODULUS:\
@@ -379,6 +374,7 @@ bool TokenIsCompoundOp(token_type type) {
     }
 }
 
+// NOTE: Op is not a superclass that contains compound op. op is a separate class.
 bool TokenIsOp(token_type type) {
     switch(type) {
         CASE_TOKEN_OP
@@ -388,34 +384,65 @@ bool TokenIsOp(token_type type) {
     }
 }
 
-struct {
-    char *str;
-    token_type type;
-} COMPOUND_OPS_TABLE[] = {
-    {"&&", TOKEN_OP_LOGICAL_AND},
-    {"||", TOKEN_OP_LOGICAL_OR},
-    {">=", TOKEN_OP_GREATER_THAN_OR_EQUAL_TO},
-    {"<=", TOKEN_OP_LESS_THAN_OR_EQUAL_TO},
-    {"==", TOKEN_OP_EQUAL_TO},
-    {"!=", TOKEN_OP_NOT_EQUAL_TO},
-    {"->", TOKEN_OP_MEMBER_SELECTION}, // Assuming "->" is used for member selection in a specific context
-    {"+=", TOKEN_OP_ADDITION_ASSIGNMENT},
-    {"-=", TOKEN_OP_SUBTRACTION_ASSIGNMENT},
-    {"*=", TOKEN_OP_MULTIPLICATION_ASSIGNMENT},
-    {"/=", TOKEN_OP_DIVISION_ASSIGNMENT},
-    {"%=", TOKEN_OP_MODULUS_ASSIGNMENT},
-    {"&=", TOKEN_OP_BITWISE_AND_ASSIGNMENT},
-    {"|=", TOKEN_OP_BITWISE_OR_ASSIGNMENT},
-    {"++", TOKEN_OP_INCREMENT}, // Assuming you have an increment operation
-    {"--", TOKEN_OP_DECREMENT}, // Assuming you have a decrement operation
-    {"^=", TOKEN_OP_BITWISE_XOR_ASSIGNMENT},
-    {"<<=", TOKEN_OP_LEFT_SHIFT_ASSIGNMENT},
-    {">>=", TOKEN_OP_RIGHT_SHIFT_ASSIGNMENT},
-    {"<<", TOKEN_OP_BITWISE_LEFT_SHIFT},
-    {">>", TOKEN_OP_BITWISE_RIGHT_SHIFT},
-    {"..=", TOKEN_OP_SPAN_CTOR_STRICT},
-    {"..<", TOKEN_OP_SPAN_CTOR}
-};
+const char *StringFromTokenOp(token_type op)
+{
+    struct { token_type op;
+        const char *str;
+       
+    } opPropertiesTable[] = {
+        {TOKEN_OP_MEMBER_SELECTION,   "."},
+        
+        {TOKEN_OP_MULTIPLICATION,   "*"},
+        {TOKEN_OP_DIVISION,   "/"},
+        {TOKEN_OP_MODULUS,  "%"},
+        {TOKEN_OP_ADDITION,   "+"},
+       { TOKEN_OP_SUBTRACTION,   "-"},
+
+ 
+       { TOKEN_OP_INCREMENT,  "++"},
+       { TOKEN_OP_DECREMENT,  "--"},
+ 
+      {  TOKEN_OP_LOGICAL_NOT,  "!"},
+       { TOKEN_OP_BITWISE_NOT,  "~"},
+
+       
+      {  TOKEN_OP_SPAN_CTOR,  "..<"},
+      {  TOKEN_OP_SPAN_CTOR_STRICT,  "..="},
+                {TOKEN_OP_LEFT_SHIFT_ASSIGNMENT,  "<<="},
+        {TOKEN_OP_RIGHT_SHIFT_ASSIGNMENT,  ">>="},
+      {  TOKEN_OP_BITWISE_LEFT_SHIFT,  "<<"},
+       { TOKEN_OP_BITWISE_RIGHT_SHIFT,  ">>"},
+      {  TOKEN_OP_LESS_THAN,  "<"},
+       { TOKEN_OP_LESS_THAN_OR_EQUAL_TO,  "<="},
+       { TOKEN_OP_GREATER_THAN,  ">"},
+       { TOKEN_OP_GREATER_THAN_OR_EQUAL_TO,  ">="},
+       { TOKEN_OP_EQUAL_TO,  "=="},
+        {TOKEN_OP_NOT_EQUAL_TO,  "!="},
+        {TOKEN_OP_BITWISE_AND,  "&"},
+        {TOKEN_OP_BITWISE_XOR,  "^"},
+        {TOKEN_OP_BITWISE_OR,  "|"},
+        {TOKEN_OP_LOGICAL_AND,  "&&"},
+        {TOKEN_OP_LOGICAL_OR,  "||"},
+        {TOKEN_OP_TERNARY_CONDITIONAL,  "?"}, // TODO: there's multiple syntax parts here. better ? is just a part, right?
+        {TOKEN_OP_ASSIGNMENT,  "="},
+        {TOKEN_OP_ADDITION_ASSIGNMENT,  "+="},
+        {TOKEN_OP_SUBTRACTION_ASSIGNMENT,  "-="},
+        {TOKEN_OP_MULTIPLICATION_ASSIGNMENT,  "*="},
+        {TOKEN_OP_DIVISION_ASSIGNMENT,  "/="},
+        {TOKEN_OP_MODULUS_ASSIGNMENT,  "%="},
+
+        {TOKEN_OP_BITWISE_AND_ASSIGNMENT,  "&="},
+        {TOKEN_OP_BITWISE_XOR_ASSIGNMENT,  "^="},
+        {TOKEN_OP_BITWISE_OR_ASSIGNMENT,  "|="},
+        {TOKEN_OP_COMMA,   ","},
+    };
+
+    auto prop =opPropertiesTable[(int)op -(int)TOKEN_OP_MEMBER_SELECTION];
+
+    Assert(  prop.op == op);
+
+    return prop.str;
+}
 
 // NOTE(Noah): We make tokens a class because they manage memory.
 // But also, we never dealloc that memory anyways, because it's controlled by the memory
@@ -541,12 +568,13 @@ void TokenPrint(struct token tok)
             LOGGER.Min("TOKEN_ENDL\n");
             break;
         CASE_TOKEN_OP
-            LOGGER.Min("TOKEN_OP: %c\n", tok.c);
-            break;
+            {const char *str = StringFromTokenOp( tok.type );
+            LOGGER.Min("TOKEN_OP: %s\n", str);
+            }break;
         CASE_TOKEN_OP_COMPOUND
-            Assert(tok.str != NULL);
-            LOGGER.Min("TOKEN_COP: %s\n", tok.str);
-            break;
+            {const char *str = StringFromTokenOp( tok.type );
+            LOGGER.Min("TOKEN_COP: %s\n", str);
+            }break;
         case TOKEN_PART:
             LOGGER.Min("TOKEN_PART: %c\n", tok.c);
             break;
@@ -1005,12 +1033,6 @@ bool Lex(
         character = raw[n];
 
         const bool shouldAdvanceLine = (character == '\n' || character == CP_EOF);
-        
-        // check for newline characters.
-        if (shouldAdvanceLine) {
-            advanceLine();
-            // NOTE(Noah): no 'continue;' because comments exit on newline.  
-        }
 
         // Handle comment, multiline, and quote states.
         if (state == LEXER_COMMENT) {
@@ -1140,34 +1162,42 @@ bool Lex(
             // character ops are substrings of the compound ops. we don't want to
             // recognize two single character ops instead of a single character op.
             {
-                size_t copsCount = ARRAY_SIZE( COMPOUND_OPS_TABLE );
                 bool bFoundMatch = false;
-                for (unsigned int i = 0; i < copsCount; i++) {
-                    char *mString = COMPOUND_OPS_TABLE[i].str;
-                    int k = n; // NOTA BENE: n is a global variable - oof.
-                    int j = 0;
-                    char *pStr;
+                for (unsigned int i = 0; i < TOKEN_TYPE_COUNT; i++) {
+                    token_type type = (token_type)i;
+                    switch(i) {
+                        CASE_TOKEN_OP_COMPOUND
+                        {
+                            const char *mString = StringFromTokenOp(type);
+                            int k = n; // NOTA BENE: n is a global variable - oof.
+                            int j = 0;
+                            char *pStr;
 
-                    // NOTE: the idea here that we compare the unicode codepoint to the char
-                    // is that our things that we are looking ahead we assume to always be
-                    // just plain ASCII (and not the extended ascii).
+                            // NOTE: the idea here that we compare the unicode codepoint to the char
+                            // is that our things that we are looking ahead we assume to always be
+                            // just plain ASCII (and not the extended ascii).
 
-                    // TODO: we need to do some sort of a compile-time check on the strings
-                    // then for sanity that this is indeed the case.
+                            // TODO: we need to do some sort of a compile-time check on the strings
+                            // then for sanity that this is indeed the case.
 
-                    for (pStr = mString; (raw[k++] == (uint8_t)*pStr && *pStr != 0); pStr++) { j++; }
+                            for (pStr = (char *)mString; (raw[k++] == (uint8_t)*pStr && *pStr != 0); pStr++) { j++; }
 
-                    if (*pStr == 0) {
-                        // Means we made it through entire string and matched.
-                        struct token symbolTok;
-                        if (TokenFromLatent(symbolTok)) tokenContainer.Append(symbolTok);
-                        struct token tok = Token(COMPOUND_OPS_TABLE[i].type, mString, currentLine, n_col);
-                        tokenContainer.Append(tok);
-                        // NOTE: skip by how many characters we look ahead. count j includes current char,
-                        // so we do a -1 here to compute the advance amount.
-                        advanceChar(j-1);
-                        CurrentTokenReset();
-                        bFoundMatch = true; break;
+                            if (*pStr == 0) {
+                                // Means we made it through entire string and matched.
+                                struct token symbolTok;
+                                if (TokenFromLatent(symbolTok)) tokenContainer.Append(symbolTok);
+                                struct token tok = Token( type, currentLine, n_col);
+                                tokenContainer.Append(tok);
+                                // NOTE: skip by how many characters we look ahead. count j includes current char,
+                                // so we do a -1 here to compute the advance amount.
+                                advanceChar(j-1);
+                                CurrentTokenReset();
+                                bFoundMatch = true; break;
+                            } 
+                        } break;
+                        // nothing.
+                        // TODO: is there a better way than to go through everything and skip the ones that aren't compound
+                        // ops? of course there is.
                     }
                 }
                 if (bFoundMatch) continue;
@@ -1178,18 +1208,6 @@ bool Lex(
             switch(character) {
                 case '.':
                     type = TOKEN_OP_MEMBER_SELECTION;
-                    break;
-                case '(':
-                case ')':
-                    type = TOKEN_OP_PAREN;
-                    break;
-                case '[':
-                case ']':
-                    type = TOKEN_OP_ARRAY_SUBSCRIPT;
-                    break;
-                case '{':
-                case '}':
-                    type = TOKEN_OP_DATA_PACK;
                     break;
                 case '*':
                     type = TOKEN_OP_MULTIPLICATION;
@@ -1241,7 +1259,7 @@ bool Lex(
             {
                 struct token symbolTok;
                 if (TokenFromLatent(symbolTok)) tokenContainer.Append(symbolTok);
-                struct token tok = Token(type, character, currentLine, n_col);
+                struct token tok = Token(type, currentLine, n_col);
                 tokenContainer.Append(tok);
                 CurrentTokenReset();
                 continue;

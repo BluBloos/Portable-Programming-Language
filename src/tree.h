@@ -133,8 +133,6 @@ enum tree_type {
 tree_type TokenToAstOp(token_type tokenOp) {
     switch (tokenOp) {
         case TOKEN_OP_MEMBER_SELECTION: return AST_OP_MEMBER_SELECTION;
-        case TOKEN_OP_PAREN: return AST_OP_FUNCTION_CALL; // NOTE: paren can also be for other things, but the caller of this function wants to create function call node.
-        case TOKEN_OP_ARRAY_SUBSCRIPT: return AST_OP_ARRAY_SUBSCRIPT;
         case TOKEN_OP_MULTIPLICATION: return AST_OP_MULTIPLICATION;
         case TOKEN_OP_DIVISION: return AST_OP_DIVISION;
         case TOKEN_OP_MODULUS: return AST_OP_MODULUS;
@@ -144,7 +142,7 @@ tree_type TokenToAstOp(token_type tokenOp) {
         //case TOKEN_OP_DECREMENT: return AST_OP_DECREMENT;
         case TOKEN_OP_LOGICAL_NOT: return AST_OP_LOGICAL_NOT;
         case TOKEN_OP_BITWISE_NOT: return AST_OP_BITWISE_NOT;
-        case TOKEN_OP_DATA_PACK: return AST_OP_DATA_PACK;
+ 
         case TOKEN_OP_SPAN_CTOR: return AST_OP_SPAN_CTOR;
         case TOKEN_OP_SPAN_CTOR_STRICT: return AST_OP_SPAN_CTOR_STRICT;
         case TOKEN_OP_BITWISE_LEFT_SHIFT: return AST_OP_BITWISE_LEFT_SHIFT;
