@@ -51,7 +51,7 @@ char *KEYWORDS[] = {
 // because `->` isn't really an operator.
 char *TOKEN_PARTS = "{}():";
 
-char *ENDLINE_CHAR = ";";
+constexpr char ENDLINE_CHAR = ';';
 
 enum lexer_state {
     LEXER_NORMAL,
@@ -1007,7 +1007,6 @@ bool Lex(
 
     sPatternsCount = 0;
 
-    sPatterns[sPatternsCount++] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_ENDL, ENDLINE_CHAR);
     sPatterns[sPatternsCount++] = CreateSearchPattern(SEARCH_P_CHAR, TOKEN_PART, TOKEN_PARTS);
 
 
@@ -1277,6 +1276,16 @@ bool Lex(
                 struct token symbolTok;
                 if (TokenFromLatent(symbolTok)) tokenContainer.Append(symbolTok);
                 struct token tok = Token(type, currentLine, n_col);
+                tokenContainer.Append(tok);
+                CurrentTokenReset();
+                continue;
+            }
+
+            // check for endline.
+            if (character == ENDLINE_CHAR) {
+                struct token symbolTok;
+                if (TokenFromLatent(symbolTok)) tokenContainer.Append(symbolTok);
+                struct token tok = Token(TOKEN_ENDL, currentLine, n_col);
                 tokenContainer.Append(tok);
                 CurrentTokenReset();
                 continue;
