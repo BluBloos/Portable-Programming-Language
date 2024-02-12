@@ -1,4 +1,4 @@
-main := () -> int {
+main := fn() int {
     x := 10.5f;
     y := 10.0;
     z := 0u;
