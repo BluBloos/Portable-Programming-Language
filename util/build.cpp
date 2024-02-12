@@ -56,7 +56,7 @@ HOW PPL PROGRAMS ARE BUILT */
 // Standard for any compilation unit of this project.
 // NOTE(Noah): ppl.h on Windows is the parallel platforms library....I HATE EVERYTHING.
 #include <ppl_core.h>
-void ptest_Lexer(char *inFilePath, TokenContainer &groundTruth, int &errors);
+void ptest_Lexer(const char *inFilePath, TokenContainer &groundTruth, int &errors);
 void ptest_Grammar(char *inFilePath, int &errors);
 void ptest_Codegen(char *inFilePath, int &errors);
 void ptest_Preparser(char *inFilePath, int &errors);
@@ -764,6 +764,10 @@ void ptest_Grammar(char *inFilePath, int&errors) {
 #include "preparse/compound_ops.gt.c"
 #undef GENERATE_GROUND_TRUTH
 
+#define GENERATE_GROUND_TRUTH ptest_Lexer_gt_escapes
+#include "preparse/escapes.gt.c"
+#undef GENERATE_GROUND_TRUTH
+
 int ptest_Lexer_all()
 {
     Timer timer = Timer("lexer_all");
@@ -773,21 +777,34 @@ int ptest_Lexer_all()
     int errors = 0;
 
 #define LEXER_TEST_NAME "compound_ops"
-
     {
         TokenContainer tokensContainer;
         // TODO: is discard qualifier here safe ?
-        LOGGER.logContext.currFile = (char *)ModifyPathForPlatform("tests/preparse/" LEXER_TEST_NAME ".c").c_str();
+        const char *cc = ModifyPathForPlatform("tests/preparse/" LEXER_TEST_NAME ".c").c_str();
+        LOGGER.logContext.currFile = (char *)cc;
         ptest_Lexer_gt_compound_ops( tokensContainer );
-        ptest_Lexer(LOGGER.logContext.currFile, tokensContainer, errors);
+        ptest_Lexer(cc, tokensContainer, errors);
     }
+#undef LEXER_TEST_NAME
+
+#define LEXER_TEST_NAME "escapes"
+    {
+        TokenContainer tokensContainer;
+        // TODO: is discard qualifier here safe ?
+        const char *cc = ModifyPathForPlatform("tests/preparse/" LEXER_TEST_NAME ".c").c_str();
+        LOGGER.logContext.currFile = (char *) cc;
+        ptest_Lexer_gt_escapes( tokensContainer );
+        ptest_Lexer(cc, tokensContainer, errors);
+    }
+#undef LEXER_TEST_NAME
+
 
     PrintIfError(errors);
     timer.TimerEnd();
     return (errors > 0);
 }
 
-void ptest_Lexer(char *inFilePath, TokenContainer &groundTruth, int &errors) {
+void ptest_Lexer(const char *inFilePath, TokenContainer &groundTruth, int &errors) {
     FILE *inFile = fopen(inFilePath, "r");
     LOGGER.Log("Testing lexer for: %s", inFilePath);
     if (inFile == NULL) {

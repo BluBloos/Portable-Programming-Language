@@ -521,9 +521,13 @@ struct {
     { TOKEN_OP_MEMBER_SELECTION, 1 }, // Member selection
     { TOKEN_OP_INCREMENT, 1 }, // suffix/Postfix increment 
     { TOKEN_OP_DECREMENT, 1 }, // suffix/Postfix decrement 
+
+// TODO!!!!
+#if 0
     { TOKEN_OP_PAREN, 1 }, // Function call
     { TOKEN_OP_ARRAY_SUBSCRIPT, 1 }, // Array subscripting
-   
+#endif
+
     { TOKEN_OP_LOGICAL_NOT, 2 }, // Logical NOT 
     { TOKEN_OP_BITWISE_NOT, 2 }, // Bitwise NOT
 

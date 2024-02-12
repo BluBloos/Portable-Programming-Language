@@ -252,7 +252,7 @@ enum token_type {
     // range/span? constructor operators.
     TOKEN_OP_SPAN_CTOR, // "..<"
     TOKEN_OP_SPAN_CTOR_STRICT, // "..="
-        TOKEN_OP_LEFT_SHIFT_ASSIGNMENT, // "<<="
+    TOKEN_OP_LEFT_SHIFT_ASSIGNMENT, // "<<="
     TOKEN_OP_RIGHT_SHIFT_ASSIGNMENT, // ">>="
     TOKEN_OP_BITWISE_LEFT_SHIFT, // "<<"
     TOKEN_OP_BITWISE_RIGHT_SHIFT, // ">>"
@@ -274,6 +274,10 @@ enum token_type {
     TOKEN_OP_MULTIPLICATION_ASSIGNMENT, // "*="
     TOKEN_OP_DIVISION_ASSIGNMENT, // "/="
     TOKEN_OP_MODULUS_ASSIGNMENT, // "%="
+
+    TOKEN_OP_DECL_COMPILER, // "::"
+    TOKEN_OP_DECL_RUNTIME,  // ":"
+    TOKEN_OP_DECL_RUNTIME_INFER, // ":="
 
     TOKEN_OP_BITWISE_AND_ASSIGNMENT, // "&="
     TOKEN_OP_BITWISE_XOR_ASSIGNMENT, // "^="
@@ -301,7 +305,8 @@ enum token_type {
         case TOKEN_OP_ASSIGNMENT:\
         case TOKEN_OP_LOGICAL_NOT:\
         case TOKEN_OP_BITWISE_NOT:\
-        case TOKEN_OP_COMMA:
+        case TOKEN_OP_COMMA:\
+        case TOKEN_OP_DECL_RUNTIME:
 
 #define CASE_TOKEN_OP_COMPOUND case TOKEN_OP_LOGICAL_AND:\
         case TOKEN_OP_LOGICAL_OR:\
@@ -324,7 +329,9 @@ enum token_type {
         case TOKEN_OP_BITWISE_LEFT_SHIFT:\
         case TOKEN_OP_BITWISE_RIGHT_SHIFT:\
         case TOKEN_OP_SPAN_CTOR_STRICT:\
-        case TOKEN_OP_SPAN_CTOR:
+        case TOKEN_OP_SPAN_CTOR:\
+        case TOKEN_OP_DECL_COMPILER:\ 
+        case TOKEN_OP_DECL_RUNTIME_INFER:
 
 #define CASE_TOKEN_UNARY_OP case TOKEN_OP_LOGICAL_NOT:\
         case TOKEN_OP_INCREMENT:\
@@ -363,7 +370,10 @@ enum token_type {
         case TOKEN_OP_BITWISE_XOR:\
         case TOKEN_OP_BITWISE_OR:\
         case TOKEN_OP_ASSIGNMENT:\
-        case TOKEN_OP_COMMA:
+        case TOKEN_OP_COMMA:\
+        case TOKEN_OP_DECL_COMPILER:\
+        case TOKEN_OP_DECL_RUNTIME:\
+        case TOKEN_OP_DECL_RUNTIME_INFER:\
 
 bool TokenIsCompoundOp(token_type type) {
     switch(type) {
@@ -386,60 +396,64 @@ bool TokenIsOp(token_type type) {
 
 const char *StringFromTokenOp(token_type op)
 {
-    struct { token_type op;
+    struct {
+        token_type  op;
         const char *str;
-       
+
     } opPropertiesTable[] = {
-        {TOKEN_OP_MEMBER_SELECTION,   "."},
-        
-        {TOKEN_OP_MULTIPLICATION,   "*"},
-        {TOKEN_OP_DIVISION,   "/"},
-        {TOKEN_OP_MODULUS,  "%"},
-        {TOKEN_OP_ADDITION,   "+"},
-       { TOKEN_OP_SUBTRACTION,   "-"},
+        {TOKEN_OP_MEMBER_SELECTION, "."},
 
- 
-       { TOKEN_OP_INCREMENT,  "++"},
-       { TOKEN_OP_DECREMENT,  "--"},
- 
-      {  TOKEN_OP_LOGICAL_NOT,  "!"},
-       { TOKEN_OP_BITWISE_NOT,  "~"},
+        {TOKEN_OP_MULTIPLICATION, "*"},
+        {TOKEN_OP_DIVISION, "/"},
+        {TOKEN_OP_MODULUS, "%"},
+        {TOKEN_OP_ADDITION, "+"},
+        {TOKEN_OP_SUBTRACTION, "-"},
 
-       
-      {  TOKEN_OP_SPAN_CTOR,  "..<"},
-      {  TOKEN_OP_SPAN_CTOR_STRICT,  "..="},
-                {TOKEN_OP_LEFT_SHIFT_ASSIGNMENT,  "<<="},
-        {TOKEN_OP_RIGHT_SHIFT_ASSIGNMENT,  ">>="},
-      {  TOKEN_OP_BITWISE_LEFT_SHIFT,  "<<"},
-       { TOKEN_OP_BITWISE_RIGHT_SHIFT,  ">>"},
-      {  TOKEN_OP_LESS_THAN,  "<"},
-       { TOKEN_OP_LESS_THAN_OR_EQUAL_TO,  "<="},
-       { TOKEN_OP_GREATER_THAN,  ">"},
-       { TOKEN_OP_GREATER_THAN_OR_EQUAL_TO,  ">="},
-       { TOKEN_OP_EQUAL_TO,  "=="},
-        {TOKEN_OP_NOT_EQUAL_TO,  "!="},
-        {TOKEN_OP_BITWISE_AND,  "&"},
-        {TOKEN_OP_BITWISE_XOR,  "^"},
-        {TOKEN_OP_BITWISE_OR,  "|"},
-        {TOKEN_OP_LOGICAL_AND,  "&&"},
-        {TOKEN_OP_LOGICAL_OR,  "||"},
-        {TOKEN_OP_TERNARY_CONDITIONAL,  "?"}, // TODO: there's multiple syntax parts here. better ? is just a part, right?
-        {TOKEN_OP_ASSIGNMENT,  "="},
-        {TOKEN_OP_ADDITION_ASSIGNMENT,  "+="},
-        {TOKEN_OP_SUBTRACTION_ASSIGNMENT,  "-="},
-        {TOKEN_OP_MULTIPLICATION_ASSIGNMENT,  "*="},
-        {TOKEN_OP_DIVISION_ASSIGNMENT,  "/="},
-        {TOKEN_OP_MODULUS_ASSIGNMENT,  "%="},
+        {TOKEN_OP_INCREMENT, "++"},
+        {TOKEN_OP_DECREMENT, "--"},
 
-        {TOKEN_OP_BITWISE_AND_ASSIGNMENT,  "&="},
-        {TOKEN_OP_BITWISE_XOR_ASSIGNMENT,  "^="},
-        {TOKEN_OP_BITWISE_OR_ASSIGNMENT,  "|="},
-        {TOKEN_OP_COMMA,   ","},
+        {TOKEN_OP_LOGICAL_NOT, "!"},
+        {TOKEN_OP_BITWISE_NOT, "~"},
+
+        {TOKEN_OP_SPAN_CTOR, "..<"},
+        {TOKEN_OP_SPAN_CTOR_STRICT, "..="},
+        {TOKEN_OP_LEFT_SHIFT_ASSIGNMENT, "<<="},
+        {TOKEN_OP_RIGHT_SHIFT_ASSIGNMENT, ">>="},
+        {TOKEN_OP_BITWISE_LEFT_SHIFT, "<<"},
+        {TOKEN_OP_BITWISE_RIGHT_SHIFT, ">>"},
+        {TOKEN_OP_LESS_THAN, "<"},
+        {TOKEN_OP_LESS_THAN_OR_EQUAL_TO, "<="},
+        {TOKEN_OP_GREATER_THAN, ">"},
+        {TOKEN_OP_GREATER_THAN_OR_EQUAL_TO, ">="},
+        {TOKEN_OP_EQUAL_TO, "=="},
+        {TOKEN_OP_NOT_EQUAL_TO, "!="},
+        {TOKEN_OP_BITWISE_AND, "&"},
+        {TOKEN_OP_BITWISE_XOR, "^"},
+        {TOKEN_OP_BITWISE_OR, "|"},
+        {TOKEN_OP_LOGICAL_AND, "&&"},
+        {TOKEN_OP_LOGICAL_OR, "||"},
+        {TOKEN_OP_TERNARY_CONDITIONAL,
+            "?"},  // TODO: there's multiple syntax parts here. better ? is just a part, right?
+        {TOKEN_OP_ASSIGNMENT, "="},
+        {TOKEN_OP_ADDITION_ASSIGNMENT, "+="},
+        {TOKEN_OP_SUBTRACTION_ASSIGNMENT, "-="},
+        {TOKEN_OP_MULTIPLICATION_ASSIGNMENT, "*="},
+        {TOKEN_OP_DIVISION_ASSIGNMENT, "/="},
+        {TOKEN_OP_MODULUS_ASSIGNMENT, "%="},
+
+        {TOKEN_OP_DECL_COMPILER, "::"},
+        {TOKEN_OP_DECL_RUNTIME, ":"},
+        {TOKEN_OP_DECL_RUNTIME_INFER, ":="},
+
+        {TOKEN_OP_BITWISE_AND_ASSIGNMENT, "&="},
+        {TOKEN_OP_BITWISE_XOR_ASSIGNMENT, "^="},
+        {TOKEN_OP_BITWISE_OR_ASSIGNMENT, "|="},
+        {TOKEN_OP_COMMA, ","},
     };
 
-    auto prop =opPropertiesTable[(int)op -(int)TOKEN_OP_MEMBER_SELECTION];
+    auto prop = opPropertiesTable[(int)op - (int)TOKEN_OP_MEMBER_SELECTION];
 
-    Assert(  prop.op == op);
+    Assert(prop.op == op);
 
     return prop.str;
 }
@@ -1250,6 +1264,9 @@ bool Lex(
                     break;
                 case '~':
                     type = TOKEN_OP_BITWISE_NOT;
+                    break;
+                case ':':
+                    type = TOKEN_OP_DECL_RUNTIME;
                     break;
                 default:
                     type = TOKEN_UNDEFINED;
