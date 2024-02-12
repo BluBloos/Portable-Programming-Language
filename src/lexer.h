@@ -1068,8 +1068,8 @@ bool Lex(
         else if (state == LEXER_QUOTE) {
             if ( shouldAdvanceLine ) advanceLine();
             if (character == '"' && raw[n-1] != '\\') { // end condition check.
-                changeState(LEXER_NORMAL, currentLine, n + 1, n_col + 1);
                 tokenContainer.Append(Token(TOKEN_QUOTE, *currentToken, currentLine, stateBeginCol));
+                changeState(LEXER_NORMAL, currentLine, n + 1, n_col + 1);
                 CurrentTokenReset();
             }
             // Check for escape sequenced characters (plus special characters).
