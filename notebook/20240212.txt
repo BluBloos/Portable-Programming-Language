@@ -1,0 +1,22 @@
+this morning I'm continuing work on the tests for the lexer. lexer "tests"
+already existed but they weren't useful since they lacked automation. it
+required a human to parse through the output of the test to verify that the
+compiler is passing the test.
+
+as I write the tests, I notice that the data representation for the tokens that
+I chose is not ideal. I have an enum TOKEN_KEYWORD that is only as detailed as
+that, and to know what kind of token it is, require a string comparison. that's
+not ideal. ideally, we get detailed and go e.g. TOKEN_KEYWORD_INT.
+
+okay, just completed writing all the tests. there was an issue with the utf8
+one, so I fixed that while I was at it. I also added support to test the output
+of the negative tests to verify they give the expected error mesage. that's
+quite cool if I don't say so myself.
+
+I didn't end up fixing the data rep. for the keywords. that's work for another
+test.
+
+I could try the fuzzing technique here and do some test autogen. that might be
+interesting. I would want a system where it does the fuzz, then once it finds a
+failing case, we could serialize that test to commit it to our suite of static
+tests.
