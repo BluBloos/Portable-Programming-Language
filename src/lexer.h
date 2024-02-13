@@ -493,12 +493,58 @@ struct token Token(enum token_type type, unsigned int line, uint32_t bc) {
 }
 
 struct token Token(enum token_type type, std::string str, unsigned int line, uint32_t bc) {
+    
+#ifndef RELEASE
+
+    /*
+    TODO: this runtime debug check is a bandaid. it is theoretically feasible to
+    check that the correct interface is called at compile-time. all the information
+    is contained within the static source code. an idea could be to introduce some
+    TokenOp function that creates the specific kind of token. that won't take a string.
+    and it would take a new enum kind of token_op. the issue with this is that it affects
+    all the code that currently takes a token_type enum. that is meant to be a superclass
+    enum for any kind of token kind. I'm sure there is a clean way to do this. I just don't
+    want to think about it right now.
+    */
+
+    switch(type) {
+        CASE_TOKEN_OP
+        CASE_TOKEN_OP_COMPOUND
+        {
+            Assert( false && "bug! wrong interface called." );
+        } break;
+    }
+#endif
+
     auto t = Token(type, line, bc);
     t.str = MEMORY_ARENA.StdStringAlloc(str);
     return t;
 }
 
 struct token Token(enum token_type type, char *str, unsigned int line, uint32_t bc) {
+
+#ifndef RELEASE
+
+    /*
+    TODO: this runtime debug check is a bandaid. it is theoretically feasible to
+    check that the correct interface is called at compile-time. all the information
+    is contained within the static source code. an idea could be to introduce some
+    TokenOp function that creates the specific kind of token. that won't take a string.
+    and it would take a new enum kind of token_op. the issue with this is that it affects
+    all the code that currently takes a token_type enum. that is meant to be a superclass
+    enum for any kind of token kind. I'm sure there is a clean way to do this. I just don't
+    want to think about it right now.
+    */
+
+    switch(type) {
+        CASE_TOKEN_OP
+        CASE_TOKEN_OP_COMPOUND
+        {
+            Assert( false && "bug! wrong interface called." );
+        } break;
+    }
+#endif
+
     auto t = Token(type, line, bc);
     t.str = MEMORY_ARENA.StringAlloc(str);
     return t;
