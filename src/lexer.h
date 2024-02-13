@@ -1404,26 +1404,23 @@ bool Lex(
 
         uint32_t    c    = stateBeginCol;
         uint32_t    line = stateBeginLine;
-
-        //pErrCtx->c = c;
-        //pErrCtx->line = line;
+        
+        uint32_t errorScore = 1; // we don't really care.
+        pErrCtx->SubmitError(PPL_ERROR_KIND_PARSER, line, c, errorScore); // no need to check ret. value.
+        const char *file = LOGGER.logContext.currFile;
 
         switch (state) {
             case LEXER_QUOTE: {
-                const char *file = LOGGER.logContext.currFile;
-                GenerateCodeContextFromFilePos(
-                    *pErrCtx, line, c, pErrCtx->codeContext, PPL_ERROR_MESSAGE_MAX_LENGTH);
-                LOGGER.EmitUserError(
-                    file, line, c, pErrCtx->codeContext, "Unclosed string literal. Began at %d,%d.", line, c);
+                snprintf(pErrCtx->errMsg, PPL_ERROR_MESSAGE_MAX_LENGTH,
+                        "Unclosed string literal. Began at %d,%d.", line, c);
+                LOGGER.EmitUserError( file, line, c, pErrCtx->codeContext,pErrCtx->errMsg);
                 return false;
             } break;
             case LEXER_MULTILINE_COMMENT:
             {
-                const char *file = LOGGER.logContext.currFile;
-                GenerateCodeContextFromFilePos(
-                    *pErrCtx, line, c, pErrCtx->codeContext, PPL_ERROR_MESSAGE_MAX_LENGTH);
-                LOGGER.EmitUserError(
-                    file, line, c, pErrCtx->codeContext, "Unclosed multiline comment. Began at %d,%d.", line, c);
+                snprintf(pErrCtx->errMsg, PPL_ERROR_MESSAGE_MAX_LENGTH,
+                        "Unclosed multiline comment. Began at %d,%d.", line, c);
+                LOGGER.EmitUserError( file, line, c, pErrCtx->codeContext, pErrCtx->errMsg);
                 return false;
             }
                 break;

@@ -56,7 +56,7 @@ HOW PPL PROGRAMS ARE BUILT */
 // Standard for any compilation unit of this project.
 // NOTE(Noah): ppl.h on Windows is the parallel platforms library....I HATE EVERYTHING.
 #include <ppl_core.h>
-void ptest_Lexer(const char *inFilePath, TokenContainer &groundTruth, int &errors);
+void ptest_Lexer(const char *inFilePath, TokenContainer &groundTruth, int &errors, bool bNeg=false, ppl_error_context *groundTruthErr=nullptr);
 void ptest_Grammar(char *inFilePath, int &errors);
 void ptest_Codegen(char *inFilePath, int &errors);
 void ptest_Preparser(char *inFilePath, int &errors);
@@ -510,6 +510,7 @@ return 1;
                     }
                 } else {
                     // TODO: user should never see this.
+                    // the reason we write it is an internal compiler error is since the Lexer should never fail.
                     LOGGER.Error("Internal compiler error.");
                     errors += 1;
                 }
@@ -788,6 +789,10 @@ void ptest_Grammar(char *inFilePath, int&errors) {
 #include "preparse/utf8.gt.c"
 #undef GENERATE_GROUND_TRUTH
 
+#define GENERATE_GROUND_TRUTH ptest_Lexer_gt_neg_comment
+#include "preparse/neg/comment.gt.c"
+#undef GENERATE_GROUND_TRUTH
+
 
 int ptest_Lexer_all()
 {
@@ -874,13 +879,32 @@ int ptest_Lexer_all()
     }
 #undef LEXER_TEST_NAME
 
+// BEGIN NEGATIVE TESTS.
+{
+    bool bNeg=true;
+
+#define LEXER_TEST_NAME "neg/comment"
+    {
+        TokenContainer tokensContainer;
+        ppl_error_context ctx;
+        // TODO: is discard qualifier here safe ?
+        const char *cc = ModifyPathForPlatform("tests/preparse/" LEXER_TEST_NAME ".c").c_str();
+        LOGGER.logContext.currFile = (char *) cc;
+        ptest_Lexer_gt_neg_comment( tokensContainer, ctx );
+        ptest_Lexer(cc, tokensContainer, errors, bNeg, &ctx);
+    }
+#undef LEXER_TEST_NAME
+
+}
+// END NEGATIVE TESTS.
+
 
     PrintIfError(errors);
     timer.TimerEnd();
     return (errors > 0);
 }
 
-void ptest_Lexer(const char *inFilePath, TokenContainer &groundTruth, int &errors) {
+void ptest_Lexer(const char *inFilePath, TokenContainer &groundTruth, int &errors, bool bNeg, ppl_error_context *pCtx) {
     FILE *inFile = fopen(inFilePath, "r");
     LOGGER.Log("Testing lexer for: %s", inFilePath);
     if (inFile == NULL) {
@@ -890,6 +914,9 @@ void ptest_Lexer(const char *inFilePath, TokenContainer &groundTruth, int &error
         TokenContainer tokensContainer;
         RawFileReader tokenBirthplace;
         ppl_error_context bestErr = {};
+        if (pCtx != nullptr) {
+            pCtx->pTokenBirthplace = &tokenBirthplace;
+        }
         if (Lex(inFile, tokensContainer, &tokenBirthplace, &bestErr)) {
             if (VERBOSE) {
                 tokensContainer.Print();
@@ -954,8 +981,43 @@ void ptest_Lexer(const char *inFilePath, TokenContainer &groundTruth, int &error
             }
 
         } else {
-            LOGGER.Error("Lex() failed.");
-            errors += 1;
+
+            /*
+            TODO: there are other places in the code where this codepath assumes "lexer failed".
+            yet, the lexer will never fail. if we hit this code path, it actually means,
+            "the user didn't write their program correctly and it was the kind of error that the lexer was able to pick up on".
+            that's what this codepath means.
+            */
+            if (bNeg) {
+                if (pCtx->c != bestErr.c) {
+                    LOGGER.Error("best error expected c=%u but lexer reports c=%u",
+                        pCtx->c, bestErr.c);
+                    errors +=1;
+                }
+                if (pCtx->line != bestErr.line) {
+                    LOGGER.Error("best error expected line=%u but lexer reports line=%u",
+                        pCtx->line, bestErr.line);
+                    errors +=1;
+                }
+                // TODO: could pretty-print the below here.
+                if (pCtx->kind != bestErr.kind) {
+                    LOGGER.Error("best error expected kind=%u but lexer reports kind=%u",
+                        pCtx->kind, bestErr.kind);
+                    errors +=1;
+                }
+                if (pCtx->pTokenBirthplace != bestErr.pTokenBirthplace) {
+                    LOGGER.Error("best error expected pTokenBirthplace=0x%x but lexer reports pTokenBirthplace==0x%x",
+                        pCtx->pTokenBirthplace, bestErr.pTokenBirthplace);
+                    errors +=1;
+                }
+                if (0 != strcmp( pCtx->errMsg, bestErr.errMsg )) {
+                    LOGGER.Error("best error message mismatch with expected = %s", pCtx->errMsg );
+                    errors +=1;
+                }
+            } else {
+                LOGGER.Error("lexer test is not negative test and Lexer reports invalid user program" );
+                errors += 1;
+            }            
         }
         fclose(inFile);
     }
