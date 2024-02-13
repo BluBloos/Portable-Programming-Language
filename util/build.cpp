@@ -794,6 +794,11 @@ void ptest_Grammar(char *inFilePath, int&errors) {
 #undef GENERATE_GROUND_TRUTH
 
 
+#define GENERATE_GROUND_TRUTH ptest_Lexer_gt_neg_string_literal
+#include "preparse/neg/string_literal.gt.c"
+#undef GENERATE_GROUND_TRUTH
+
+
 int ptest_Lexer_all()
 {
     Timer timer = Timer("lexer_all");
@@ -891,6 +896,18 @@ int ptest_Lexer_all()
         const char *cc = ModifyPathForPlatform("tests/preparse/" LEXER_TEST_NAME ".c").c_str();
         LOGGER.logContext.currFile = (char *) cc;
         ptest_Lexer_gt_neg_comment( tokensContainer, ctx );
+        ptest_Lexer(cc, tokensContainer, errors, bNeg, &ctx);
+    }
+#undef LEXER_TEST_NAME
+
+#define LEXER_TEST_NAME "neg/string_literal"
+    {
+        TokenContainer tokensContainer;
+        ppl_error_context ctx;
+        // TODO: is discard qualifier here safe ?
+        const char *cc = ModifyPathForPlatform("tests/preparse/" LEXER_TEST_NAME ".c").c_str();
+        LOGGER.logContext.currFile = (char *) cc;
+        ptest_Lexer_gt_neg_string_literal( tokensContainer, ctx );
         ptest_Lexer(cc, tokensContainer, errors, bNeg, &ctx);
     }
 #undef LEXER_TEST_NAME
