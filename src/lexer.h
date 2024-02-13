@@ -739,6 +739,7 @@ public:
 // Globals local to lexer.cpp ----------------
 std::string *currentToken;
 std::string *cleanToken;
+uint32_t cleanTokenEncodedCharCount;
 unsigned int currentLine = 1;
 
 enum lexer_state state = LEXER_NORMAL;
@@ -830,10 +831,8 @@ bool TokenFromLatent(struct token &token) {
     // Latent currentTokens can be literal or symbol tokens
     if (*cleanToken != "") {
 
-        // TODO: this is looking like it might be sus.
-        size_t cleanTokenSize = cleanToken->size();
-        assert (cleanTokenSize < n_col);
-        uint32_t bc = n_col - cleanToken->size();
+        assert (cleanTokenEncodedCharCount < n_col);
+        uint32_t bc = n_col - cleanTokenEncodedCharCount;
 
         bool dFlag; bool fFlag; bool uFlag;
         if (IsNumber<EnableIsNumberFlags>(*cleanToken, &dFlag, &fFlag, &uFlag)) { 
@@ -959,6 +958,7 @@ void TokenFromChar(
 void CurrentTokenReset() {
     *currentToken = "";
     *cleanToken = "";
+    cleanTokenEncodedCharCount=0;
 }
 
 void CurrentTokenAddChar(UNICODE_CPOINT c) {
@@ -968,6 +968,7 @@ void CurrentTokenAddChar(UNICODE_CPOINT c) {
     // TODO(Noah): Do other whitspace characters exist?
     if (c != ' ' && c != '\n') {
         cleanToken->append(utf8Buff);
+        cleanTokenEncodedCharCount+=1;
     }
 }
 
@@ -1029,6 +1030,7 @@ bool Lex(
     // Generate/reset globals
     std::string cToken = ""; currentToken = &cToken;
     std::string clToken = ""; cleanToken = &clToken;
+    cleanTokenEncodedCharCount=0;
 
     currentLine = 1;
     state = LEXER_NORMAL;
@@ -1366,9 +1368,10 @@ bool Lex(
                     ) - 1;
                     break;
                     case SEARCH_P_CURRENT_STRING:
+                    // TODO: this codepath is untested for utf8.
                     TokenFromString(
                         StdStringFromStringAndUCP(cleanToken, character),
-                        n_col - cleanToken->size(), // beginCol.
+                        n_col - cleanTokenEncodedCharCount, // beginCol.
                         sPattern.string_pattern,
                         sPattern.patternLen,
                         sPattern.tokType,
