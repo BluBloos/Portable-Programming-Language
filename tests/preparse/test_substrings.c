@@ -3,7 +3,7 @@ input_off :: {
     return;
 }
 
-main := () -> int {
+main := ()  int {
     print("hi");
 }
 
