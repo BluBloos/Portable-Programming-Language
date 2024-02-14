@@ -926,6 +926,7 @@ unsigned int TokenFromLookaheadString(
         if (*pStr == 0) {
             // Means we made it through entire string and matched.
             TokenFromLatent(symbolTok);
+            // TODO: why is  this using the global col number?
             tok = Token(tokType, mString, currentLine, n_col);
             return j;
         }
@@ -951,6 +952,7 @@ void TokenFromChar(
     }
     if (charInTest) {
         TokenFromLatent(symbolTok);
+        // TODO: why is this using the gloal col number?
         tok = Token(tokType, character, currentLine, n_col);
     }
 }
@@ -1082,7 +1084,9 @@ bool Lex(
     auto advanceLine = [&]()
     {
         currentLine += 1;
-        n_col = 0;
+        n_col = 0; //TODO: feels like there is going to be an off by 1 error here since we want the col numbers to start at 1.
+        // are there other parts of the code that use the col number? what do they assume ?
+        // we should put some clear documentation somewhere regarding what convention we use for the col number.
         raw.AddLineInfo(n + 1);
     };
 
@@ -1263,6 +1267,11 @@ bool Lex(
                 }
                 if (bFoundMatch) continue;
             }
+
+            // TODO: there is duplication here for the character
+            // and within the impl to get the string rep of these tokens.
+            // there should be a single source of truth somewhere in the code
+            // that details what the character is for an op.
 
             // check for single character ops.
             token_type type = TOKEN_UNDEFINED;
