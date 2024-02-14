@@ -1,5 +1,3 @@
-// TODO: rename this file to parser.h, and maybe .cpp since it's not really a header file?
-
 // TODO(Noah): Check if there might be some memory-leaks since we are doing
 // wack stuff with trees.
 

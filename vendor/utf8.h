@@ -1,3 +1,7 @@
+// TODO(Noah): I did not write the code below. I remember I stole it from somwhere.
+// where was that? what license did that have?
+// those details should be in this file.
+
 #ifndef UTF8_H
 #define UTF8_H
 

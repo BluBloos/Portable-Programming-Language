@@ -2,9 +2,7 @@
 #define PPL_TYPES_HPP
 
 namespace ppl {
-
-// TODO: would be nice to clean some of this stuff up
-
+    // TODO: would be nice to clean some of this stuff up
     char *TYPE_STRINGS[] = {
 
         // floating point types.
@@ -29,9 +27,6 @@ namespace ppl {
         // TODO: maybe just shorten this to "space".
         "namespace"
     };
-
-    
-
 }
 
 enum ppl_type {

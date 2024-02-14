@@ -55,7 +55,8 @@ HOW PPL PROGRAMS ARE BUILT */
 /* ------- TESTS.CPP ------- */
 // Standard for any compilation unit of this project.
 // NOTE(Noah): ppl.h on Windows is the parallel platforms library....I HATE EVERYTHING.
-#include <ppl_core.h>
+#define PPL_CORE_IMPL
+#include <ppl_core.hpp>
 void ptest_Lexer(const char *inFilePath, TokenContainer &groundTruth, int &errors, bool bNeg=false, ppl_error_context *groundTruthErr=nullptr);
 void ptest_Grammar(char *inFilePath, int &errors);
 void ptest_Codegen(char *inFilePath, int &errors);
@@ -1146,7 +1147,7 @@ int RunPtestFromInFile(void (*ptest)(char *inFilePath, int &errors), const char 
 #include <string>
 
 #define NC_PAL_HPP_IMPL
-#include <nc/pal.hpp>
+#include <pal/pal.hpp>
 
 int RunPtestFromCwd(
     void (*ptest)(char *inFilePath, int &errors), 

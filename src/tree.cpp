@@ -1,8 +1,6 @@
 #ifndef TREE_H // TODO: make this file a .hpp
 #define TREE_H
 
-#include <ppl_types.hpp>
-
 // TODO(Noah): I feel like there is something we can do here.
 // All of this is pass thru for some tokens right to tree metadata.
 // like, TOKEN_QUOTE -> AST_STRING_LITERAL

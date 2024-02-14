@@ -1,6 +1,5 @@
 #ifndef GRAMMAR_H
 #define GRAMMAR_H
-#include <tree.h>
 
 // TODO(Noah): In making the AST tree dramatically simpler, 
 //      create ghost grammar definitions.

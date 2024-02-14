@@ -1,0 +1,4 @@
+PPL as a tool to teach programming?
+
+value transparency => open source standard lib and one that ships for every
+download of the compiler.

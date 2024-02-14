@@ -1,6 +1,0 @@
-something that I really think might be the play for the PPL language is to
-use it as a tool to teach programming.
-
-that's why I really value the idea of transparency.
-like, we want the open source standard lib, and one that ships for every download
-of the compiler and its easy to find.

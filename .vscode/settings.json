@@ -2,7 +2,7 @@
     "C_Cpp.errorSquiggles": "Disabled",
     "files.associations": {
         "util.h": "c",
-        "ppl_core.h": "c",
+        "ppl_core.hpp": "c",
         "random": "cpp",
         "sstream": "cpp",
         "typeinfo": "cpp",

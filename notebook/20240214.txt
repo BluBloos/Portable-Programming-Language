@@ -1,0 +1,10 @@
+this morning I was going to get started on the tests to ensure that the parse
+pass is good and can proper construct the AST from the tokens. then, I looked at
+the codebase and was like, "god, this could be more hygienic". so, code hygiene
+it is!
+
+I'm renaming files to indicate more truthfully what they contain. so, instead of
+.h, many of the files are actually .cpp, since they contain global scope
+functions. there's some dead code chilling around too, so I'm just going to
+delete that. and, I'm renaming build.cpp to compiler.cpp, because that's how we
+are using this file.

@@ -1,0 +1,36 @@
+the syntax of Odin and JAI are quite nice. PPL could play in the same space.
+
+I think the `::` thing being just a constant is too shallow of an idea to me.
+
+`::` as a compile-time variable in the compiler metaprogram is the "right play",
+as far as I can tell.
+
+the design of C is correct insofar as it abstracts frequent patterns that
+assembly programmers employ. if it didn't do this as well as it did, it would
+have been too high-level.
+
+assembly writers, and all programmers, are communicators. communication is at
+the core of programming. the designers of C noticed frequent patterns of
+communication and sought to make it easier to communicate.
+
+for PPL, we could reflect on the frequent patterns of communication that the
+programmer will engage w.r.t the compiler metaprogram. what are the metasystems
+that people commonly write? make it easy to communicate those.
+
+what do we mean by all this metaprogramming? I'm defining the idea of a struct
+in C as a metaprogram idea. it's a description of how to layout data. the
+description of how to layout data is data itself, and is first stored within the
+metaprogram before it exists in the final executable. it's something that the
+metaprogram knows about and can reuse.
+
+hence, the `::` syntax (decl compiler metaprogram variable) shall be used to
+define a struct.
+
+Aside: I recently watched jblow's original "ideas about a new programming
+language for games" talk. Is the kind of thing I write about here a "big idea"?
+I don't think so. It's not like I decided that there was an arbitrary dogma to
+litter in the language. What I'm doing here is simply noticing what already is
+true about the way we write programs.
+
+no silent failures. "DONT EVER SILENTLY FAIL EVER. NEVER IN A MILLION BILLION
+YEARS." - jblow.

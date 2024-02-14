@@ -12,6 +12,7 @@ time_glob_t *TimerGlob()
     return &g_time;
 }
 
+// TODO: fix this function since it is copy pasta and not particularly well understood.
 uint64_t estimate_timer_frequency()
 {
     uint64_t cpuTimer = __rdtsc();

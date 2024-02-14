@@ -4,8 +4,6 @@
 typedef unsigned int UNICODE_CPOINT;
 #define CP_EOF 0
 
-#include "ppl_types.hpp"
-
 void GenerateCodeContextFromFilePos(ppl_error_context &ctx, uint32_t line, uint32_t c, char *buf, uint32_t bufLen);
 
 // keywords that map to values such as:

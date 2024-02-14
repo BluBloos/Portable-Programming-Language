@@ -12,7 +12,7 @@
 
 #define PPL_TODO assert(false);
 
-#include <nc_defer.h>
+#include <nc_defer.hpp>
 
 /* PROJECT DEPENDENCIES */
 #include <stdio.h>
@@ -70,15 +70,15 @@ enum target_platform {
 };
 
 /* PROGRAM GLOBALS */
-#include <logger.h>
-#include <mem.h>
+#include <logger.hpp>
+#include <mem.hpp>
 #include <utf8.h>
 Logger LOGGER;
 ConstMemoryArena MEMORY_ARENA(1024 * 1024 * 60); // 60 MB.
 // Compiler parameters.
 enum target_platform PLATFORM = POSIX;
 
-#define RELEASE 1
+/// #define RELEASE 1
 
 // TODO: hook with a '-v'.
 #ifdef RELEASE
@@ -154,7 +154,7 @@ unsigned long long SillyStringToUINT(char *str)
 	return result;
 }
 
-// TODO: there is pretty much a duplicate function in lexer.h
+// TODO: there is pretty much a duplicate function in lexer.cpp
 //
 // Return true if the string can be represented as a number,
 // returns false otherwise. decimalFlag is set to true if the 
@@ -331,24 +331,27 @@ struct ppl_str_view
     uint32_t len;
 };
 
-// TODO: Make this file (ppl_core.h) a *.hpp
+// TODO: Make this file (ppl_core.hpp) a *.hpp
 
 /* OTHER COMPILATION UNITS */
 #include <hashmap.hpp>
 #include <ppl_error.hpp>
-#include <lexer.h>
-#ifdef PLATFORM_WINDOWS
-#include <win32_timing.h>
-#else
-#include <timing.h>
+#ifdef PPL_CORE_IMPL
+    #include <types.cpp>
+    #include <lexer.cpp>
+    #ifdef PLATFORM_WINDOWS
+        #include <win32_timing.cpp>
+    #else
+        #include <timing.cpp>
+    #endif
+    #include <tree.cpp>
+    #include <grammar.cpp>
+    #include <parser.cpp>
+    // backend things :P
+    #include <assembler.cpp>
+    #include <x86_64.cpp>
+    #include <codegen.cpp>
 #endif
-#include <grammar.h>
-#include <syntax.h>
-#include <tree.h>
-// backend things :P
-#include <assembler.h>
-#include <x86_64.h>
-#include <codegen.h>
 /* OTHER COMPILATION UNITS */
 
 #endif
