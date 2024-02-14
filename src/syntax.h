@@ -248,8 +248,7 @@ bool ParseTokensWithRegexTree(
                 struct token tok = tokens.QueryNext();
                 bool didMatch = false;
                 switch(tok.type) {
-                    case TOKEN_CHARACTER_LITERAL:
-                    case TOKEN_OP:
+                    case TOKEN_CHARACTER_LITERAL: // TODO: matching char literal here looks wrong.
                     case TOKEN_PART:
                     didMatch = (tok.c == child.metadata.c);
                     break;
@@ -307,15 +306,7 @@ bool ParseTokensWithRegexTree(
                 } else {
                     break;
                 }
-            }
-            else if (childType == TREE_REGEX_OP)
-            {
-                tree_node op;
-                bool r = ParseOperator(tokens, child_data, &op, errorCtx, currGrammarCtx);
-                if (!r) break; else {
-                    re_matched += 1;
-                    TreeAdoptTree(tree, op);
-                }
+
             }
             else if (childType == TREE_REGEX_LITERAL) {
                 
@@ -924,45 +915,84 @@ int ParseTokensAsRightLeaningTree(
     tree_node op;
     // NOTE: a literal is 1 token.
     // NOTE: an operator is 1 token.
-    if (!ParseLiteral( tokens, &literal, errorCtx )){
+    bool r = ParseLiteral( tokens, &literal, errorCtx ) || ParseSymbol( tokens, &literal, errorCtx );
+    if (!r){
         // it wasn't a literal, is it a unary?
         struct token tok = tokens.QueryNext(); // # the whole LR k+1 idea :)
         bool bIsUnary = false;
         switch(tok.type) {
             CASE_TOKEN_UNARY_OP
             bIsUnary = true;
+            if (tok.c == ')') bIsUnary = false; // only open paren is unary.
         }
         if (bIsUnary) {
             if (ParseOperator( tokens, TOKEN_UNDEFINED, &op, errorCtx, currGrammarCtx ) ) {
                 tokenCount += 1;
+
                 tree_node rlt;
                 tokenCount += ParseTokensAsRightLeaningTree(tokens, &rlt, errorCtx, currGrammarCtx);
                 if (tokenCount > 1) {
+
+                    // handle special syntax.
+                    if ( tok.type == TOKEN_PART && tok.c == '(' ) {
+                        struct token closeParen = tokens.QueryNext(); 
+                        if ( closeParen.type == TOKEN_PART && closeParen.c == ')' ) {
+                            tokens.AdvanceNext();
+                            tokenCount += 1;
+                        }
+
+                    }
+
                     TreeAdoptTree(op, rlt);
                     *tree = op;
+
                 }
-            }else {PPL_TODO; // if it's a unary op, parsing the operator should not fail.
+            } else {
+                PPL_TODO; // if it's a unary op, parsing the operator should not fail.
             }
         }
     } else {
         tokenCount += 1;
-        if (
-            // passing NULL means it could be any operator.
-            ParseOperator( tokens, TOKEN_UNDEFINED, &op, errorCtx, currGrammarCtx )
-        ) {
-            tokenCount += 1;
-            tree_node rlt;
-            tokenCount += ParseTokensAsRightLeaningTree(tokens, &rlt, errorCtx, currGrammarCtx);
-            if (tokenCount > 2) {
-                TreeAdoptTree(op, literal);
-                TreeAdoptTree(op, rlt);
-                *tree = op;
-            }
+
+        // expect a binary operator.
+        struct token tok = tokens.QueryNext(); // # the whole LR k+1 idea :)
+        bool bIsOp = true;
+        bool bIsUnary = false;
+        switch(tok.type) {
+            CASE_TOKEN_BINARY_OP
+                break;
+            CASE_TOKEN_UNARY_OP
+                bIsUnary = true;
+                break;
+            // NOTE: in the above switch, close paren is consider not unary. while close paren is not
+            // unary, it is also not a binary op. so for the sake of the code here, we'll allow it to be
+            // "unary".
+            default:
+                bIsOp = false;
+        }
+
+        if (bIsOp && !bIsUnary) {
+            if (
+                // passing NULL means it could be any operator.
+                ParseOperator( tokens, TOKEN_UNDEFINED, &op, errorCtx, currGrammarCtx )
+            ) {
+                tokenCount += 1;
+                tree_node rlt;
+                tokenCount += ParseTokensAsRightLeaningTree(tokens, &rlt, errorCtx, currGrammarCtx);
+                if (tokenCount > 2) {
+                    TreeAdoptTree(op, literal);
+                    TreeAdoptTree(op, rlt);
+                    *tree = op;
+                }
+            } else {
+                // shouldn't fail here. this is a bug.
+                PPL_TODO;
+            }            
         } else {
             // this is the terminal case, since we got a literal, but no operator. that's a valid
             // expression.
             *tree = literal;
-        }
+        }        
     }
     
     return tokenCount;
