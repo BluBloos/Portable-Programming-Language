@@ -29,7 +29,13 @@
         "variant": "cpp",
         "atomic": "cpp",
         "cstddef": "cpp",
-        "locale": "cpp"
+        "locale": "cpp",
+        "cstdint": "c",
+        "compare": "c",
+        "format": "c",
+        "printing.gt.c": "cpp",
+        "queue": "c",
+        "stack": "c"
     },
     "cSpell.words": [
         "metaprogram"
