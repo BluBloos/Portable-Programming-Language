@@ -180,7 +180,7 @@
 // example errors:
 /*
 [ERROR]:
-tests/preparse/neg/string_literal.c:2,13: Unclosed string literal. Began at 2,13.
+tests/lexer/neg/string_literal.c:2,13: Unclosed string literal. Began at 2,13.
 
 	// missing `"` below.
 	{'3'; Hello!"; 5;}

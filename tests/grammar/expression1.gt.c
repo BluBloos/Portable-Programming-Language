@@ -9,8 +9,10 @@ tree_node GENERATE_GROUND_TRUTH()
 {
     tree_node plus = CreateTree(AST_OP_ADDITION);
 
-    auto lhs = CreateTree(AST_INT_LITERAL, 1);
-    auto rhs = CreateTree(AST_INT_LITERAL, 3);
+    int64_t i;
+
+    auto lhs = CreateTree(AST_INT_LITERAL, i=4);
+    auto rhs = CreateTree(AST_INT_LITERAL, i=3);
 
     TreeAdoptTree(plus, lhs);
     TreeAdoptTree(plus, rhs);

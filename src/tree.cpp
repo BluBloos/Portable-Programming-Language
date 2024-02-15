@@ -81,7 +81,7 @@ enum tree_type {
     AST_OP_SPAN_CTOR, // "..<"
     AST_OP_SPAN_CTOR_STRICT, // "..="
 
-    AST_KEYWORD
+    AST_KEYWORD // TODO: this feels too unreadable as an AST node. what does this mean?
 };
 
 #define CASE_AST_OP case AST_OP_MEMBER_SELECTION:\
@@ -394,6 +394,65 @@ struct tree_node CreateTree(enum tree_type type, bool b) {
     tn.metadata.num = b;
     tn.metadata.valueKind = PPL_TYPE_BOOL;
     return tn;
+}
+
+// returns true if a and b are the same tree, false otherwise.
+bool TreeCompare(struct tree_node &a, struct tree_node b, bool bLog) {
+    bool bSame = false;
+
+    if (a.childrenCount == b.childrenCount) {
+        if (a.type == b.type) {
+            switch(a.type) {
+                case AST_INT_LITERAL:
+                if ( a.metadata.num == b.metadata.num && a.metadata.valueKind == b.metadata.valueKind ) {
+                    bSame = true;
+                } else if (bLog) {
+                    LOGGER.Error("AST_INT_LITERAL mismatch with (%u,%u) and (%s,%s)",
+                        a.metadata.num, b.metadata.num,
+                        PplTypeToString(a.metadata.valueKind),PplTypeToString(b.metadata.valueKind));
+                }
+                break;
+                case AST_DECIMAL_LITERAL:
+                if ( a.metadata.dnum == b.metadata.dnum && a.metadata.valueKind == b.metadata.valueKind  ) {
+                    bSame = true;
+                } else if (bLog) {
+                    LOGGER.Error("AST_DECIMAL_LITERAL mismatch with (%f,%f) and (%s,%s)",
+                        a.metadata.dnum, b.metadata.dnum,
+                        PplTypeToString(a.metadata.valueKind),PplTypeToString(b.metadata.valueKind));
+                }
+                break;
+                case AST_KEYWORD: // TODO: keywords should just be enum saying what kind of keyword it is.
+                case AST_GNODE:
+                case AST_STRING_LITERAL:
+                case AST_SYMBOL:
+                if (0 == strcmp(a.metadata.str, b.metadata.str)) {
+                    bSame = true;
+                } else if (bLog) {
+                    LOGGER.Error("AST_* mismatch with strings (%s,%s)",
+                        a.metadata.str, b.metadata.str);
+                }
+                break;
+                case AST_NULL_LITERAL:
+                CASE_AST_OP
+                bSame = true;
+                break;
+            }
+        } else if (bLog) {
+            LOGGER.Error("type mismatch");
+        }
+    } else if (bLog) {
+        LOGGER.Error("childrenCount mismatch");
+    }
+
+    if (bSame) {
+        for (int i = 0;i < a.childrenCount; i++) {
+            tree_node aa = a.children[i];
+            tree_node bb = b.children[i];
+            bSame &= TreeCompare(aa, bb, bLog);
+        }
+    }
+
+    return bSame;
 }
 
 // Needs to be a full-blown tree that gets adopted. Not just a leaf node.

@@ -13,7 +13,7 @@ project(PortableProgrammingLanguage
 set(ProjectName "PPL")
 set(ProjectRoot "${CMAKE_CURRENT_SOURCE_DIR}")
 
-set(UnityBuildSource "${ProjectRoot}/util/build.cpp")
+set(UnityBuildSource "${ProjectRoot}/src/compiler.cpp")
 
 add_executable(${ProjectName} ${UnityBuildSource})
 

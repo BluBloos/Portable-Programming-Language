@@ -10,7 +10,7 @@ design/*
 bin/*
 build/*
 *.o
-!tests/preparse/
+!tests/lexer/
 !tests/grammar
 !tests/codegen
 JOURNAL.md

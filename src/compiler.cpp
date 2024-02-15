@@ -58,11 +58,12 @@ HOW PPL PROGRAMS ARE BUILT */
 #define PPL_CORE_IMPL
 #include <ppl_core.hpp>
 void ptest_Lexer(const char *inFilePath, TokenContainer &groundTruth, int &errors, bool bNeg=false, ppl_error_context *groundTruthErr=nullptr);
-void ptest_Grammar(char *inFilePath, int &errors);
+void ptest_Grammar(const char *inFilePath, tree_node tn, int &errors);
 void ptest_Codegen(char *inFilePath, int &errors);
 void ptest_Preparser(char *inFilePath, int &errors);
 void ptest_wax64(char *inFilePath, int &errors);
 int ptest_Lexer_all();
+int ptest_Grammar_all();
 void ptest_ax64(char *inFilePath, int &errors);
 int RunPtestFromInFile(void (*ptest)(char *inFilePath, int &errors), const char *testName, const char *cwd);
 int RunPtestFromInFile(void (*ptest)(char *inFilePath, int &errors), const char *testName, const char *cwd, const char *inFile);
@@ -187,10 +188,7 @@ void PrintHelp() {
     
 #ifndef RELEASE
     printf("lexer           (l)               - Test lexer on single unit.\n");
-    printf("lexer_all       (lall)            - Test lexer on all units in tests/preparse/.\n");
-    printf("preparser       (p)               - Test preparser on single unit.\n");
-    printf("preparser_all   (pall)            - Test preparser on all units in tests/preparse/.\n");
-    printf("regex_gen       (re)              - Test LoadGrammar() for building custom regex trees.\n");
+    printf("lexer_all       (lall)            - Test lexer on all units in tests/lexer/.\n");
     printf("grammer         (g)               - Test AST generation for a single unit.\n");
     printf("grammer_all     (gall)            - Test AST generation for all units in tests/grammer/.\n");
     printf("\n");
@@ -274,22 +272,8 @@ int DoCommand( char *l, const char *l2) {
 
     } 
     else if (0 == strcmp(l, "gall") || 0 == strcmp(l, "grammer_all")) {
-        
         LoadGrammar();
-        printf(
-            "\nPlease note that grammar tests use the filename to derive the grammar\n"
-              "production to test.\n");
-        return RunPtestFromCwd(
-            ptest_Grammar,
-            // TODO(Noah): Maybe we abstract the lambda here beause we use the same
-            // lambda twice?
-            [](const char *fileName) -> bool {
-                return (fileName[0] != '.');
-            },
-            "grammar_all", 
-            ModifyPathForPlatform("tests/grammar").c_str()
-        );
-
+        return ptest_Grammar_all();
     }
     else if (0  == strcmp(l, "ax64") || 0 ==strcmp(l, "pasm_x86_64")) {
 
@@ -348,54 +332,30 @@ int DoCommand( char *l, const char *l2) {
 
     } else if (0  == strcmp(l, "l") || 0 ==strcmp(l, "lexer")) {
         
-        #if 0
+#if 0
         return RunPtestFromInFile(
-            ptest_Lexer, "lexer", ModifyPathForPlatform("tests/preparse/").c_str() );
+            ptest_Lexer, "lexer", ModifyPathForPlatform("tests/lexer/").c_str() );
 #else
-return 1;
+        return 0;
 #endif
 
     } else if (0 == strcmp(l, "lall") || 0 == strcmp(l, "lexer_all")) {
 
         return ptest_Lexer_all();
 
-    } else if (0  == strcmp(l, "p") || 0 ==strcmp(l, "preparser")) {
-
-        return RunPtestFromInFile(
-            ptest_Preparser, "preparser", ModifyPathForPlatform("tests/preparse/").c_str() );
-
-    } else if (0  == strcmp(l, "pall") || 0 ==strcmp(l, "preparser_all")) {
-
-        // TODO: So like, one of the really cool things you can do with a nice compile-time metaprogramming
-        // sort of idea is, based on the system that I am compiling on, modify my strings to either do `/` or `\`.
-        return RunPtestFromCwd(
-            ptest_Preparser,
-            [](const char *fileName) -> bool {
-                return (fileName[0] != '.');
-            },
-            "preparser_all",
-            ModifyPathForPlatform("tests/preparse").c_str()
-        );
-
     }
-    else if (0 == strcmp(l, "re") || 0 == strcmp(l, "regex_gen")) {
+    else if (0 == strcmp(l, "g") || 0 == strcmp(l, "grammar")) {
         
-        Timer timer = Timer("regex_gen");
-        LOGGER.InitFileLogging("w");
-        int errors = 0;
-        LoadGrammar();
-        PrintIfError(errors);
-        timer.TimerEnd();
-        return (errors > 0);
-
-    } else if (0 == strcmp(l, "g") || 0 == strcmp(l, "grammar")) {
-        
+#if 0
         LoadGrammar();
         // TODO: this printf is copy-pasta to the one for grammar_all.
         printf(
             "\nPlease note that grammar tests use the filename to derive the grammar\n"
               "production to test.\n");
         return RunPtestFromInFile(ptest_Grammar, "grammar", ModifyPathForPlatform("tests/grammar/").c_str() );
+#else
+        return 0;
+#endif
 
     } else if (0 == strcmp(l , "c") ||  0 == strcmp(l, "codegen")) {
 
@@ -407,7 +367,7 @@ return 1;
             "tests/"
         );
     }
-#endif
+#endif //#ifndef RELEASE
     else if (0 == strcmp(l , "r") ||  0 == strcmp(l, "run")) {
 #if defined(PLATFORM_MAC)
         int r = CallSystem("(./myProgram && echo \"return code: 0\") || echo \"return code: $?\"");
@@ -666,7 +626,8 @@ void ptest_Codegen(char *inFilePath, int& errors)
     fclose(inFile);
 }
 
-void ptest_Grammar(char *inFilePath, int&errors) {
+// gttn = ground truth tree node.
+void ptest_Grammar(const char *inFilePath, tree_node gttn, int&errors) {
     FILE *inFile = fopen(inFilePath, "r");
     LOGGER.Log("Testing grammar for: %s", inFilePath);
     if (inFile == NULL) {
@@ -695,8 +656,8 @@ void ptest_Grammar(char *inFilePath, int&errors) {
             char slashCharacter = '/';
             #endif
             
-            char *onePastLastSlash; 
-            for (char *pStr = inFilePath; *pStr != 0; pStr++ ) {
+            char const *onePastLastSlash; 
+            for (char const *pStr = inFilePath; *pStr != 0; pStr++ ) {
                 if (*pStr == slashCharacter) {
                     onePastLastSlash = pStr;
                 }
@@ -717,6 +678,13 @@ void ptest_Grammar(char *inFilePath, int&errors) {
 
             if (r) {
                 PrintTree(tree, 0);
+
+                bool bLog = true;
+                bool r = TreeCompare(tree, gttn, bLog);
+                if (!r) {
+                    errors += 1;
+                }
+
                 DeallocTree(tree);
             }
             else {
@@ -748,12 +716,11 @@ void ptest_Grammar(char *inFilePath, int&errors) {
                     //return false;
                 }
 
-                LOGGER.Error("ParseTokensWithGrammar failed.");
                 errors += 1;
             } 
 
         } else {
-            LOGGER.Error("Lex failed.");
+            LOGGER.Error("Lexer reports invalid user program" );
             errors += 1;
         }
 
@@ -761,42 +728,68 @@ void ptest_Grammar(char *inFilePath, int&errors) {
     }
 }
 
+#define GENERATE_GROUND_TRUTH ptest_Grammar_gt_expression1
+#include "grammar/expression1.gt.c"
+#undef GENERATE_GROUND_TRUTH
+
+int ptest_Grammar_all() {
+    Timer timer = Timer("grammar_all");
+    LOGGER.InitFileLogging("w");
+
+    // Initialize variables
+    int errors = 0;
+
+#define GRAMMAR_TEST_NAME "expression1"
+    {
+        // TODO: is discard qualifier here safe ?
+        const char *cc = ModifyPathForPlatform("tests/grammar/" GRAMMAR_TEST_NAME ".c").c_str();
+        LOGGER.logContext.currFile = (char *)cc;
+        tree_node tn = ptest_Grammar_gt_expression1();
+        ptest_Grammar(cc, tn, errors);
+    }
+#undef GRAMMAR_TEST_NAME
+
+    PrintIfError(errors);
+    timer.TimerEnd();
+    return (errors > 0);
+}
+
 
 #define GENERATE_GROUND_TRUTH ptest_Lexer_gt_compound_ops
-#include "preparse/compound_ops.gt.c"
+#include "lexer/compound_ops.gt.c"
 #undef GENERATE_GROUND_TRUTH
 
 #define GENERATE_GROUND_TRUTH ptest_Lexer_gt_escapes
-#include "preparse/escapes.gt.c"
+#include "lexer/escapes.gt.c"
 #undef GENERATE_GROUND_TRUTH
 
 #define GENERATE_GROUND_TRUTH ptest_Lexer_gt_fib
-#include "preparse/fib.gt.c"
+#include "lexer/fib.gt.c"
 #undef GENERATE_GROUND_TRUTH
 
 #define GENERATE_GROUND_TRUTH ptest_Lexer_gt_literals
-#include "preparse/literals.gt.c"
+#include "lexer/literals.gt.c"
 #undef GENERATE_GROUND_TRUTH
 
 #define GENERATE_GROUND_TRUTH ptest_Lexer_gt_substrings
-#include "preparse/test_substrings.gt.c"
+#include "lexer/test_substrings.gt.c"
 #undef GENERATE_GROUND_TRUTH
 
 #define GENERATE_GROUND_TRUTH ptest_Lexer_gt_printing
-#include "preparse/printing.gt.c"
+#include "lexer/printing.gt.c"
 #undef GENERATE_GROUND_TRUTH
 
 #define GENERATE_GROUND_TRUTH ptest_Lexer_gt_utf8
-#include "preparse/utf8.gt.c"
+#include "lexer/utf8.gt.c"
 #undef GENERATE_GROUND_TRUTH
 
 #define GENERATE_GROUND_TRUTH ptest_Lexer_gt_neg_comment
-#include "preparse/neg/comment.gt.c"
+#include "lexer/neg/comment.gt.c"
 #undef GENERATE_GROUND_TRUTH
 
 
 #define GENERATE_GROUND_TRUTH ptest_Lexer_gt_neg_string_literal
-#include "preparse/neg/string_literal.gt.c"
+#include "lexer/neg/string_literal.gt.c"
 #undef GENERATE_GROUND_TRUTH
 
 
@@ -812,7 +805,7 @@ int ptest_Lexer_all()
     {
         TokenContainer tokensContainer;
         // TODO: is discard qualifier here safe ?
-        const char *cc = ModifyPathForPlatform("tests/preparse/" LEXER_TEST_NAME ".c").c_str();
+        const char *cc = ModifyPathForPlatform("tests/lexer/" LEXER_TEST_NAME ".c").c_str();
         LOGGER.logContext.currFile = (char *)cc;
         ptest_Lexer_gt_compound_ops( tokensContainer );
         ptest_Lexer(cc, tokensContainer, errors);
@@ -823,7 +816,7 @@ int ptest_Lexer_all()
     {
         TokenContainer tokensContainer;
         // TODO: is discard qualifier here safe ?
-        const char *cc = ModifyPathForPlatform("tests/preparse/" LEXER_TEST_NAME ".c").c_str();
+        const char *cc = ModifyPathForPlatform("tests/lexer/" LEXER_TEST_NAME ".c").c_str();
         LOGGER.logContext.currFile = (char *) cc;
         ptest_Lexer_gt_escapes( tokensContainer );
         ptest_Lexer(cc, tokensContainer, errors);
@@ -834,7 +827,7 @@ int ptest_Lexer_all()
     {
         TokenContainer tokensContainer;
         // TODO: is discard qualifier here safe ?
-        const char *cc = ModifyPathForPlatform("tests/preparse/" LEXER_TEST_NAME ".c").c_str();
+        const char *cc = ModifyPathForPlatform("tests/lexer/" LEXER_TEST_NAME ".c").c_str();
         LOGGER.logContext.currFile = (char *) cc;
         ptest_Lexer_gt_fib( tokensContainer );
         ptest_Lexer(cc, tokensContainer, errors);
@@ -845,7 +838,7 @@ int ptest_Lexer_all()
     {
         TokenContainer tokensContainer;
         // TODO: is discard qualifier here safe ?
-        const char *cc = ModifyPathForPlatform("tests/preparse/" LEXER_TEST_NAME ".c").c_str();
+        const char *cc = ModifyPathForPlatform("tests/lexer/" LEXER_TEST_NAME ".c").c_str();
         LOGGER.logContext.currFile = (char *) cc;
         ptest_Lexer_gt_literals( tokensContainer );
         ptest_Lexer(cc, tokensContainer, errors);
@@ -856,7 +849,7 @@ int ptest_Lexer_all()
     {
         TokenContainer tokensContainer;
         // TODO: is discard qualifier here safe ?
-        const char *cc = ModifyPathForPlatform("tests/preparse/" LEXER_TEST_NAME ".c").c_str();
+        const char *cc = ModifyPathForPlatform("tests/lexer/" LEXER_TEST_NAME ".c").c_str();
         LOGGER.logContext.currFile = (char *) cc;
         ptest_Lexer_gt_substrings( tokensContainer );
         ptest_Lexer(cc, tokensContainer, errors);
@@ -867,7 +860,7 @@ int ptest_Lexer_all()
     {
         TokenContainer tokensContainer;
         // TODO: is discard qualifier here safe ?
-        const char *cc = ModifyPathForPlatform("tests/preparse/" LEXER_TEST_NAME ".c").c_str();
+        const char *cc = ModifyPathForPlatform("tests/lexer/" LEXER_TEST_NAME ".c").c_str();
         LOGGER.logContext.currFile = (char *) cc;
         ptest_Lexer_gt_printing( tokensContainer );
         ptest_Lexer(cc, tokensContainer, errors);
@@ -878,7 +871,7 @@ int ptest_Lexer_all()
     {
         TokenContainer tokensContainer;
         // TODO: is discard qualifier here safe ?
-        const char *cc = ModifyPathForPlatform("tests/preparse/" LEXER_TEST_NAME ".c").c_str();
+        const char *cc = ModifyPathForPlatform("tests/lexer/" LEXER_TEST_NAME ".c").c_str();
         LOGGER.logContext.currFile = (char *) cc;
         ptest_Lexer_gt_utf8( tokensContainer );
         ptest_Lexer(cc, tokensContainer, errors);
@@ -894,7 +887,7 @@ int ptest_Lexer_all()
         TokenContainer tokensContainer;
         ppl_error_context ctx;
         // TODO: is discard qualifier here safe ?
-        const char *cc = ModifyPathForPlatform("tests/preparse/" LEXER_TEST_NAME ".c").c_str();
+        const char *cc = ModifyPathForPlatform("tests/lexer/" LEXER_TEST_NAME ".c").c_str();
         LOGGER.logContext.currFile = (char *) cc;
         ptest_Lexer_gt_neg_comment( tokensContainer, ctx );
         ptest_Lexer(cc, tokensContainer, errors, bNeg, &ctx);
@@ -906,7 +899,7 @@ int ptest_Lexer_all()
         TokenContainer tokensContainer;
         ppl_error_context ctx;
         // TODO: is discard qualifier here safe ?
-        const char *cc = ModifyPathForPlatform("tests/preparse/" LEXER_TEST_NAME ".c").c_str();
+        const char *cc = ModifyPathForPlatform("tests/lexer/" LEXER_TEST_NAME ".c").c_str();
         LOGGER.logContext.currFile = (char *) cc;
         ptest_Lexer_gt_neg_string_literal( tokensContainer, ctx );
         ptest_Lexer(cc, tokensContainer, errors, bNeg, &ctx);
