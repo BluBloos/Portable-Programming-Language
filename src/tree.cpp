@@ -438,10 +438,11 @@ bool TreeCompare(struct tree_node &a, struct tree_node b, bool bLog) {
                 break;
             }
         } else if (bLog) {
-            LOGGER.Error("type mismatch");
+            LOGGER.Error("type mismatch with (%s,%s)", 
+                PplTypeToString(a.metadata.valueKind),PplTypeToString(b.metadata.valueKind));
         }
     } else if (bLog) {
-        LOGGER.Error("childrenCount mismatch");
+        LOGGER.Error("childrenCount mismatch with (%u,%u)", a.childrenCount, b.childrenCount);
     }
 
     if (bSame) {

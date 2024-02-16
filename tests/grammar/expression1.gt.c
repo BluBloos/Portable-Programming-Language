@@ -11,7 +11,7 @@ tree_node GENERATE_GROUND_TRUTH()
 
     int64_t i;
 
-    auto lhs = CreateTree(AST_INT_LITERAL, i=4);
+    auto lhs = CreateTree(AST_INT_LITERAL, i=1);
     auto rhs = CreateTree(AST_INT_LITERAL, i=3);
 
     TreeAdoptTree(plus, lhs);
