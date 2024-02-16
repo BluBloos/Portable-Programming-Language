@@ -7,6 +7,9 @@
 
 tree_node GENERATE_GROUND_TRUTH()
 {
+    // TODO: the tree that we say is correct here doesn't feel right?
+    // is this the same way that C would do it?
+
     tree_node mul = CreateTree(AST_OP_MULTIPLICATION);
     char *s;
     auto lhs = CreateTree(AST_SYMBOL, s="c");

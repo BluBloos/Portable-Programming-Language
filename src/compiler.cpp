@@ -736,6 +736,10 @@ void ptest_Grammar(const char *inFilePath, tree_node gttn, int&errors) {
 #include "grammar/expression2.gt.c"
 #undef GENERATE_GROUND_TRUTH
 
+#define GENERATE_GROUND_TRUTH ptest_Grammar_gt_expression3
+#include "grammar/expression3.gt.c"
+#undef GENERATE_GROUND_TRUTH
+
 int ptest_Grammar_all() {
     Timer timer = Timer("grammar_all");
     LOGGER.InitFileLogging("w");
@@ -746,20 +750,30 @@ int ptest_Grammar_all() {
 #define GRAMMAR_TEST_NAME "expression1"
     {
         // TODO: is discard qualifier here safe ?
-        const char *cc = ModifyPathForPlatform("tests/grammar/" GRAMMAR_TEST_NAME ".c").c_str();
-        LOGGER.logContext.currFile = (char *)cc;
+        auto cc = ModifyPathForPlatform("tests/grammar/" GRAMMAR_TEST_NAME ".c");
+        LOGGER.logContext.currFile = (char *)cc.c_str();
         tree_node tn = ptest_Grammar_gt_expression1();
-        ptest_Grammar(cc, tn, errors);
+        ptest_Grammar(cc.c_str(), tn, errors);
     }
 #undef GRAMMAR_TEST_NAME
 
 #define GRAMMAR_TEST_NAME "expression2"
     {
         // TODO: is discard qualifier here safe ?
-        const char *cc = ModifyPathForPlatform("tests/grammar/" GRAMMAR_TEST_NAME ".c").c_str();
-        LOGGER.logContext.currFile = (char *)cc;
+        auto cc = ModifyPathForPlatform("tests/grammar/" GRAMMAR_TEST_NAME ".c");
+        LOGGER.logContext.currFile = (char *)cc.c_str();
         tree_node tn = ptest_Grammar_gt_expression2();
-        ptest_Grammar(cc, tn, errors);
+        ptest_Grammar(cc.c_str(), tn, errors);
+    }
+#undef GRAMMAR_TEST_NAME
+
+#define GRAMMAR_TEST_NAME "expression3"
+    {
+        // TODO: is discard qualifier here safe ?
+        auto cc = ModifyPathForPlatform("tests/grammar/" GRAMMAR_TEST_NAME ".c");
+        LOGGER.logContext.currFile = (char *)cc.c_str();
+        tree_node tn = ptest_Grammar_gt_expression3();
+        ptest_Grammar(cc.c_str(), tn, errors);
     }
 #undef GRAMMAR_TEST_NAME
 
@@ -819,10 +833,10 @@ int ptest_Lexer_all()
     {
         TokenContainer tokensContainer;
         // TODO: is discard qualifier here safe ?
-        const char *cc = ModifyPathForPlatform("tests/lexer/" LEXER_TEST_NAME ".c").c_str();
-        LOGGER.logContext.currFile = (char *)cc;
+        auto cc = ModifyPathForPlatform("tests/lexer/" LEXER_TEST_NAME ".c");
+        LOGGER.logContext.currFile = (char *)cc.c_str();
         ptest_Lexer_gt_compound_ops( tokensContainer );
-        ptest_Lexer(cc, tokensContainer, errors);
+        ptest_Lexer(cc.c_str(), tokensContainer, errors);
     }
 #undef LEXER_TEST_NAME
 
@@ -830,10 +844,10 @@ int ptest_Lexer_all()
     {
         TokenContainer tokensContainer;
         // TODO: is discard qualifier here safe ?
-        const char *cc = ModifyPathForPlatform("tests/lexer/" LEXER_TEST_NAME ".c").c_str();
-        LOGGER.logContext.currFile = (char *) cc;
+        auto cc = ModifyPathForPlatform("tests/lexer/" LEXER_TEST_NAME ".c");
+        LOGGER.logContext.currFile = (char *) cc.c_str();
         ptest_Lexer_gt_escapes( tokensContainer );
-        ptest_Lexer(cc, tokensContainer, errors);
+        ptest_Lexer(cc.c_str(), tokensContainer, errors);
     }
 #undef LEXER_TEST_NAME
 
@@ -841,10 +855,10 @@ int ptest_Lexer_all()
     {
         TokenContainer tokensContainer;
         // TODO: is discard qualifier here safe ?
-        const char *cc = ModifyPathForPlatform("tests/lexer/" LEXER_TEST_NAME ".c").c_str();
-        LOGGER.logContext.currFile = (char *) cc;
+        auto cc = ModifyPathForPlatform("tests/lexer/" LEXER_TEST_NAME ".c");
+        LOGGER.logContext.currFile = (char *) cc.c_str();
         ptest_Lexer_gt_fib( tokensContainer );
-        ptest_Lexer(cc, tokensContainer, errors);
+        ptest_Lexer(cc.c_str(), tokensContainer, errors);
     }
 #undef LEXER_TEST_NAME
 
@@ -852,10 +866,10 @@ int ptest_Lexer_all()
     {
         TokenContainer tokensContainer;
         // TODO: is discard qualifier here safe ?
-        const char *cc = ModifyPathForPlatform("tests/lexer/" LEXER_TEST_NAME ".c").c_str();
-        LOGGER.logContext.currFile = (char *) cc;
+        auto cc = ModifyPathForPlatform("tests/lexer/" LEXER_TEST_NAME ".c");
+        LOGGER.logContext.currFile = (char *) cc.c_str();
         ptest_Lexer_gt_literals( tokensContainer );
-        ptest_Lexer(cc, tokensContainer, errors);
+        ptest_Lexer(cc.c_str(), tokensContainer, errors);
     }
 #undef LEXER_TEST_NAME
 
@@ -863,10 +877,10 @@ int ptest_Lexer_all()
     {
         TokenContainer tokensContainer;
         // TODO: is discard qualifier here safe ?
-        const char *cc = ModifyPathForPlatform("tests/lexer/" LEXER_TEST_NAME ".c").c_str();
-        LOGGER.logContext.currFile = (char *) cc;
+        auto cc = ModifyPathForPlatform("tests/lexer/" LEXER_TEST_NAME ".c");
+        LOGGER.logContext.currFile = (char *) cc.c_str();
         ptest_Lexer_gt_substrings( tokensContainer );
-        ptest_Lexer(cc, tokensContainer, errors);
+        ptest_Lexer(cc.c_str(), tokensContainer, errors);
     }
 #undef LEXER_TEST_NAME
 
@@ -874,10 +888,10 @@ int ptest_Lexer_all()
     {
         TokenContainer tokensContainer;
         // TODO: is discard qualifier here safe ?
-        const char *cc = ModifyPathForPlatform("tests/lexer/" LEXER_TEST_NAME ".c").c_str();
-        LOGGER.logContext.currFile = (char *) cc;
+        auto cc = ModifyPathForPlatform("tests/lexer/" LEXER_TEST_NAME ".c");
+        LOGGER.logContext.currFile = (char *) cc.c_str();
         ptest_Lexer_gt_printing( tokensContainer );
-        ptest_Lexer(cc, tokensContainer, errors);
+        ptest_Lexer(cc.c_str(), tokensContainer, errors);
     }
 #undef LEXER_TEST_NAME
 
@@ -885,10 +899,10 @@ int ptest_Lexer_all()
     {
         TokenContainer tokensContainer;
         // TODO: is discard qualifier here safe ?
-        const char *cc = ModifyPathForPlatform("tests/lexer/" LEXER_TEST_NAME ".c").c_str();
-        LOGGER.logContext.currFile = (char *) cc;
+        auto cc = ModifyPathForPlatform("tests/lexer/" LEXER_TEST_NAME ".c");
+        LOGGER.logContext.currFile = (char *) cc.c_str();
         ptest_Lexer_gt_utf8( tokensContainer );
-        ptest_Lexer(cc, tokensContainer, errors);
+        ptest_Lexer(cc.c_str(), tokensContainer, errors);
     }
 #undef LEXER_TEST_NAME
 
@@ -901,10 +915,10 @@ int ptest_Lexer_all()
         TokenContainer tokensContainer;
         ppl_error_context ctx;
         // TODO: is discard qualifier here safe ?
-        const char *cc = ModifyPathForPlatform("tests/lexer/" LEXER_TEST_NAME ".c").c_str();
-        LOGGER.logContext.currFile = (char *) cc;
+        auto cc = ModifyPathForPlatform("tests/lexer/" LEXER_TEST_NAME ".c");
+        LOGGER.logContext.currFile = (char *) cc.c_str();
         ptest_Lexer_gt_neg_comment( tokensContainer, ctx );
-        ptest_Lexer(cc, tokensContainer, errors, bNeg, &ctx);
+        ptest_Lexer(cc.c_str(), tokensContainer, errors, bNeg, &ctx);
     }
 #undef LEXER_TEST_NAME
 
@@ -913,10 +927,10 @@ int ptest_Lexer_all()
         TokenContainer tokensContainer;
         ppl_error_context ctx;
         // TODO: is discard qualifier here safe ?
-        const char *cc = ModifyPathForPlatform("tests/lexer/" LEXER_TEST_NAME ".c").c_str();
-        LOGGER.logContext.currFile = (char *) cc;
+        auto cc = ModifyPathForPlatform("tests/lexer/" LEXER_TEST_NAME ".c");
+        LOGGER.logContext.currFile = (char *) cc.c_str();
         ptest_Lexer_gt_neg_string_literal( tokensContainer, ctx );
-        ptest_Lexer(cc, tokensContainer, errors, bNeg, &ctx);
+        ptest_Lexer(cc.c_str(), tokensContainer, errors, bNeg, &ctx);
     }
 #undef LEXER_TEST_NAME
 
