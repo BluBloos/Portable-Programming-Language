@@ -728,6 +728,7 @@ void ptest_Grammar(const char *inFilePath, tree_node gttn, int&errors) {
     }
 }
 
+// TODO: do we require the #undef for each? it is being defined right away after.
 #define GENERATE_GROUND_TRUTH ptest_Grammar_gt_expression1
 #include "grammar/expression1.gt.c"
 #undef GENERATE_GROUND_TRUTH
@@ -748,6 +749,10 @@ void ptest_Grammar(const char *inFilePath, tree_node gttn, int&errors) {
 #include "grammar/expression5.gt.c"
 #undef GENERATE_GROUND_TRUTH
 
+#define GENERATE_GROUND_TRUTH ptest_Grammar_gt_expression6
+#include "grammar/expression6.gt.c"
+#undef GENERATE_GROUND_TRUTH
+
 int ptest_Grammar_all() {
     Timer timer = Timer("grammar_all");
     LOGGER.InitFileLogging("w");
@@ -755,55 +760,19 @@ int ptest_Grammar_all() {
     // Initialize variables
     int errors = 0;
 
-#define GRAMMAR_TEST_NAME "expression1"
-    {
-        // TODO: is discard qualifier here safe ?
-        auto cc = ModifyPathForPlatform("tests/grammar/" GRAMMAR_TEST_NAME ".c");
-        LOGGER.logContext.currFile = (char *)cc.c_str();
-        tree_node tn = ptest_Grammar_gt_expression1();
-        ptest_Grammar(cc.c_str(), tn, errors);
+#define GRAMMAR_TEST(name, gtf) {\
+        auto cc = ModifyPathForPlatform("tests/grammar/" name ".c");\
+        LOGGER.logContext.currFile = (char *)cc.c_str();\
+        tree_node tn = gtf();\
+        ptest_Grammar(cc.c_str(), tn, errors);\
     }
-#undef GRAMMAR_TEST_NAME
 
-#define GRAMMAR_TEST_NAME "expression2"
-    {
-        // TODO: is discard qualifier here safe ?
-        auto cc = ModifyPathForPlatform("tests/grammar/" GRAMMAR_TEST_NAME ".c");
-        LOGGER.logContext.currFile = (char *)cc.c_str();
-        tree_node tn = ptest_Grammar_gt_expression2();
-        ptest_Grammar(cc.c_str(), tn, errors);
-    }
-#undef GRAMMAR_TEST_NAME
-
-#define GRAMMAR_TEST_NAME "expression3"
-    {
-        // TODO: is discard qualifier here safe ?
-        auto cc = ModifyPathForPlatform("tests/grammar/" GRAMMAR_TEST_NAME ".c");
-        LOGGER.logContext.currFile = (char *)cc.c_str();
-        tree_node tn = ptest_Grammar_gt_expression3();
-        ptest_Grammar(cc.c_str(), tn, errors);
-    }
-#undef GRAMMAR_TEST_NAME
-
-#define GRAMMAR_TEST_NAME "expression4"
-    {
-        // TODO: is discard qualifier here safe ?
-        auto cc = ModifyPathForPlatform("tests/grammar/" GRAMMAR_TEST_NAME ".c");
-        LOGGER.logContext.currFile = (char *)cc.c_str();
-        tree_node tn = ptest_Grammar_gt_expression4();
-        ptest_Grammar(cc.c_str(), tn, errors);
-    }
-#undef GRAMMAR_TEST_NAME
-
-#define GRAMMAR_TEST_NAME "expression5"
-    {
-        // TODO: is discard qualifier here safe ?
-        auto cc = ModifyPathForPlatform("tests/grammar/" GRAMMAR_TEST_NAME ".c");
-        LOGGER.logContext.currFile = (char *)cc.c_str();
-        tree_node tn = ptest_Grammar_gt_expression5();
-        ptest_Grammar(cc.c_str(), tn, errors);
-    }
-#undef GRAMMAR_TEST_NAME
+    GRAMMAR_TEST("expression1", ptest_Grammar_gt_expression1);
+    GRAMMAR_TEST("expression2", ptest_Grammar_gt_expression2);
+    GRAMMAR_TEST("expression3", ptest_Grammar_gt_expression3);
+    GRAMMAR_TEST("expression4", ptest_Grammar_gt_expression4);
+    GRAMMAR_TEST("expression5", ptest_Grammar_gt_expression5);
+    //GRAMMAR_TEST("expression6", ptest_Grammar_gt_expression6);
 
     PrintIfError(errors);
     timer.TimerEnd();
