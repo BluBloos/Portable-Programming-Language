@@ -753,6 +753,10 @@ void ptest_Grammar(const char *inFilePath, tree_node gttn, int&errors) {
 #include "grammar/expression6.gt.c"
 #undef GENERATE_GROUND_TRUTH
 
+#define GENERATE_GROUND_TRUTH ptest_Grammar_gt_expression7
+#include "grammar/expression7.gt.c"
+#undef GENERATE_GROUND_TRUTH
+
 int ptest_Grammar_all() {
     Timer timer = Timer("grammar_all");
     LOGGER.InitFileLogging("w");
@@ -773,6 +777,7 @@ int ptest_Grammar_all() {
     GRAMMAR_TEST("expression4", ptest_Grammar_gt_expression4);
     GRAMMAR_TEST("expression5", ptest_Grammar_gt_expression5);
     //GRAMMAR_TEST("expression6", ptest_Grammar_gt_expression6);
+    GRAMMAR_TEST("expression7", ptest_Grammar_gt_expression7);
 
     PrintIfError(errors);
     timer.TimerEnd();

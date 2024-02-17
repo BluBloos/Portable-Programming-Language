@@ -438,8 +438,8 @@ bool TreeCompare(struct tree_node &a, struct tree_node b, bool bLog) {
                 break;
             }
         } else if (bLog) {
-            LOGGER.Error("type mismatch with (%s,%s)", 
-                PplTypeToString(a.metadata.valueKind),PplTypeToString(b.metadata.valueKind));
+            // TODO: human readable.
+            LOGGER.Error("type mismatch with (%u,%u)",  a.type,b.type);
         }
     } else if (bLog) {
         LOGGER.Error("childrenCount mismatch with (%u,%u)", a.childrenCount, b.childrenCount);
