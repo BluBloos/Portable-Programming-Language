@@ -744,6 +744,10 @@ void ptest_Grammar(const char *inFilePath, tree_node gttn, int&errors) {
 #include "grammar/expression4.gt.c"
 #undef GENERATE_GROUND_TRUTH
 
+#define GENERATE_GROUND_TRUTH ptest_Grammar_gt_expression5
+#include "grammar/expression5.gt.c"
+#undef GENERATE_GROUND_TRUTH
+
 int ptest_Grammar_all() {
     Timer timer = Timer("grammar_all");
     LOGGER.InitFileLogging("w");
@@ -787,6 +791,16 @@ int ptest_Grammar_all() {
         auto cc = ModifyPathForPlatform("tests/grammar/" GRAMMAR_TEST_NAME ".c");
         LOGGER.logContext.currFile = (char *)cc.c_str();
         tree_node tn = ptest_Grammar_gt_expression4();
+        ptest_Grammar(cc.c_str(), tn, errors);
+    }
+#undef GRAMMAR_TEST_NAME
+
+#define GRAMMAR_TEST_NAME "expression5"
+    {
+        // TODO: is discard qualifier here safe ?
+        auto cc = ModifyPathForPlatform("tests/grammar/" GRAMMAR_TEST_NAME ".c");
+        LOGGER.logContext.currFile = (char *)cc.c_str();
+        tree_node tn = ptest_Grammar_gt_expression5();
         ptest_Grammar(cc.c_str(), tn, errors);
     }
 #undef GRAMMAR_TEST_NAME
