@@ -23,13 +23,13 @@ enum tree_type {
 
     //AST_CHARACTER_LITERAL,
 
+    // NODES THAT PROVIDE A CONCRETE VALUE.
     AST_INT_LITERAL,
     AST_DECIMAL_LITERAL,
-
     AST_STRING_LITERAL,
     AST_NULL_LITERAL,
-
     AST_SYMBOL,
+    AST_TYPE_LITERAL,
     
     // NOTE: why is there duplication of the token op enums and the ast op enums?
     // the reason is that they mean different things! so, the ast nodes exist to indicate structure.
@@ -386,6 +386,12 @@ struct tree_node CreateTree(enum tree_type type, float fnum) {
     struct tree_node tn = CreateTree(type);
     tn.metadata.dnum = fnum;
     tn.metadata.valueKind = PPL_TYPE_FLOAT;
+    return tn;
+}
+
+struct tree_node CreateTree(enum tree_type type, ppl_type ptype) {
+    struct tree_node tn = CreateTree(type);
+    tn.metadata.valueKind = ptype;
     return tn;
 }
 
