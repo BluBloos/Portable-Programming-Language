@@ -1,0 +1,9 @@
+I began by remarking at some of the failing grammar tests. those should be an
+easy fix. the fix would involve parsing type literals. I didn't want to do this
+until I removed TOKEN_KEYWORD, so doing that now.
+
+next, I went about and fixed the expression parsing to pick up on type literals.
+
+that's all I'm going to do for this evening, since otherwise I will extend my
+stay past the bedtime for more than I should. I would like to wake up at 4:30 AM
+tom morning, please and thank you.
