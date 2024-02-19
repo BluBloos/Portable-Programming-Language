@@ -11,10 +11,10 @@ void GENERATE_GROUND_TRUTH(TokenContainer &tokens)
     // main function declaration
     tokens.Append(Token(TOKEN_SYMBOL, str="main", l=1, bc=1));
     tokens.Append(Token(TOKEN_OP_DECL_RUNTIME_INFER, l=1, bc=6));
-    tokens.Append(Token(TOKEN_KEYWORD, str="fn", l=1, bc=9));
+    tokens.Append(Token(TOKEN_KEYWORD_FN, l=1, bc=9));
     tokens.Append(Token(TOKEN_PART, c='(', l=1, bc=11));
     tokens.Append(Token(TOKEN_PART, c=')', l=1, bc=12));
-    tokens.Append(Token(TOKEN_KEYWORD, str="int", l=1, bc=14));
+    tokens.Append(Token(TOKEN_KEYWORD_INT, l=1, bc=14));
     tokens.Append(Token(TOKEN_PART, c='{', l=1, bc=18));
     
     // Variable x declaration

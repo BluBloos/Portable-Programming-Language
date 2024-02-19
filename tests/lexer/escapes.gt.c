@@ -17,14 +17,14 @@ void GENERATE_GROUND_TRUTH(TokenContainer &tokens)
 
     tokens.Append(Token(TOKEN_OP_DECL_COMPILER, l=1, bc=6)); // "::"
    
-    tokens.Append(Token(TOKEN_KEYWORD, str="fn", l=3, bc=1));
+    tokens.Append(Token(TOKEN_KEYWORD_FN, l=3, bc=1));
     
     // NOTE: I made this decision because I don't like that I was parsing
     // the parens as the same token. it can't be a token op 
     tokens.Append(Token(TOKEN_PART, c='(', l=3, bc=3));
     tokens.Append(Token(TOKEN_PART, c=')', l=3, bc=5));
 
-    tokens.Append(Token(TOKEN_KEYWORD, str="int", l=3, bc=8));
+    tokens.Append(Token(TOKEN_KEYWORD_INT, l=3, bc=8));
 
     tokens.Append(Token(TOKEN_PART, c='{', l=3, bc=14));
         tokens.Append(Token(TOKEN_SYMBOL, str="printf", l=7, bc=5));

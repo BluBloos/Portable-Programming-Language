@@ -216,6 +216,8 @@ bool ParseTokensWithRegexTree(
                     break;
                 } 
             } 
+// lmao, we are breaking the whole thing right now.
+#if 0
             else if (childType == TREE_REGEX_KEYWORD) {
                 const char *child_data = child.metadata.str; 
                 struct token tok = tokens.QueryNext();
@@ -241,6 +243,7 @@ bool ParseTokensWithRegexTree(
                     break;
                 }
             }
+#endif
             else if (childType == TREE_REGEX_CHAR) {
                 
                 struct token tok = tokens.QueryNext();
@@ -270,7 +273,10 @@ bool ParseTokensWithRegexTree(
                     break;
                 }    
 
-            } else if ( childType == TREE_REGEX_GENERIC_KEYWORD ) {
+            } 
+// lmao also breaking this right now.
+#if 0
+            else if ( childType == TREE_REGEX_GENERIC_KEYWORD ) {
                 // NOTE(Noah): So this one is just matching ANY generic keyword.
                 // in which case we want to match like literally whatever we are looking at.
                 // save that information.
@@ -295,6 +301,7 @@ bool ParseTokensWithRegexTree(
                 }
                 re_matched += 1;
             }
+#endif
             else if ( childType == TREE_REGEX_SYMBOL ) {
 
                 tree_node symbol;

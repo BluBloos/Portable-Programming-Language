@@ -994,7 +994,6 @@ void ptest_Lexer(const char *inFilePath, TokenContainer &groundTruth, int &error
                             bool bMismatch = false;
                             switch(t1.type) {
                                 case TOKEN_QUOTE:
-                                case TOKEN_KEYWORD: // TODO: really ought to have keywords not be generic and use TOKEN_OP_KEYWORD* for the different kinds.
                                 case TOKEN_SYMBOL:
                                 {
                                     if (strcmp( t1.str, t2.str ) != 0){
@@ -1012,6 +1011,7 @@ void ptest_Lexer(const char *inFilePath, TokenContainer &groundTruth, int &error
                                 case TOKEN_FLOAT_LITERAL:
                                 case TOKEN_ENDL:
                                 case TOKEN_CHARACTER_LITERAL: // NOTE: this is merely the unicode point.
+                                CASE_TOKEN_KEYWORD
                                 CASE_TOKEN_OP
                                 CASE_TOKEN_OP_COMPOUND
                                 case TOKEN_PART:

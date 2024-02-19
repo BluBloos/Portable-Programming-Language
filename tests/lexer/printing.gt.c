@@ -10,23 +10,23 @@ void GENERATE_GROUND_TRUTH(TokenContainer &tokens)
     // pc declaration with import
     tokens.Append(Token(TOKEN_SYMBOL, str="pc", l=1, bc=1));
     tokens.Append(Token(TOKEN_OP_DECL_COMPILER, l=1, bc=4));
-    tokens.Append(Token(TOKEN_KEYWORD, str="#import", l=1, bc=7));
+    tokens.Append(Token(TOKEN_KEYWORD_IMPORT, l=1, bc=7));
     tokens.Append(Token(TOKEN_QUOTE, str="ppl.console", l=1, bc=15));
     tokens.Append(Token(TOKEN_ENDL, l=1, bc=28));
 
     // main function declaration
     tokens.Append(Token(TOKEN_SYMBOL, str="main", l=2, bc=1));
     tokens.Append(Token(TOKEN_OP_DECL_COMPILER, l=2, bc=6));
-    tokens.Append(Token(TOKEN_KEYWORD, str="fn", l=2, bc=9));
+    tokens.Append(Token(TOKEN_KEYWORD_FN, l=2, bc=9));
     tokens.Append(Token(TOKEN_PART, c='(', l=2, bc=12));
     tokens.Append(Token(TOKEN_PART, c=')', l=2, bc=13));
-    tokens.Append(Token(TOKEN_KEYWORD, str="int", l=2, bc=16));
+    tokens.Append(Token(TOKEN_KEYWORD_INT, l=2, bc=16));
     tokens.Append(Token(TOKEN_PART, c='{', l=2, bc=20));
 
         // Variable d declaration and assignment
         tokens.Append(Token(TOKEN_SYMBOL, str="d", l=3, bc=5));
         tokens.Append(Token(TOKEN_OP_DECL_RUNTIME, l=3, bc=6));
-        tokens.Append(Token(TOKEN_KEYWORD, str="short", l=3, bc=7));
+        tokens.Append(Token(TOKEN_KEYWORD_SHORT, l=3, bc=7));
         tokens.Append(Token(TOKEN_OP_ASSIGNMENT, l=3, bc=13));
         tokens.Append(Token(TOKEN_SYMBOL, str="MySumFun", l=3, bc=15));
         tokens.Append(Token(TOKEN_PART, c='(', l=3, bc=23));

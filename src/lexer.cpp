@@ -6,45 +6,6 @@ typedef unsigned int UNICODE_CPOINT;
 
 void GenerateCodeContextFromFilePos(ppl_error_context &ctx, uint32_t line, uint32_t c, char *buf, uint32_t bufLen);
 
-// keywords that map to values such as:
-// "true", "false", "null",
-// are mapped to their own TOKEN kind.
-
-char *KEYWORDS[] = {
-
-    "continue", "break", "return",
-
-    "if", "else", "then", "for", "in", "while", "do",
-
-    "switch", "case", "default", "fall",
-
-    "defer",
-
-    "fn", // function types.
-
-    // qualifiers
-    "static",
-    "unsigned", // TODO: do we really want this?
-        
-    // TODO: should intrinsics be keywords?
-    "size_of",
-    "type_of",
-    "type_info",
-    "offset_of",
-
-    // TODO: is assert a standard lib thing or a compile-time function????
-    "assert",
-
-    // TODO: should these be something else? and can I have like the #else, etc versions ???
-    "#if",
-
-    // TODO: do we need to move these to actually be ops?
-    "#import",
-    "#assert", // op
-    "#inline"  // op
-
-};
-
 // TODO: maybe there should be a compound part kind of like `->`.
 // because `->` isn't really an operator.
 char *TOKEN_PARTS = "{}():";
@@ -283,11 +244,181 @@ enum token_type {
     TOKEN_OP_COMMA, // ","
 
     TOKEN_PART,
-    TOKEN_KEYWORD,
+
+    TOKEN_KEYWORD_CONTINUE,
+    TOKEN_KEYWORD_BREAK,
+    TOKEN_KEYWORD_RETURN,
+    TOKEN_KEYWORD_IF,
+    TOKEN_KEYWORD_ELSE,
+    TOKEN_KEYWORD_THEN,
+    TOKEN_KEYWORD_FOR,
+    TOKEN_KEYWORD_IN,
+    TOKEN_KEYWORD_WHILE,
+    TOKEN_KEYWORD_DO,
+    TOKEN_KEYWORD_SWITCH,
+    TOKEN_KEYWORD_CASE,
+    TOKEN_KEYWORD_DEFAULT,
+    TOKEN_KEYWORD_FALL,
+    TOKEN_KEYWORD_DEFER,
+    TOKEN_KEYWORD_FN,
+    TOKEN_KEYWORD_STATIC,
+    TOKEN_KEYWORD_UNSIGNED,
+    TOKEN_KEYWORD_SIZEOF,
+    TOKEN_KEYWORD_TYPEOF,
+    TOKEN_KEYWORD_TYPE_INFO,
+    TOKEN_KEYWORD_OFFSETOF,
+    TOKEN_KEYWORD_ASSERT,
+    TOKEN_KEYWORD_HASHTAG_IF,
+    TOKEN_KEYWORD_IMPORT,
+    TOKEN_KEYWORD_INLINE,
+    TOKEN_KEYWORD_FLOAT,
+    TOKEN_KEYWORD_DOUBLE,
+    TOKEN_KEYWORD_F32,
+    TOKEN_KEYWORD_F64,
+    TOKEN_KEYWORD_BOOL,
+    TOKEN_KEYWORD_VOID,
+    TOKEN_KEYWORD_U8,
+    TOKEN_KEYWORD_U16,
+    TOKEN_KEYWORD_U32,
+    TOKEN_KEYWORD_U64,
+    TOKEN_KEYWORD_S8,
+    TOKEN_KEYWORD_S16,
+    TOKEN_KEYWORD_S32,
+    TOKEN_KEYWORD_S64,
+    TOKEN_KEYWORD_INT,
+    TOKEN_KEYWORD_CHAR,
+    TOKEN_KEYWORD_SHORT,
+    TOKEN_KEYWORD_ANY,
+    TOKEN_KEYWORD_TYPE,
+    TOKEN_KEYWORD_TYPEINFO,
+    TOKEN_KEYWORD_TYPEINFOMEMBER,
+    TOKEN_KEYWORD_STRUCT,
+    TOKEN_KEYWORD_ENUM,
+    TOKEN_KEYWORD_ENUMFLAG,
+    TOKEN_KEYWORD_NAMESPACE,
+
     TOKEN_SYMBOL,
 
     TOKEN_TYPE_COUNT
 };
+
+typedef struct {
+    char *str;
+    token_type tokType;
+} token_type_mapping_t;
+
+token_type_mapping_t KEYWORDS[] = {
+    {"continue", TOKEN_KEYWORD_CONTINUE},
+    {"break", TOKEN_KEYWORD_BREAK},
+    {"return", TOKEN_KEYWORD_RETURN},
+    {"if", TOKEN_KEYWORD_IF},
+    {"else", TOKEN_KEYWORD_ELSE},
+    {"then", TOKEN_KEYWORD_THEN},
+    {"for", TOKEN_KEYWORD_FOR},
+    {"in", TOKEN_KEYWORD_IN},
+    {"while", TOKEN_KEYWORD_WHILE},
+    {"do", TOKEN_KEYWORD_DO},
+    {"switch", TOKEN_KEYWORD_SWITCH},
+    {"case", TOKEN_KEYWORD_CASE},
+    {"default", TOKEN_KEYWORD_DEFAULT},
+    {"fall", TOKEN_KEYWORD_FALL},
+    {"defer", TOKEN_KEYWORD_DEFER},
+    {"fn", TOKEN_KEYWORD_FN},
+    {"static", TOKEN_KEYWORD_STATIC},
+    {"unsigned", TOKEN_KEYWORD_UNSIGNED},
+    {"size_of", TOKEN_KEYWORD_SIZEOF},
+    {"type_of", TOKEN_KEYWORD_TYPEOF},
+    {"type_info", TOKEN_KEYWORD_TYPE_INFO},
+    {"offset_of", TOKEN_KEYWORD_OFFSETOF},
+    {"assert", TOKEN_KEYWORD_ASSERT},
+    {"#if", TOKEN_KEYWORD_HASHTAG_IF}, // Note: Adjusted to match previous enum generation logic
+    {"#import", TOKEN_KEYWORD_IMPORT},
+    {"#assert", TOKEN_KEYWORD_ASSERT}, // Note: Adjusted to match previous enum generation logic
+    {"#inline", TOKEN_KEYWORD_INLINE}
+};
+
+
+// TODO: would be nice to clean some of this stuff up
+token_type_mapping_t TYPE_STRINGS[] = {
+    {"float", TOKEN_KEYWORD_FLOAT},
+    {"double", TOKEN_KEYWORD_DOUBLE},
+    {"f32", TOKEN_KEYWORD_F32},
+    {"f64", TOKEN_KEYWORD_F64},
+    {"bool", TOKEN_KEYWORD_BOOL},
+    {"void", TOKEN_KEYWORD_VOID},
+    {"u8", TOKEN_KEYWORD_U8},
+    {"u16", TOKEN_KEYWORD_U16},
+    {"u32", TOKEN_KEYWORD_U32},
+    {"u64", TOKEN_KEYWORD_U64},
+    {"s8", TOKEN_KEYWORD_S8},
+    {"s16", TOKEN_KEYWORD_S16},
+    {"s32", TOKEN_KEYWORD_S32},
+    {"s64", TOKEN_KEYWORD_S64},
+    {"int", TOKEN_KEYWORD_INT},
+    {"char", TOKEN_KEYWORD_CHAR},
+    {"short", TOKEN_KEYWORD_SHORT},
+    {"Any", TOKEN_KEYWORD_ANY},
+    {"Type", TOKEN_KEYWORD_TYPE},
+    {"TypeInfo", TOKEN_KEYWORD_TYPEINFO},
+    {"TypeInfoMember", TOKEN_KEYWORD_TYPEINFOMEMBER},
+    {"struct", TOKEN_KEYWORD_STRUCT},
+    {"enum", TOKEN_KEYWORD_ENUM},
+    {"enum_flag", TOKEN_KEYWORD_ENUMFLAG},
+    {"namespace", TOKEN_KEYWORD_NAMESPACE}
+};
+
+
+#define CASE_TOKEN_KEYWORD case TOKEN_KEYWORD_INT:\
+    case TOKEN_KEYWORD_CONTINUE:\
+    case TOKEN_KEYWORD_BREAK:\
+    case TOKEN_KEYWORD_RETURN:\
+    case TOKEN_KEYWORD_IF:\
+    case TOKEN_KEYWORD_HASHTAG_IF:\
+    case TOKEN_KEYWORD_ELSE:\
+    case TOKEN_KEYWORD_THEN:\
+    case TOKEN_KEYWORD_FOR:\
+    case TOKEN_KEYWORD_IN:\
+    case TOKEN_KEYWORD_WHILE:\
+    case TOKEN_KEYWORD_DO:\
+    case TOKEN_KEYWORD_SWITCH:\
+    case TOKEN_KEYWORD_CASE:\
+    case TOKEN_KEYWORD_TYPE_INFO:\
+    case TOKEN_KEYWORD_DEFAULT:\
+    case TOKEN_KEYWORD_FALL:\
+    case TOKEN_KEYWORD_DEFER:\
+    case TOKEN_KEYWORD_FN:\
+    case TOKEN_KEYWORD_STATIC:\
+    case TOKEN_KEYWORD_UNSIGNED:\
+    case TOKEN_KEYWORD_SIZEOF:\
+    case TOKEN_KEYWORD_TYPEOF:\
+    case TOKEN_KEYWORD_TYPEINFO:\
+    case TOKEN_KEYWORD_OFFSETOF:\
+    case TOKEN_KEYWORD_ASSERT:\
+    case TOKEN_KEYWORD_IMPORT:\
+    case TOKEN_KEYWORD_INLINE:\
+    case TOKEN_KEYWORD_FLOAT:\
+    case TOKEN_KEYWORD_DOUBLE:\
+    case TOKEN_KEYWORD_F32:\
+    case TOKEN_KEYWORD_F64:\
+    case TOKEN_KEYWORD_BOOL:\
+    case TOKEN_KEYWORD_VOID:\
+    case TOKEN_KEYWORD_U8:\
+    case TOKEN_KEYWORD_U16:\
+    case TOKEN_KEYWORD_U32:\
+    case TOKEN_KEYWORD_U64:\
+    case TOKEN_KEYWORD_S8:\
+    case TOKEN_KEYWORD_S16:\
+    case TOKEN_KEYWORD_S32:\
+    case TOKEN_KEYWORD_S64:\
+    case TOKEN_KEYWORD_CHAR:\
+    case TOKEN_KEYWORD_SHORT:\
+    case TOKEN_KEYWORD_ANY:\
+    case TOKEN_KEYWORD_TYPE:\
+    case TOKEN_KEYWORD_TYPEINFOMEMBER:\
+    case TOKEN_KEYWORD_STRUCT:\
+    case TOKEN_KEYWORD_ENUM:\
+    case TOKEN_KEYWORD_ENUMFLAG:\
+    case TOKEN_KEYWORD_NAMESPACE:
 
 #define CASE_TOKEN_OP  case TOKEN_OP_MEMBER_SELECTION:\
         case TOKEN_OP_MULTIPLICATION:\
@@ -392,12 +523,35 @@ bool TokenIsOp(token_type type) {
     }
 }
 
+const char *StringFromTokenKeyword(token_type keyword)
+{
+    // NOTE: if TYPE_STRINGS if ever modified, this code will break below.
+    // hopefully whoever is modifying the var will check all the places where it
+    // is used. at which point they will read this comment and be happy, or not be
+    // happy, but hopefully we prevent a bug here.
+
+    if (keyword >= TOKEN_KEYWORD_FLOAT && keyword <= TOKEN_KEYWORD_NAMESPACE)
+    {
+        auto m = TYPE_STRINGS[(int)keyword - (int)TOKEN_KEYWORD_FLOAT];
+        Assert(m.tokType == keyword);
+        return m.str;
+    } else if (keyword >= TOKEN_KEYWORD_CONTINUE && keyword <= TOKEN_KEYWORD_INLINE)
+    {
+        auto m = KEYWORDS[(int)keyword - (int)TOKEN_KEYWORD_CONTINUE];
+        Assert(m.tokType == keyword);
+        return m.str;
+    } else {
+        PPL_TODO;
+        return "<unkown>";
+    }
+}
+
 const char *StringFromTokenOp(token_type op)
 {
+    // this is a similar thing to token_type_mapping_t.
     struct {
         token_type  op;
         const char *str;
-
     } opPropertiesTable[] = {
         {TOKEN_OP_MEMBER_SELECTION, "."},
 
@@ -633,12 +787,12 @@ void TokenPrint(struct token tok)
             {const char *str = StringFromTokenOp( tok.type );
             LOGGER.Min("TOKEN_COP: %s\n", str);
             }break;
+        CASE_TOKEN_KEYWORD
+            {const char *str = StringFromTokenKeyword( tok.type );
+            LOGGER.Min("TOKEN_KEYWORD: %s\n", str);
+            }break;
         case TOKEN_PART:
             LOGGER.Min("TOKEN_PART: %c\n", tok.c);
-            break;
-        case TOKEN_KEYWORD:
-            Assert(tok.str != NULL);
-            LOGGER.Min("TOKEN_KEYWORD: %s\n", tok.str);
             break;
         case TOKEN_SYMBOL:
             Assert(tok.str != NULL);
@@ -800,23 +954,23 @@ static bool IsNumber(
 
 // given str will match a token from the pattern list.
 // returns true if the string matched the pattern.
-bool TokenFromString(
+bool TokenFromLatentString(
     std::string str,
     uint32_t bc, // begin col of str in source.
-    char **strPattern,
+    token_type_mapping_t *typeMapping,
     unsigned int patternLen,
-    enum token_type tokType,
     struct token &tok
 ) {
 //    tok = Token();
     for (unsigned int i = 0; i < patternLen; i++) {
-        char *mString = strPattern[i];
+        char *mString = typeMapping[i].str;
+        token_type tokType = typeMapping[i].tokType;
         char *pStr;
         int k = 0;
         for( pStr = mString; (*pStr != 0 && str[k] == *pStr); (pStr++, k++) );
         if ( (*pStr == 0) && (k == str.size()) ) {
             // Means we made it through entire pattern string and the incoming string.
-            tok = Token(tokType, mString, currentLine, bc);
+            tok = Token(tokType, currentLine, bc);
             return true;
         }
     }
@@ -872,19 +1026,17 @@ bool TokenFromLatent(struct token &token) {
         }
         else {
 
-            // TODO: looks like we can combine these two lists (ppl::TYPE_STRINGS and KEYWORDS).
-            if (!TokenFromString(
+            // TODO: looks like we can combine these two lists (TYPE_STRINGS and KEYWORDS), maybe.
+            if (!TokenFromLatentString(
                     *cleanToken, bc,
-                    ppl::TYPE_STRINGS,
-                    sizeof(ppl::TYPE_STRINGS) / sizeof(char *),
-                    TOKEN_KEYWORD,
+                    TYPE_STRINGS,
+                    sizeof(TYPE_STRINGS) / sizeof(token_type_mapping_t),
                     token
             )) {
-                if (!TokenFromString(
+                if (!TokenFromLatentString(
                     *cleanToken, bc,
                     KEYWORDS,
-                    sizeof(KEYWORDS) / sizeof(char *),
-                    TOKEN_KEYWORD,
+                    sizeof(KEYWORDS) / sizeof(token_type_mapping_t),
                     token
                 )) {
                     token = Token(TOKEN_SYMBOL, *cleanToken, currentLine, bc);
@@ -983,8 +1135,7 @@ std::string StdStringFromStringAndUCP(std::string *str, UNICODE_CPOINT c) {
 // Everything is lookahead (lookahead beginning at the current character).
 enum search_pattern_type {
     SEARCH_P_CHAR,
-    SEARCH_P_STRING,
-    SEARCH_P_CURRENT_STRING
+    SEARCH_P_STRING    
 };
 
 struct search_pattern {
@@ -1373,17 +1524,6 @@ bool Lex(
                         tok,
                         symbolTok
                     ) - 1;
-                    break;
-                    case SEARCH_P_CURRENT_STRING:
-                    // TODO: this codepath is untested for utf8.
-                    TokenFromString(
-                        StdStringFromStringAndUCP(cleanToken, character),
-                        n_col - cleanTokenEncodedCharCount, // beginCol.
-                        sPattern.string_pattern,
-                        sPattern.patternLen,
-                        sPattern.tokType,
-                        tok
-                    );
                     break;
                 }
                 if (symbolTok.type != TOKEN_UNDEFINED)
