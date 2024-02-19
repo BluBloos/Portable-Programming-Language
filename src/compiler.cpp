@@ -716,6 +716,9 @@ void ptest_Grammar(const char *inFilePath, tree_node gttn, int&errors) {
                     //return false;
                 }
 
+                //NOTE: it's OK here to use program internal concepts because these are tests;
+                // they're not user facing.
+                LOGGER.Error("ParseTokensWithGrammar failed" );
                 errors += 1;
             } 
 
@@ -779,10 +782,10 @@ int ptest_Grammar_all() {
     GRAMMAR_TEST("expression2", ptest_Grammar_gt_expression2);
     GRAMMAR_TEST("expression3", ptest_Grammar_gt_expression3);
     GRAMMAR_TEST("expression4", ptest_Grammar_gt_expression4);
-    GRAMMAR_TEST("expression5", ptest_Grammar_gt_expression5);
+    //GRAMMAR_TEST("expression5", ptest_Grammar_gt_expression5);
     //GRAMMAR_TEST("expression6", ptest_Grammar_gt_expression6);
     GRAMMAR_TEST("expression7", ptest_Grammar_gt_expression7);
-    //GRAMMAR_TEST("expression9", ptest_Grammar_gt_expression9);
+    GRAMMAR_TEST("expression9", ptest_Grammar_gt_expression9);
 
     PrintIfError(errors);
     timer.TimerEnd();

@@ -427,6 +427,13 @@ bool TreeCompare(struct tree_node &a, struct tree_node b, bool bLog) {
                         PplTypeToString(a.metadata.valueKind),PplTypeToString(b.metadata.valueKind));
                 }
                 break;
+                case AST_TYPE_LITERAL:
+                if ( a.metadata.valueKind == b.metadata.valueKind  ) {
+                    bSame = true;
+                } else if (bLog) {
+                    LOGGER.Error("AST_TYPE_LITERAL mismatch with (%s,%s)",
+                        PplTypeToString(a.metadata.valueKind),PplTypeToString(b.metadata.valueKind));
+                } break;
                 case AST_KEYWORD: // TODO: keywords should just be enum saying what kind of keyword it is.
                 case AST_GNODE:
                 case AST_STRING_LITERAL:
@@ -582,6 +589,9 @@ void PrintTree(const struct tree_node &tn, unsigned int indentation,
         case AST_SYMBOL:
             Assert(tn.metadata.str != NULL);
             PrintFn("%sSYMBOL:%s", sillyBuff, tn.metadata.str);
+            break;
+        case AST_TYPE_LITERAL:
+            PrintFn("%sTYPE_LITERAL:%s", sillyBuff, PplTypeToString(tn.metadata.valueKind));
             break;
         CASE_AST_OP
             PrintFn("%s%s", sillyBuff, astOpToHumanReadableString(tn.type));

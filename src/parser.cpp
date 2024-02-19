@@ -711,7 +711,15 @@ bool ParseLiteral(    TokenContainer &tokens,       tree_node *tree,  ppl_error_
 
             newTree = CreateTree(AST_INT_LITERAL, (char)tok.c);
         } break;
-
+        // TODO: add the rest. can do so with a table idea.
+        case TOKEN_KEYWORD_BOOL: {
+            tokens.AdvanceNext();
+            newTree = CreateTree(AST_TYPE_LITERAL, PPL_TYPE_BOOL);
+        } break;
+        case TOKEN_KEYWORD_INT: {
+            tokens.AdvanceNext();
+            newTree = CreateTree(AST_TYPE_LITERAL, PPL_TYPE_S64);
+        } break;
         default:
             didMatch = false;
             break;
