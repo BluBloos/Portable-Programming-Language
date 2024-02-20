@@ -2,6 +2,8 @@
 #define PPL_CORE_H
 // Common include for all files.
 
+#define PSTDLIB_UNIX_DIR "pstdlib"
+
 #if defined(_WIN32)
 #define PLATFORM_WINDOWS
 #elif defined(__APPLE__)

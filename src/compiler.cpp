@@ -64,7 +64,8 @@ void ptest_Preparser(char *inFilePath, int &errors);
 void ptest_wax64(char *inFilePath, int &errors);
 int ptest_Lexer_all();
 int ptest_Grammar_all();
-void ptest_ax64(char *inFilePath, int &errors);
+int ptest_ax64_all();
+void ptest_ax64(const char *inFilePath, int gr, std::vector<const char *> &gt_strings, int &errors);
 int RunPtestFromInFile(void (*ptest)(char *inFilePath, int &errors), const char *testName, const char *cwd);
 int RunPtestFromInFile(void (*ptest)(char *inFilePath, int &errors), const char *testName, const char *cwd, const char *inFile);
 int RunPtestFromCwd(
@@ -219,7 +220,6 @@ int DoCommand( char *l, const char *l2) {
 
 #define BACKEND_TESTS_DIR "tests/backend"
 #define PSTDLIB_WINDOWS_DIR "pstdlib"
-#define PSTDLIB_UNIX_DIR "pstdlib"
 
     // Remove leading whitespace.
 	while ( (l) && (*l == ' ' || *l == '\t')) {
@@ -277,32 +277,17 @@ int DoCommand( char *l, const char *l2) {
     }
     else if (0  == strcmp(l, "ax64") || 0 ==strcmp(l, "pasm_x86_64")) {
 
-        return RunPtestFromInFile(ptest_ax64, "pasm", ModifyPathForPlatform( BACKEND_TESTS_DIR "/").c_str() );
-
+        //return RunPtestFromInFile(ptest_ax64, "pasm", ModifyPathForPlatform( BACKEND_TESTS_DIR "/").c_str() );
+        return 0; // TODO;
+        
     } else if (0  == strcmp(l, "ax64all") || 0 ==strcmp(l, "pasm_x86_64_all")) {
 
         // TODO(Noah): Once more we have a case where we can abstract things because there is hella
         // cmd+c cmd+v going on.
         // The code we have below is quite literally the same as we see for the wax64all case,
         // except we are calling ptest_ax64 instead...
-
-        return RunPtestFromCwd(
-            ptest_ax64,
-            [](const char *fileName) -> bool {
-                if (fileName[0] != '.') {
-                    const char *pStr;
-                    for (pStr = fileName; *pStr != 0 && *pStr != '.'; pStr++);
-                    pStr++; // skp past the '.'
-                    if (SillyStringEquals("pasm", pStr)) {
-                        return true;
-                    }
-                }
-                return false;
-            },
-            "pasm_x86_64_all",
-            ModifyPathForPlatform(BACKEND_TESTS_DIR).c_str()
-        );
-
+        ptest_ax64_all();
+        
     } else if (0  == strcmp(l, "wax64") || 0 ==strcmp(l, "win_x86_64")) {
 
         if (l2 == 0) {
@@ -489,6 +474,7 @@ int DoCommand( char *l, const char *l2) {
         if (result == 0)
         {
             // TODO: windows version is now divergent from the macOS version. still outputs to the bin directory.
+            // it is also fully broken.
 #if defined(PLATFORM_WINDOWS)
             int &r = result;
             // TODO: why is there a conversion between const char * or whatever.
@@ -729,6 +715,45 @@ void ptest_Grammar(const char *inFilePath, tree_node gttn, int&errors) {
 
         fclose(inFile);
     }
+}
+
+#define GENERATE_GROUND_TRUTH ptest_ax64_gt_fib
+#include "backend/fib.gt.c"
+#undef GENERATE_GROUND_TRUTH
+
+#define GENERATE_GROUND_TRUTH ptest_ax64_gt_fib2
+#include "backend/fib2.gt.c"
+#undef GENERATE_GROUND_TRUTH
+
+#define GENERATE_GROUND_TRUTH ptest_ax64_gt_helloworld
+#include "backend/helloworld.gt.c"
+#undef GENERATE_GROUND_TRUTH
+
+int ptest_ax64_all()
+{
+    Timer timer = Timer("ax64_all");
+    LOGGER.InitFileLogging("w");
+
+    // Initialize variables
+    int errors = 0;
+
+#define AX64_TEST(name, gtf) {\
+        auto cc = ModifyPathForPlatform("tests/backend/" name ".pasm");\
+        LOGGER.logContext.currFile = (char *)cc.c_str();\
+        std::vector<const char *> strings;\
+        int r = gtf(strings);\
+        ptest_ax64(cc.c_str(), r, strings, errors);\
+    }
+
+    AX64_TEST("fib", ptest_ax64_gt_fib);
+    AX64_TEST("fib2", ptest_ax64_gt_fib2);
+    AX64_TEST("helloworld", ptest_ax64_gt_helloworld);
+
+#undef AX64_TEST
+    
+    PrintIfError(errors);
+    timer.TimerEnd();
+    return (errors > 0);
 }
 
 // TODO: do we require the #undef for each? it is being defined right away after.
@@ -1120,24 +1145,96 @@ void ptest_wax64(char *inFilePath, int &errors) {
     }
 }
 
-void ptest_ax64(char *inFilePath, int &errors) {
+void ptest_ax64(const char *inFilePath, int gr, std::vector<const char *> &gt_output, int &errors) {
     LOGGER.Log("Testing assembler for: %s", inFilePath);
-    int r = passembler(inFilePath, "macOS");
-    r = pasm_x86_64(pasm_lines, "bin/out.x86_64", MAC_OS);
+    int r;
+    
+    // TODO: the call to passembler can fail, right?
+    
+    passembler(inFilePath, "macOS");
+    pasm_x86_64(pasm_lines, "myProgram.x86_64", MAC_OS);
     DeallocPasm();
-    r = CallSystem("nasm -o bin/out.o -f macho64 bin/out.x86_64");
-    r = CallSystem("nasm -o bin/exit.o -f macho64 " PSTDLIB_UNIX_DIR "/macOS/exit.s");
-    r = CallSystem("nasm -o bin/print.o -f macho64 " PSTDLIB_UNIX_DIR "/macOS/console/print.s");
-    r = CallSystem("nasm -g -o bin/stub.o -f macho64 " PSTDLIB_UNIX_DIR "/macOS/stub.s");
-    r = CallSystem("ld -o bin/out -static bin/out.o bin/exit.o bin/print.o bin/stub.o");
-    r = CallSystem("bin/out");
-    errors = (r != 0 );
-    if (errors > 0) {
-        LOGGER.Error("Completed with %d error(s)", errors);
-        LOGGER.Error("Return code: %d", r);
+    
+    CallSystem("./nasm -o myProgram.o -f macho64 myProgram.x86_64");
+    CallSystem("./nasm -o " PSTDLIB_UNIX_DIR "/macOS/exit.o -f macho64 " PSTDLIB_UNIX_DIR "/macOS/exit.s");
+    CallSystem("./nasm -o " PSTDLIB_UNIX_DIR "/macOS/console/print.o -f macho64 " PSTDLIB_UNIX_DIR "/macOS/console/print.s");
+    CallSystem("./nasm -g -o " PSTDLIB_UNIX_DIR "/macOS/stub.o -f macho64 " PSTDLIB_UNIX_DIR "/macOS/stub.s");
+    CallSystem("ld -o myProgram -static myProgram.o " PSTDLIB_UNIX_DIR "/macOS/exit.o " PSTDLIB_UNIX_DIR "/macOS/console/print.o " PSTDLIB_UNIX_DIR "/macOS/stub.o");
+    
+#define DUMMY_OUTPUT_FILE "output.txt"
+    
+    r=CallSystem("./myProgram > " DUMMY_OUTPUT_FILE);
+    
+    if (gr != r) {
+        errors += 1;
+        LOGGER.Error("myProgram returned %d but expected %d", r, gr);
     } else {
-        LOGGER.Success("Completed with 0 errors.");
+        // compare the output of the program by raedinging output.txt, parsing the lines,
+        // and comparing each line to gt_output.
+        
+        FILE *inFile = fopen(DUMMY_OUTPUT_FILE, "r");
+        
+        bool everythingIsOk = true;
+        
+        auto fn_HandleLine = [&](char *line, int i) -> int {
+            SillyStringRemove0xA(line);
+            return strcmp(gt_output[i], line);
+        };
+
+        // TODO: feels like here we could abstract and have it where we give the HandleLine function; that's basically the visitor pattern afaik.
+        if (inFile != NULL) {
+            char *p = NULL; size_t lineCap;
+            ssize_t r = getline(&p, &lineCap, inFile);
+
+            int i=0;
+            
+            // TODO(Noah): don't alloc for every line.
+            while ( r != -1 ) {
+                
+                if (i >= gt_output.size()) {
+                    if (*p != 0) {everythingIsOk = false;
+                        LOGGER.Error("too many output lines"); break;}
+                }
+                
+                if ( 0 != fn_HandleLine(p, i++)) {
+                    everythingIsOk = false;
+                    LOGGER.Error("mismatch where expected (%s) but got (%s)",
+                                 gt_output[i-1], p);
+                    break;
+                }
+
+                free(p);
+                p = NULL;
+                r = getline(&p, &lineCap, inFile);
+            }
+
+            // even if r is -1 (which means we reached the end of the file),
+            // it could be the case that there is like one last line to handle?
+            if (everythingIsOk && p != NULL) {
+                
+                // TODO: factor?
+                if (i >= gt_output.size()) {
+                    if (*p != 0) {everythingIsOk = false;
+                        LOGGER.Error("too many output lines");}
+                } else if (0 != fn_HandleLine(p, i)) {
+                    everythingIsOk = false;
+                    LOGGER.Error("mismatch where expected (%s) but got (%s)",
+                                 gt_output[i], p);
+                }
+                
+                free(p);
+                p = NULL;
+            }
+
+            fclose(inFile);
+            
+            if (!everythingIsOk) {
+                errors += 1;
+            }
+        }
     }
+        
+#undef DUMMY_OUTPUT_FILE
 }
 
 // TODO(Noah): We can even modularize the two different version of the function that we use
