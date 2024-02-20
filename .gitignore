@@ -18,8 +18,11 @@ JOURNAL.md
 node_modules
 *.rdbg
 buildxcode/*
+buildllvm/*
 program.out
 package
 package.zip
 docs/PPL/integrated
 myProgram*
+vendor/clang+llvm-14.0.6-x86_64-apple-darwin/*
+output.txt

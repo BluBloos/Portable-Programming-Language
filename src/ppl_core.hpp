@@ -352,6 +352,7 @@ struct ppl_str_view
     // backend things :P
     #include <assembler.cpp>
     #include <x86_64.cpp>
+    #include <llvm_ir.cpp>
     #include <codegen.cpp>
 #endif
 /* OTHER COMPILATION UNITS */
