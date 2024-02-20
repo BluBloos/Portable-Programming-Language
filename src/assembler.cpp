@@ -121,7 +121,7 @@ struct pasm_fdecl {
 };
 
 struct pasm_let {
-    char *name;
+    const char *name;
     enum pasm_type type;
 };
 
@@ -233,7 +233,7 @@ pasm_register PasmRegisterFromType(int registerNumber, ppl_type type)
 
 struct pasm_stackvar {
     int addr;
-    char *name;
+    const char *name;
     enum pasm_type type;
 };
 
@@ -696,7 +696,7 @@ void StackVarFromFplabel(struct pasm_fparam *fparam) {
 
 // USAGE:
 // pplasm <inFile> <targetPlatform> 
-int pasm_main(int argc, char **argv) {
+int pasm_main(int argc, const char **argv) {
 
     // StretchyBufferInit(pasm_lines);
     pasm_lines = NULL;
@@ -710,7 +710,7 @@ int pasm_main(int argc, char **argv) {
         return 1;
     } else {
 
-        char *inFilePath = argv[1];
+        const char *inFilePath = argv[1];
         // char *targetPlatform = argv[2]; // TODO: use this.
 
         FILE *inFile = fopen(inFilePath, "r");
@@ -1017,7 +1017,7 @@ void HandleLine(char *line) {
                 Pasm_Glob()->stringMap.put(line, c_line);                
             }
 
-            pline.data_let.name = (char*)c_line; // TODO: cast.
+            pline.data_let.name = c_line;
 
             StretchyBufferPush(pasm_lines, pline);
         } else if (directive == "unlet") {
@@ -1036,7 +1036,7 @@ void HandleLine(char *line) {
                 Pasm_Glob()->stringMap.put(line, c_line);                
             }
 
-            pline.data_let.name = (char*)c_line; // TODO: cast.
+            pline.data_let.name = c_line;
 
             StretchyBufferPush(pasm_lines, pline);
         } 
@@ -1322,8 +1322,8 @@ void HandleLine(char *line) {
 // Call to run the passembler as if it was from the command line
 // inFile is the path to the file to run the assembler on.
 // targetPlatform is not implemented at the moment.
-int passembler(char *inFilePath, char *targetPlatform) {
-    char *argv[3];
+int passembler(const char *inFilePath, const char *targetPlatform) {
+    const char *argv[3];
     argv[0] = "pplasm";
     argv[1] = inFilePath;
     argv[2] = targetPlatform;

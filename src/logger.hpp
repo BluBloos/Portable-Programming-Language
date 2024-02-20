@@ -14,7 +14,7 @@ class Logger {
         char *currFile; // the full file-path.
     } logContext;
 
-    void InitFileLogging(char *mode) {
+    void InitFileLogging(const char *mode) {
         if (logFile != NULL) {
             fclose(logFile);
         }
@@ -24,7 +24,7 @@ class Logger {
         if (logFile != NULL)
             fclose(logFile);
     }
-    void _print(Color color, char *prefix, char *fmt, va_list args) {
+    void _print(Color color, const char *prefix, const char *fmt, va_list args) {
         switch (color) {
             case RED: printf("\033[0;31m"); break;
             case GREEN: printf("\033[0;32m"); break;
@@ -51,19 +51,19 @@ class Logger {
         // clear color
         printf("\033[0m");
     }
-    void Success(char *fmt, ...) {
+    void Success(const char *fmt, ...) {
         va_list args;
         va_start(args, fmt);
         _print(GREEN, "[SUCCESS]:", fmt, args);
         va_end(args);
     }
-    void Error(char *fmt, ...) {
+    void Error(const char *fmt, ...) {
         va_list args;
         va_start(args, fmt);
         _print(RED, "[ERROR]:", fmt, args);
         va_end(args);
     }
-    void Log(char *fmt, ...) {
+    void Log(const char *fmt, ...) {
         va_list args;
         va_start(args, fmt);
         _print(WHITE, "[LOG]:", fmt, args);
@@ -95,7 +95,7 @@ class Logger {
     }
 
     // prints minimally, and does not put a newline.
-    void Min(char *fmt, ...) {
+    void Min(const char *fmt, ...) {
         va_list args;
         va_list _args;
         va_start(args, fmt);

@@ -303,7 +303,7 @@ enum token_type {
 };
 
 typedef struct {
-    char *str;
+    const char *str;
     token_type tokType;
 } token_type_mapping_t;
 
@@ -459,7 +459,7 @@ token_type_mapping_t TYPE_STRINGS[] = {
         case TOKEN_OP_BITWISE_RIGHT_SHIFT:\
         case TOKEN_OP_SPAN_CTOR_STRICT:\
         case TOKEN_OP_SPAN_CTOR:\
-        case TOKEN_OP_DECL_COMPILER:\ 
+        case TOKEN_OP_DECL_COMPILER:\
         case TOKEN_OP_DECL_RUNTIME_INFER:
 
 #define CASE_TOKEN_UNARY_OP case TOKEN_OP_LOGICAL_NOT:\
@@ -963,12 +963,11 @@ bool TokenFromLatentString(
 ) {
 //    tok = Token();
     for (unsigned int i = 0; i < patternLen; i++) {
-        char *mString = typeMapping[i].str;
+        const char *mString = typeMapping[i].str;
         token_type tokType = typeMapping[i].tokType;
-        char *pStr;
         int k = 0;
-        for( pStr = mString; (*pStr != 0 && str[k] == *pStr); (pStr++, k++) );
-        if ( (*pStr == 0) && (k == str.size()) ) {
+        for(  ; (mString[k] != 0 && str[k] == mString[k]); (k++) );
+        if ( (mString[k] == 0) && (k == str.size()) ) {
             // Means we made it through entire pattern string and the incoming string.
             tok = Token(tokType, currentLine, bc);
             return true;
