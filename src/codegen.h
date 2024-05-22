@@ -487,7 +487,7 @@ static void ExpressionInferInfo(struct tree_node *ast, CG_ExpressionInfo *infoOu
     kind = PPL_TYPE_UNKNOWN;
 
     // TODO: once again, we really want this to be a simple switch statement here.
-    // we can get that going by removing all this debug string crap.
+    // we can get that going by removing all this debug string stuff.
     
     if ( strcmp(child->metadata.str, "import_expression") == 0 )
     {

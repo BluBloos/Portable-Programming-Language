@@ -19,7 +19,7 @@ void input_on()
 {
     attachedTerm = ppl::get_attached_term();
     ppl::terminal_attr attr = attachedTerm.get_attr();
-    // NOTE(Noah): Shit like ths, ICANON is underlying platform stuff and shouldn't really exist
+    // NOTE(Noah): Stuff like ths, ICANON is underlying platform stuff and shouldn't really exist
     // at this level. But I frankly don't care at this point in time.
     attr.local_modes &= ~( ICANON | ECHO );
     attr.special_characters[VTIME] = 0;

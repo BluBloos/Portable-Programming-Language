@@ -335,7 +335,7 @@ struct pasm_label_table {
     int value;
 };
 
-// TODO(Noah): See. Crap like this, in PPL, can be made MUCH more clean.
+// TODO(Noah): See. Stuff like this, in PPL, can be made MUCH more clean.
 // This type of code is prone to error big time.
 void PasmTypePrint(enum pasm_type ptype) {
     switch(ptype) {
@@ -724,7 +724,7 @@ int pasm_main(int argc, char **argv) {
             ssize_t r = getline(&p, &lineCap, inFile);
 
             // TODO(Noah): This code is probably going to be really slow because for every line of
-            // the assembler file that we take in, we fucking allocate and dealloc memory.
+            // the assembler file that we take in, we allocate and dealloc memory.
             // it would be much more sensible to just make a buffer of size 1024 or smthn and just put the
             // ASCII formated lines into there.
             // and we check if the line is larger, if and only if the line is larger, then we allocate more memory.

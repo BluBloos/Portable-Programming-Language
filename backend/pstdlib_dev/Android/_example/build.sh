@@ -12,7 +12,7 @@ ANDROIDTARGET="$ANDROIDVERSION"
 ADB="adb"
 UNAME=$(uname)
 
-# NOTE(Noah): Yep. This bullcrap is just meant for testing anyways. No need to
+# NOTE(Noah): Yep. This is just meant for testing anyways. No need to
 # worry about any cross-platform junk.
 OS_NAME="darwin-x86_64"
 

@@ -235,7 +235,7 @@ char *_grammarTable[][2] =
     // like e.g. I might want an integer_literal one, or a string_literal.
     {
         "type_keyword",
-        // TODO: is there anyway to make the below less crap?
+        // TODO: is there anyway to make the below less terrible?
         // especially because it has terrible performance implications.
         "[(keyword=float)(keyword=double)(keyword=f32)(keyword=f64)(keyword=bool)(keyword=void)(keyword=u8)(keyword=u16)(keyword=u32)(keyword=u64)(keyword=s8)(keyword=s16)(keyword=s32)(keyword=s64)(keyword=int)(keyword=char)(keyword=short)(keyword=Any)(keyword=Type)(keyword=TypeInfo)(keyword=TypeInfoMember)(keyword=struct)(keyword=enum)(keyword=enum_flag)(keyword=namespace)]`"
     },

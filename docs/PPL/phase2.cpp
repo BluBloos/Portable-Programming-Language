@@ -305,7 +305,7 @@ s3 := buildChickens().syntax + 2.f;
 // would have written.
 
 
-// how the COMMA SHIT works.
+// how the COMMA STUFF works.
 // =========================
 //
 // the `=` can take expressions with `,` on the LHS and RHS, then it just routes things.

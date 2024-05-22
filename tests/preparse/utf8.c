@@ -8,5 +8,5 @@
 main :: ()->int {
     utf8String:^char = "🔥🔥🔥🔥🔥🥵";
     myMan : u32 = '😱';
-    // Yo like that shit is 🔥🔥🔥🔥🔥🥵
+    // Yo like that stuff is 🔥🔥🔥🔥🔥🥵
 }

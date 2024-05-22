@@ -200,7 +200,7 @@ bool ParseTokensWithRegexTree(
             else if (childType == TREE_REGEX_KEYWORD) {
                 const char *child_data = child.metadata.str; 
                 struct token tok = tokens.QueryNext();
-                // TODO(Noah): This is gross. Fix it, you lazy fuck.
+                // TODO(Noah): This is gross. Fix it.
                 if (tok.type == TOKEN_KEYWORD && 
                     strlen(child_data) == strlen(tok.str) && 
                     SillyStringStartsWith(child_data, tok.str) )
@@ -426,7 +426,7 @@ bool ParseTokensWithRegexTree(
                     switch(tok.type) {
                         case TOKEN_COP:
                         {
-                            // TODO(Noah): This is gross. Fix it, you lazy fuck.
+                            // TODO(Noah): This is gross. Fix it.
                             didMatch = ( strlen(op) == strlen(tok.str) && 
                                 SillyStringStartsWith(op, tok.str));
                         }
