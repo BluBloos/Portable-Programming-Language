@@ -370,7 +370,16 @@ int DoCommand(const char *l, const char *l2) {
 #if defined(PLATFORM_MAC)
         int r = CallSystem("(bin/out && echo \"return code: 0\") || echo \"return code: $?\"");
 #elif defined(PLATFORM_WINDOWS)
-        PPL_TODO;
+        FILE *fp = fopen("bin\\temp.bat", "w");
+        if (fp == NULL) {
+            fprintf(stderr, "internal error: could not run bin\\out.\n");
+        } else {
+            fprintf(fp, "@echo off\n");
+            fprintf(fp, "bin\\out.exe\n");
+            fprintf(fp, "echo return code: %%ERRORLEVEL%%\n");
+            fclose(fp);
+            int r = CallSystem("bin\\temp.bat");
+        }
 #endif
         return 0;
     }
