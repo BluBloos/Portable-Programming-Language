@@ -6,7 +6,6 @@
   </p>
   <p align="center">
     <img src="https://github.com/BluBloos/Portable-Programming-Language/workflows/macOS%20build/badge.svg"></img>
-    <img src="https://github.com/BluBloos/Portable-Programming-Language/workflows/Ubuntu%20build/badge.svg"></img>
     <img src="https://github.com/BluBloos/Portable-Programming-Language/workflows/Windows%20build/badge.svg"></img>
   </p>
 </div>
