@@ -1,7 +1,5 @@
 @echo off
 
-call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
-
 :: TODO: make the above more robust. we should be searching for where vcvarsall.bat is.
 :: https://github.com/mmozeiko/wcap/blob/main/build.cmd seem to have a good solution.
 
