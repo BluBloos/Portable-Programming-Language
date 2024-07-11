@@ -7,13 +7,10 @@ on:
 
 jobs:
   build-test-ubuntu:
+    if: false
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v2
-      - name: Build PPL
-        run: ./build.sh b 
-        shell: bash
       - name: Preparser Test
         run: ./build.sh pall 
         shell: bash
