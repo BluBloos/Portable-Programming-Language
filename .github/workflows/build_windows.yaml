@@ -12,28 +12,19 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: ilammy/setup-nasm@v1
-      - name: Setup
-        shell: bash
-        run: rm /usr/bin/link
-      - name: Build PPL
-        run: ./build.sh b 
-        shell: bash
-      - name: Preparser Test
-        run: ./build.sh pall 
-        shell: bash
-      - name: Grammar Test
-        run: ./build.sh gall 
-        shell: bash
       - name: Install Visual Studio 
         uses: ilammy/msvc-dev-cmd@v1
         with: 
           arch: x64
-      - name: Backend Tests
+      - name: Setup
         shell: bash
-        run: |
-          rm /usr/bin/link || echo "Cannot rm GNU link. OK."
-          ./build.sh wax64all
-
-
-
-
+        run: rm /usr/bin/link
+      - name: Preparser Test
+        run: ./build.bat pall 
+        shell: bash
+      - name: Grammar Test
+        run: ./build.bat gall 
+        shell: bash
+      
+      - name: Backend Tests
+        run: ./build.bat wax64all
