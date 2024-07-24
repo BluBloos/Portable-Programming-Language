@@ -77,11 +77,10 @@ Language Features Supported:
 
 Dependency: `ld` must be available from the terminal. 
 
-Run the following command to launch the interactive build system.
+Run `build.sh` to build the compiler.
 
-```bash
-./build.sh
-```
+Run `bin/ppl` to run the compiler. If the compiler is not run from the root repo directory,
+the macro PSTDLIB_PATH within src/ppl.cpp may need to be changed.
 
 ## Windows
 
@@ -115,8 +114,7 @@ usage: cl [ option... ] filename... [ /link linkoption... ]
 
 ### 2. Build Command
 
-Run the following command to launch the interactive build system.
+Run `build.bat` to build the compiler.
 
-```batch
-build.bat
-```
+Run `bin\ppl.exe` to run the compiler. If the compiler is not run from the root repo directory,
+the macro PSTDLIB_PATH within src/ppl.cpp may need to be changed.

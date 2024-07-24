@@ -13,6 +13,7 @@ tests/*.cpp
 tests/*
 !/tests/*.c
 *.o
+!tests/backend/
 !tests/preparse/
 !tests/grammar
 !tests/codegen
