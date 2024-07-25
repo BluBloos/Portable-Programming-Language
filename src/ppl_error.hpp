@@ -43,17 +43,20 @@ struct ppl_error_context
     // change.
     RawFileReader *pTokenBirthplace;
 
-    bool SubmitError(ppl_error_kind kind, uint32_t line, uint32_t c, uint32_t errorScore)
+    bool SubmitError(ppl_error_kind k, uint32_t l, uint32_t c_in, uint32_t 
+        errorScore)
     {
         if (errorScore > m_errorScore)
         {
-            this->kind = kind;
-            this->line = line;
-            this->c = c;
+            kind = k;
+            line = l;
+            c = c_in;
+
             if (pTokenBirthplace != nullptr)
             {
                 GenerateCodeContextFromFilePos(*this, line, c, this->codeContext, PPL_ERROR_MESSAGE_MAX_LENGTH);
             }
+
             m_errorScore = errorScore;
             return true;
         }

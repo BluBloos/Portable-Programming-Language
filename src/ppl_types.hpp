@@ -201,6 +201,7 @@ static ppl_type KeywordToPplType(const char *str)
 static const char * PplTypeToString(ppl_type type)
 {
     switch (type) {
+        default:
         case PPL_TYPE_UNKNOWN:
             return "PPL_TYPE_UNKNOWN";
         case PPL_TYPE_F32:

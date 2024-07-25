@@ -237,7 +237,7 @@ static void StretchyBuffer_Growf(void **arr, int increment, int itemsize)
 #ifdef PLATFORM_WINDOWS
     // TODO(Noah): Make faster and less "dumb". Make compliant with the behaviour of getline so that in the
     // future, when someone who is not me tries to call getline, it works as expected.
-    ssize_t getline(char **l, size_t *n, FILE *streamIn) {
+    ssize_t getline(char **l, size_t *, FILE *streamIn) {
 
         /*
             https://man7.org/linux/man-pages/man3/getline.3.html
@@ -251,18 +251,19 @@ static void StretchyBuffer_Growf(void **arr, int increment, int itemsize)
 
         std::string str = "";
 
-        char c = fgetc(streamIn);    
+        char c = (char)fgetc(streamIn); // documentation states, "returns 
+                                        // unsigned char converted to an int".
         while (c != EOF) {
-            str += c;
+            str += (char)c;
             if (c == '\n') {
                 break;
             }    
-            c = fgetc(streamIn);
+            c = (char)fgetc(streamIn);
         }
 
         if (*l == NULL) {
             // Allocate a buffer to store the line.
-            unsigned int memSize = (str.size() + 1) * sizeof(char);
+            size_t memSize = (str.size() + 1) * sizeof(char);
             *l = (char *)malloc(memSize);
             memcpy(*l, str.c_str(), memSize); // this will include the null-terminator.
         }
@@ -320,7 +321,7 @@ public:
 struct ppl_str_view
 {
     char *str;
-    uint32_t len;
+    size_t len;
 };
 
 // TODO: Make this file (ppl_core.h) a *.hpp

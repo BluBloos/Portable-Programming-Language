@@ -4,18 +4,16 @@
 :: https://github.com/mmozeiko/wcap/blob/main/build.cmd seem to have a good solution.
 
 mkdir bin
-
 del bin\build.exe
 
-:: GNU compiler seems to not understand that if I do e.g. a `++` postfix that this has side effects,
-:: yet it screams at me of an "unused value". Hence, we use -Wno-unused-value.
-
-:: TODO: maybe we care about being "correct". so converting a compile-time string to a `char *` is
-:: deprecated behavior in C++. Yes we enable it with -Wno-write-strings. -Wno-writable-strings is for
-:: Clang.
+:: NOTE: _CRT_SECURE_NO_WARNINGS disables warnings when using "less secure"
+:: functions such as fopen(). I'm fine using these since they may be more
+:: performant due to less error checking.
+set COMPILER_FLAGS=/Z7 /W3 /D _CRT_SECURE_NO_WARNINGS
+set INCLUDE_DIRS=/I ..\src /I ..\src\third_party
 
 pushd bin
 
-cl /Z7 /W4 /I ..\src /I ..\src\third_party ..\src\ppl.cpp /link /DEBUG:FULL  /OUT:ppl.exe
+cl %INCLUDE_DIRS% %COMPILER_FLAGS% ..\src\ppl.cpp /link /DEBUG:FULL /OUT:ppl.exe
 
 popd
