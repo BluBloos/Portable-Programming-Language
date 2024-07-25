@@ -12,18 +12,18 @@ class ConstMemoryArena {
     void *_base;
     char *dataPtr;
     unsigned int totalDataBytes;
-    void *_Alloc(void *data, unsigned int dataSize) {
+    void *_Alloc(void *data, size_t dataSize) {
         void *result = memcpy(dataPtr, data, dataSize);
         dataPtr += dataSize;
         return result;
     }
     char *StdStringAlloc(std::string str) {
-        unsigned int stringSize =
+        size_t stringSize =
             (str.size() + 1) * (sizeof(char)); // Includes null-terminator.
         return (char *)_Alloc((void *)str.c_str(), stringSize);
     }
     char *StringAlloc(char *str) {
-        unsigned int stringSize = 0;
+        size_t stringSize = 0;
         for (char *pStr = str; *pStr != 0; pStr++) {
             stringSize++;
         }

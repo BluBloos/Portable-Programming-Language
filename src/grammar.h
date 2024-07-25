@@ -80,8 +80,8 @@ struct tree_node CreateRegexTree(Grammar &grammar, const char *regex) {
     StretchyBufferInit(contextStack);
     StretchyBufferPush(contextStack, regexTree);
 
-    int regexLen = strlen(regex);
-    int n = 0;
+    size_t regexLen = strlen(regex);
+    size_t n = 0;
 
     while (n < regexLen) {
         char c = regex[n]; 
@@ -93,7 +93,7 @@ struct tree_node CreateRegexTree(Grammar &grammar, const char *regex) {
         else if (c == '(') {
             // Search until ')'
             std::string newStr = "";
-            for (int j = n + 1; j < regexLen; j++) {
+            for (size_t j = n + 1; j < regexLen; j++) {
                 if (regex[j] != ')') {
                     newStr += regex[j];
                 } else {

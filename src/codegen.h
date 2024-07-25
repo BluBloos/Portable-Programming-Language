@@ -1027,8 +1027,7 @@ struct CG_GenerateExpressionContext
 
 CG_Value TypeExtendWidth(CG_Value type)
 {
-    if ( type.valueKind == PPL_TYPE_TYPE
-       )
+    if ( type.valueKind == PPL_TYPE_TYPE )
     {
         if ( type.valueKind == PPL_TYPE_F32 || type.valueKind == PPL_TYPE_F64 )
         {

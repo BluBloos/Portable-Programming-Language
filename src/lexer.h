@@ -97,9 +97,10 @@ public:
         // NOTE: we are using line+1 here because we can expect that there is one extra
         // element in lineInfos so that the length of the last line can be retrieved.
 
-        uint32_t zeroBasedIdx = line-1;
+        int zeroBasedIdx = line-1;
 
-        if ( (line == 0) || ( (zeroBasedIdx+1) >= StretchyBufferCount(lineInfos))) return {};
+        if ( (line == 0) || ( (zeroBasedIdx+1) >= 
+            StretchyBufferCount(lineInfos) ) ) return {};
 
         uint32_t beginIdx = lineInfos[zeroBasedIdx];
         uint32_t endIdx   = lineInfos[zeroBasedIdx+1];
@@ -557,13 +558,21 @@ bool TokenFromString(
     return false;
 }
 
+// of course, the lexer is stateful with respect to globals. this function
+// fits into the monolithic structure.
+uint32_t ComputeBeginCol()
+{
+    assert( cleanToken->size() <= UINT32_MAX );
+    return  n_col - (uint32_t)cleanToken->size();
+}
+
 // Checks for a token from a latent currentToken 
 // which by definition is a token that is preceding any other token or is preceding whitespace
 bool TokenFromLatent(struct token &token) {
     // Latent currentTokens can be literal or symbol tokens
     if (*cleanToken != "") {
 
-        uint32_t bc = n_col - cleanToken->size();
+        uint32_t bc = ComputeBeginCol();
 
         bool dFlag; bool fFlag; bool uFlag;
         if (IsNumber<EnableIsNumberFlags>(*cleanToken, &dFlag, &fFlag, &uFlag)) { 
@@ -979,7 +988,7 @@ bool Lex(
                     case SEARCH_P_CURRENT_STRING:
                     TokenFromString(
                         StdStringFromStringAndUCP(cleanToken, character),
-                        n_col - cleanToken->size(), // beginCol.
+                        ComputeBeginCol(),
                         sPattern.string_pattern,
                         sPattern.patternLen,
                         sPattern.tokType,

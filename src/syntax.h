@@ -462,7 +462,7 @@ bool ParseTokensWithRegexTree(
                             snprintf(errorCtx.errMsg,
                                 PPL_ERROR_MESSAGE_MAX_LENGTH,
                                 "Expected op '%.*s'. Grammar context = %s.",
-                                strlen(op),
+                                (int)strlen(op),
                                 op,
                                 currGrammarCtx.name);
 

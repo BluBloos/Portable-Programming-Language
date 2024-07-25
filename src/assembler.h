@@ -598,7 +598,9 @@ bool SillyStringGetRegister(char *str, enum pasm_register &reg) {
     for (; *pStr != 0 && *pStr != '_'; pStr++) {
         regNum += *pStr;
     }
-    unsigned int num = SillyStringToUINT((char *)regNum.c_str());    
+
+    int num = (int)SillyStringToUINT((char *)regNum.c_str());    
+
     if (num >= 0 && num < 32) {
         reg = (enum pasm_register)((int)PASM_R0 + num);
         if (*pStr == 0) {
@@ -606,8 +608,8 @@ bool SillyStringGetRegister(char *str, enum pasm_register &reg) {
             return true;
         } else {
             pStr++; // Skip past the underscore.
-            unsigned int num2 = SillyStringToUINT(pStr);
-            unsigned int offset = 3 - log2(num2 / 8);
+            int num2 = (int)SillyStringToUINT(pStr);
+            int offset = 3 - (int)log2(num2 >> 3);
             reg = (enum pasm_register)((unsigned int)reg + offset * 32);
             return true;
         }
@@ -1107,7 +1109,7 @@ void HandleLine(char *line) {
                 pline.lineType = PASM_LINE_DATA_BYTE_INT;
                 // An integer
                 SillyStringRemove0xA(line);
-                pline.data_int = SillyStringToUINT(line);
+                pline.data_int = (int)SillyStringToUINT(line);
             }
             StretchyBufferPush(pasm_lines, pline);  
             
